@@ -1,85 +1,58 @@
-<script setup lang="ts">
-import { RouterLink, RouterView } from 'vue-router'
-import HelloWorld from './components/HelloWorld.vue'
+<script lang="ts">
+import { defineComponent } from 'vue'
+import { IosArrowBack } from '@vicons/ionicons4'
+export default defineComponent({
+  components: {
+    IosArrowBack
+  },
+  methods: {
+    handleBack() {
+      this.$router.go(-1)
+    },
+    handleHome() {
+      this.$router.push('/')
+    }
+  },
+  data() {
+    // const subContent = this.$router.currentRoute.value.name
+    const subContent = 'Home'
+    return {
+      subContent
+    }
+  }
+})
 </script>
 
 <template>
-  <header>
-    <img alt="Vue logo" class="logo" src="@/assets/logo.svg" width="125" height="125" />
+  <n-affix :trigger-top="0">
+    <n-flex>
+      <n-icon size="30px">
+        <IosArrowBack @click="handleBack" />
+      </n-icon>
+      <n-image width="70" src="/SAP_BIG.png" preview-disabled @click="handleHome" />
+      <h2>{{ subContent }}</h2>
+    </n-flex>
+  </n-affix>
 
-    <div class="wrapper">
-      <HelloWorld msg="You did it!" />
-
-      <nav>
-        <RouterLink to="/">Home</RouterLink>
-        <RouterLink to="/about">About</RouterLink>
-      </nav>
-    </div>
-  </header>
-
-  <RouterView />
+  <div class="body-class">
+    <router-view />
+  </div>
 </template>
 
 <style scoped>
-header {
-  line-height: 1.5;
-  max-height: 100vh;
-}
-
-.logo {
-  display: block;
-  margin: 0 auto 2rem;
-}
-
-nav {
+.n-affix {
   width: 100%;
-  font-size: 12px;
-  text-align: center;
-  margin-top: 2rem;
+  height: 64px;
+  z-index: 999;
+  background-color: white;
+  box-shadow: 0 3px 5px gray;
+  padding: 0px 44px;
 }
 
-nav a.router-link-exact-active {
-  color: var(--color-text);
+.n-flex {
+  align-items: center;
 }
-
-nav a.router-link-exact-active:hover {
-  background-color: transparent;
-}
-
-nav a {
-  display: inline-block;
-  padding: 0 1rem;
-  border-left: 1px solid var(--color-border);
-}
-
-nav a:first-of-type {
-  border: 0;
-}
-
-@media (min-width: 1024px) {
-  header {
-    display: flex;
-    place-items: center;
-    padding-right: calc(var(--section-gap) / 2);
-  }
-
-  .logo {
-    margin: 0 2rem 0 0;
-  }
-
-  header .wrapper {
-    display: flex;
-    place-items: flex-start;
-    flex-wrap: wrap;
-  }
-
-  nav {
-    text-align: left;
-    margin-left: -1rem;
-    font-size: 1rem;
-
-    padding: 1rem 0;
-    margin-top: 1rem;
-  }
+.body-class {
+  padding-top: 70px;
 }
 </style>
