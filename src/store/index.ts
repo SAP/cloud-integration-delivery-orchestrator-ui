@@ -1,3 +1,4 @@
+import type { DataTableColumns } from 'naive-ui'
 import { defineStore } from 'pinia'
 
 export const statusDict = {
@@ -10,6 +11,7 @@ export const statusDict = {
 
 export interface Job {
   uuid: number
+  name: string
   description: string
   steps: Step[] //steps under this job instance
   status: 'DRAFT' | 'SUBMITTED' | 'RUNNING' | 'FINISHED' | 'FATAL'
@@ -26,6 +28,9 @@ export interface Step {
   status: 'DRAFT' | 'SUBMITTED' | 'RUNNING' | 'FINISHED' | 'FATAL'
   type: string
 
+  tenant: ApiEndpoint
+  targets: object[]
+
   createdBy?: string
   modifiedBy?: string
   createdAt?: string
@@ -33,27 +38,50 @@ export interface Step {
 }
 
 export interface ImportStep extends Step {
-  tenant: string
-  trs: string[]
+  targets: TransportRequest[] // transport requests
 }
 
 export interface DeployStep extends Step {
-  tenant: string
-  artifacts: string[] //types might be scriptCollections, iflows, packages
+  targets: object[] // types might be scriptCollections, iflows, packages
+}
+
+export interface UndeployStep extends Step {
+  targets: object[]
 }
 
 export interface ApiEndpoint {
-  uuid: number
+  id: number
   type: 'TMS' | 'CPI'
   status: 'reachable' | 'fail to connect' | 'draft'
   description: string
-  tokenUrl: string
-  credentialId: string
-  credentialSecret: string
-  endpointUrl: string
+  authUrl: string
+  clientId: string
+  clientSecret: string
+  apiUrl: string
 
   createdBy: string
   modifiedBy: string
   createdAt: string
   modifiedAt: string
+}
+
+export interface TransportRequest {
+  uuid: number
+  description: string
+  status: string
+  entryNode: string
+  createdAt: string
+  createdBy: string
+}
+
+export interface Package {
+  Id: string
+  Name: string
+  Description: string
+  Version: string
+}
+
+export interface ToolBar {
+  text: String
+  func(rows: DataTableColumns): void
 }

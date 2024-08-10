@@ -1,69 +1,4 @@
-import type { Job, DeployStep, ImportStep, ApiEndpoint } from '@/store/index'
-
-const mockJob: Job = {
-  uuid: 1000,
-  description: 'Mock job 01',
-  status: 'DRAFT',
-  createdAt: '2024.11.2 12:02:45',
-  createdBy: 'Doug.liu@sap.com',
-  modifiedAt: '',
-  modifiedBy: '',
-  steps: []
-}
-
-const mockJob1: Job = {
-  uuid: 1001,
-  description: 'Mock job 02',
-  status: 'FATAL',
-  createdAt: '',
-  createdBy: '',
-  modifiedAt: '',
-  modifiedBy: '',
-  steps: []
-}
-
-const mockJob2: Job = {
-  uuid: 1002,
-  description: 'Mock job 02',
-  status: 'FINISHED',
-  createdAt: '',
-  createdBy: '',
-  modifiedAt: '',
-  modifiedBy: '',
-  steps: []
-}
-
-export const mockJobList: Job[] = [mockJob, mockJob1, mockJob2]
-
-const mockSteps: (DeployStep | ImportStep)[] = [
-  {
-    uuid: 1233,
-    job: mockJob,
-    status: 'SUBMITTED',
-    type: 'Deploy',
-    tenant: 'prod01-PPP',
-    artifacts: ['e3', 'deas', 'd32w'],
-    createdAt: '',
-    createdBy: '',
-    modifiedAt: '',
-    modifiedBy: ''
-  },
-  {
-    uuid: 1233,
-    job: mockJob,
-    status: 'SUBMITTED',
-    type: 'Import',
-    tenant: 'prod01-SWM',
-    trs: ['e', 'dedas', 'dddddd'],
-    createdAt: '',
-    createdBy: '',
-    modifiedAt: '',
-    modifiedBy: ''
-  }
-]
-
-mockJob.steps = mockSteps
-export { mockJob }
+import type { Job, DeployStep, ImportStep, ApiEndpoint, TransportRequest } from '@/store/index'
 
 const mockCPIEndpoint1: ApiEndpoint = {
   uuid: 20001,
@@ -113,11 +48,11 @@ const mockCPIEndpoint3: ApiEndpoint = {
 export const mockCpiEndpoints = [mockCPIEndpoint1, mockCPIEndpoint2, mockCPIEndpoint3]
 
 const mockTMSEndpoint: ApiEndpoint = {
-  uuid: 20001,
+  id: 20001,
   type: 'TMS',
   status: 'reachable',
   description: 'Devops TMS',
-  tokenUrl: 'http://tms.com/oauth/token',
+  authUrl: 'http://tms.com/oauth/token',
   credentialId: 'xxxxxxxx',
   credentialSecret: 'SECRETxxxxxxxxx',
   endpointUrl: 'http://baidu.com/api/v1',
@@ -128,7 +63,7 @@ const mockTMSEndpoint: ApiEndpoint = {
 }
 
 const mockTMSEndpoint1: ApiEndpoint = {
-  uuid: 20002,
+  id: 20002,
   type: 'TMS',
   status: 'reachable',
   description: 'TMS Prod',
@@ -143,3 +78,79 @@ const mockTMSEndpoint1: ApiEndpoint = {
 }
 
 export const mockTMSList: ApiEndpoint[] = [mockTMSEndpoint, mockTMSEndpoint1]
+
+const mockTr: TransportRequest = {
+  uuid: 204945,
+  description: 'SAPMaCoforUtilitiesInboundProcessingV4 - MACOMMT-18045',
+  createdAt: 'Friday, Jul 12, 2024, 5:41:50 PM GMT+8',
+  createdBy: '27a0e8e8-078a-4ccc-8802-67cc3c3b17fe',
+  status: 'Initial',
+  entryNode: 'NODE_MMT_CF_HOTFIX'
+}
+
+const mockTr1: TransportRequest = {
+  uuid: 207892,
+  description: 'SAPMaCoforUtilitiesEmailProcessingV4 - MACOMMT-18109',
+  createdAt: 'Friday, Jul 12, 2024, 5:41:50 PM GMT+8',
+  createdBy: '27a0e8e8-078a-4ccc-8802-67cc3c3b17fe',
+  status: 'Initial',
+  entryNode: 'NODE_MMT_CF_CTEST'
+}
+
+export const mockTrList: TransportRequest[] = [mockTr, mockTr1]
+
+const mockJob: Job = {
+  uuid: 1000,
+  name: 'Mock job 01',
+  description: 'JRIA task: XXX',
+  status: 'FATAL',
+  createdAt: '2024.11.2 12:02:45',
+  createdBy: 'Doug.liu@sap.com',
+  modifiedAt: '',
+  modifiedBy: '',
+  steps: []
+}
+
+const mockJob1: Job = {
+  uuid: 1001,
+  name: 'Mock job 02',
+  description: 'JRIA task: XXX',
+  status: 'FATAL',
+  createdAt: '',
+  createdBy: '',
+  modifiedAt: '',
+  modifiedBy: '',
+  steps: []
+}
+
+const mockJob2: Job = {
+  uuid: 1002,
+  name: 'Mock job 02',
+  description: 'JRIA task: XXX',
+  status: 'FINISHED',
+  createdAt: '',
+  createdBy: '',
+  modifiedAt: '',
+  modifiedBy: '',
+  steps: []
+}
+
+export const mockJobList: Job[] = [mockJob, mockJob1, mockJob2]
+
+const mockSteps: (DeployStep | ImportStep)[] = [
+  {
+    uuid: 1233,
+    job: mockJob,
+    status: 'DRAFT',
+    type: 'Import',
+    tenant: mockTMSEndpoint,
+    trs: [],
+    createdAt: '',
+    createdBy: '',
+    modifiedAt: '',
+    modifiedBy: ''
+  }
+]
+
+// mockJob.steps = mockSteps
+export { mockJob }

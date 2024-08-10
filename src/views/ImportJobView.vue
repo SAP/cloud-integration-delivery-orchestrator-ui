@@ -1,80 +1,26 @@
 <template>
-  <data-table title="Import Jobs" :columns="columns" :data="data" />
+  <data-table title="Import Jobs" :columns="columns" :data="data" :handle-add="handleAdd" />
 </template>
 
 <script lang="ts">
-import { defineComponent, h } from 'vue'
+import { defineComponent, h, ref } from 'vue'
 import { type Job } from '@/store/index'
 import { mockJobList } from '@/store/mocks'
 import type { DataTableColumns, DataTableRowKey } from 'naive-ui'
 import DataTable from '@/components/DataTable.vue'
-import { IosArrowForward } from '@vicons/ionicons4'
+import { createImportJobColums } from '@/store/const-data'
 
 export default defineComponent({
   components: { DataTable },
   data() {
-    const router = this.$router
-    const rowProps = (row: Object) => {
-      return {
-        style: 'cursor: pointer;',
-        onClick: () => {
-          // console.log(row)
-          // this.$router.push('/flow')
-        }
-      }
-    }
-    const columns: DataTableColumns<Job> = [
-      {
-        type: 'selection',
-        disabled(row: Job) {
-          return row.status === 'FATAL'
-        }
-      },
-      {
-        title: 'ID',
-        key: 'uuid',
-        resizable: true
-      },
-      {
-        title: 'Job Name',
-        key: 'description',
-        resizable: true
-      },
-      {
-        title: 'Status',
-        key: 'status',
-        resizable: true
-      },
-      {
-        title: 'Created by',
-        key: 'createdBy',
-        resizable: true
-      },
-      {
-        title: 'Created At',
-        key: 'createdAt',
-        resizable: true
-      },
-      {
-        title: '',
-        key: 'arrow',
-        render(row: Job) {
-          return h(
-            'div',
-            {
-              style: { width: '18px', height: '18px' },
-              onClick: () => {
-                console.log(row)
-                router.push('/flow')
-              }
-            },
-            [h(IosArrowForward)]
-          )
-        }
-      }
-    ]
+    const columns: DataTableColumns<Job> = createImportJobColums(this.$router)
     const data = mockJobList
-    return { columns, data }
+    const currentRow = ref(data[0])
+
+    const handleAdd: Function = (data: Job[]) => {
+      this.$router.push('/flow')
+    }
+    return { columns, data, handleAdd, currentRow }
   },
   methods: {}
 })

@@ -24,7 +24,7 @@ export default defineComponent({
 </script>
 
 <template>
-  <n-affix :trigger-top="0">
+  <div class="header-class">
     <n-flex>
       <n-icon size="30px">
         <IosArrowBack @click="handleBack" />
@@ -32,7 +32,7 @@ export default defineComponent({
       <n-image width="70" src="/SAP_BIG.png" preview-disabled @click="handleHome" />
       <h2>{{ subContent }}</h2>
     </n-flex>
-  </n-affix>
+  </div>
 
   <div class="body-class">
     <router-view />
@@ -40,19 +40,19 @@ export default defineComponent({
 </template>
 
 <style scoped>
-.n-affix {
+.header-class {
   width: 100%;
-  height: 64px;
   z-index: 999;
   background-color: white;
   box-shadow: 0 3px 5px gray;
-  padding: 0px 44px;
+  position: sticky;
+  top: 0;
 }
 
 .n-flex {
   align-items: center;
 }
 .body-class {
-  padding-top: 70px;
+  margin-top: 10px;
 }
 </style>

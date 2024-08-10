@@ -19,14 +19,12 @@ export default defineComponent({
   </n-card>
 </template>
 
-<style>
+<style scoped>
 .n-card {
   display: grid;
   place-items: center;
   border-radius: 0.25rem;
   width: 176px;
   height: 176px;
-}
-.headerCla {
 }
 </style>

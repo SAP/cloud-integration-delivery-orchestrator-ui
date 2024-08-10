@@ -2,7 +2,8 @@
   <n-flex vertical align="start">
     <n-flex justify="space-between" class="header-class">
       <h3>{{ title }} ({{ count }})</h3>
-      <n-flex justify="">
+      <n-flex>
+        <!-- custom toolbars -->
         <n-button
           quaternary
           type="info"
@@ -13,7 +14,14 @@
           {{ tool.text }}
         </n-button>
 
-        <n-button quaternary type="info" class="icon-class" @click="handleAdd(data)">
+        <!-- add toolbar -->
+        <n-button
+          quaternary
+          type="info"
+          class="icon-class"
+          @click="handleAdd(data)"
+          v-if="handleAdd"
+        >
           <n-icon><IosAdd /> </n-icon>
         </n-button>
         <n-button quaternary type="info" class="icon-class">
@@ -26,7 +34,7 @@
       :columns="columnsCopy"
       :data="data"
       :row-props="rowProps"
-      size="medium"
+      size="small"
       :row-key="rowKey"
       @update:checked-row-keys="handleCheck"
       striped
@@ -36,21 +44,17 @@
 
 <script lang="ts">
 import { defineComponent, h, type PropType } from 'vue'
-import { type ApiEndpoint, type Job } from '@/store'
+import { type ApiEndpoint, type Job, type ToolBar } from '@/store'
 import type { DataTableColumns, DataTableRowKey } from 'naive-ui'
 import { IosAdd, IosSettings } from '@vicons/ionicons4'
 
-interface ToolBar {
-  text: String
-  func: Function
-}
 export default defineComponent({
   props: {
     title: { type: String, required: true },
     columns: { type: Array, required: true },
     data: { type: Array, required: true },
     customToolBars: { type: Array<ToolBar> },
-    handleAdd: { type: Function, required: true }
+    handleAdd: { type: Function }
   },
   data() {
     const router = this.$router
@@ -78,6 +82,7 @@ export default defineComponent({
       this.checkedRowKeysRef = rowKeys
       this.checkedRows = rows
       this.disableButton = !rows.length
+      this.$emit('update:checkRows', rows)
     }
   },
   emits: ['update:checkRows', 'update:edit'],
@@ -95,9 +100,6 @@ export default defineComponent({
 }
 h2 {
   padding-bottom: 15px;
-}
-.n-flex {
-  margin: 0px 50px;
 }
 .icon-class {
   font-size: 25px;

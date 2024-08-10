@@ -2,9 +2,8 @@
 import { defineComponent, h, ref, render } from 'vue'
 import DataTable from '@/components/DataTable.vue'
 import { mockCpiEndpoints } from '@/store/mocks'
-import { type ApiEndpoint } from '@/store/index'
+import { type ApiEndpoint, type ToolBar } from '@/store/index'
 import type { DataTableColumns, DataTableRowKey } from 'naive-ui'
-import { NButton, useMessage } from 'naive-ui'
 import EditEndpointCard from '@/components/EditEndpointCard.vue'
 import { apiEndpointColums } from '@/store/const-data'
 export default defineComponent({
@@ -19,7 +18,7 @@ export default defineComponent({
 
     const columns = apiEndpointColums
 
-    const customToolBars = [
+    const customToolBars: ToolBar[] = [
       {
         text: 'Edit',
         func: (rows: DataTableColumns) => {

@@ -1,5 +1,5 @@
 <template>
-  <n-card size="huge" hoverable>
+  <n-card hoverable>
     <n-space vertical>
       CPI tenant
       <n-select
@@ -26,8 +26,8 @@
 </style>
 
 <script lang="ts">
-import { defineComponent, PropType } from 'vue'
-import { DeployStep } from '../store/index'
+import { defineComponent, type PropType } from 'vue'
+import { type DeployStep } from '../store/index'
 export default defineComponent({
   data() {
     return {
@@ -58,7 +58,7 @@ export default defineComponent({
     onSubmit() {}
   },
   props: {
-    step: Object as PropType<DeployStep>
+    step: { type: Object as PropType<DeployStep>, required: true }
   }
 })
 </script>
