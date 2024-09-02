@@ -8,6 +8,8 @@
             class="ui5-title-root"
             v-model:value="jobInstance.name"
             v-if="jobInstance.status === 'DRAFT'"
+            placeholder="Job Name"
+            :status="jobInstance.name.length ? 'success':'error'"
             clearable
           />
           <span class="ui5-title-root" v-else>{{ jobInstance.name }}</span>
@@ -15,6 +17,8 @@
           <n-input
             v-model:value="jobInstance.description"
             v-if="jobInstance.status === 'DRAFT'"
+            placeholder="Description"
+            size="large"
             clearable
           />
           <n-text style="color: gray" v-else>{{ jobInstance.description }}</n-text>
@@ -107,7 +111,7 @@
                 <span v-if="current > 0">Config Step {{ current }}:</span>
               </div>
               
-              <ImportConfig :step="jobInstance.steps[current-1]" v-if="current > 0 && jobInstance.steps[current-1].type === 'Import'" />
+              <ImportConfig :key="current-1" :step="jobInstance.steps[current-1] as ImportStep" v-if="current > 0 && jobInstance.steps[current-1].type === 'Import'" />
 
             </n-flex>
           </div>
@@ -123,16 +127,9 @@ import { type DataTableColumns, type StepsProps } from 'naive-ui'
 import ImportStepCard from '../components/ImportStepCard.vue'
 import DeployStepCard from '../components/DeployStepCard.vue'
 import {
-  type ImportStep,
-  type DeployStep,
-  type Job,
-  type Step,
-  statusDict,
-  type ToolBar,
-  type ApiEndpoint,
-  type Package
+   type ImportStep, type DeployStep, type Job, type Step, type ToolBar, type ApiEndpoint, type Package,
+   
 } from '../store/index'
-import { mockJob, mockTrList, mockTMSList } from '@/store/mocks'
 import {
   stepTypeOptions,
   transportRequestColums,
@@ -144,7 +141,7 @@ import ImportConfig from '../components/ImportConfig.vue'
 
 export default defineComponent({
   props: {
-    job: Object as PropType<Job>
+    jobId: {required: true, type: String}
   },
   components: {
     ImportStepCard,
@@ -153,9 +150,10 @@ export default defineComponent({
     Edit16Regular,
     Delete28Regular
   },
+  created() {
+    this.getJob()
+  },
   data() {
-    const mockTrs = mockTrList
-
     const customToolBars: ToolBar[] = [
       {
         text: 'select',
@@ -163,52 +161,61 @@ export default defineComponent({
       }
     ]
 
+    const jobInstance: Job = {
+      name: '',
+      description: '',
+      status: 'DRAFT',
+      steps: [],
+      id: -1
+    }
+
     return {
-      //   jobInstance: this.job, //actual usage
-      statusDict,
       selectedStepType: null,
       stepTypeOptions,
-      jobInstance: mockJob,
+      jobInstance,
       currentStatus: 'process',
       current: -1,
-      mockTrs,
       trColums: transportRequestColums,
       customToolBars,
-      mockTMSList,
       apiEndpointSelectColums
     }
   },
   methods: {
     handleCreateStep(stepType: string) {
       const newStep: Step = {
-        job: this.jobInstance,
+        id: -1,
         status: 'DRAFT',
-        type: stepType
+        type: stepType,
+        endpoint_id: -1,
       }
       this.jobInstance.steps.push(newStep)
       this.current = this.jobInstance.steps.length
-      console.log(`=======`)
-      console.log(this.jobInstance.steps)
     },
-    handleApiEndpoint(rows: DataTableColumns) {
-      const endpoint = rows[0] as unknown as ApiEndpoint
-      ;(this.jobInstance.steps[this.current - 1] as ImportStep).tenant = endpoint
-    },
+
     handleSubmit() {
-      this.jobInstance.status = 'SUBMITTED'
+      // update job
+      axios.put(`/api/v1/job`,this.jobInstance)
+      .catch(err => {
+
+      })
+      .then(()=>{
+        this.getJob()  //refresh
+      })
     },
     handleCurrent(current: number) {
-      console.log(`current is ${current}`)
       this.current = current
+    },
+    getJob() {
+      axios
+      .get(`/api/v1/job/${this.jobId}`)
+      .then(resp=>{
+        this.jobInstance = resp.data.result
+      })
     }
   },
   computed: {
-    trTitle() {
-      const currentStep = this.jobInstance.steps[this.current - 1] as ImportStep | DeployStep
-      console.log(`current step`)
-      console.log(currentStep.tenant)
-      return `Transport Requests of ${currentStep.tenant.description}`
-    }
+  },
+  watch: {
   }
 })
 </script>

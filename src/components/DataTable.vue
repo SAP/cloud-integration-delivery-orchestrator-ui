@@ -1,7 +1,7 @@
 <template>
   <n-flex vertical align="start">
     <n-flex justify="space-between" class="header-class">
-      <h3>{{ title }} ({{ count }})</h3>
+      <h3>{{ title }} ({{ counts }})</h3>
       <n-flex>
         <!-- custom toolbars -->
         <n-button
@@ -31,20 +31,22 @@
     </n-flex>
 
     <n-data-table
-      :columns="columnsCopy"
+      :columns="columns"
       :data="data"
       :row-props="rowProps"
       size="small"
       :row-key="rowKey"
       @update:checked-row-keys="handleCheck"
+      :default-checked-row-keys="defaultCheckedRowKeys"
       striped
+      :loading="loading"
     />
   </n-flex>
 </template>
 
 <script lang="ts">
 import { defineComponent, h, type PropType } from 'vue'
-import { type ApiEndpoint, type Job, type ToolBar } from '@/store'
+import { type ToolBar } from '@/store'
 import type { DataTableColumns, DataTableRowKey } from 'naive-ui'
 import { IosAdd, IosSettings } from '@vicons/ionicons4'
 
@@ -53,8 +55,11 @@ export default defineComponent({
     title: { type: String, required: true },
     columns: { type: Array, required: true },
     data: { type: Array, required: true },
+    rowKey: {required: true},
+    defaultCheckedRowKeys: {type: Array<string | number>},
     customToolBars: { type: Array<ToolBar> },
-    handleAdd: { type: Function }
+    handleAdd: { type: Function },
+    loading: {type: Boolean}
   },
   data() {
     const router = this.$router
@@ -66,19 +71,15 @@ export default defineComponent({
         }
       }
     }
-    const columnsCopy = this.columns
-
-    const rowKey = (row: Job) => row.uuid
     const checkedRowKeysRef: DataTableRowKey[] = []
     const checkedRows: DataTableColumns = []
-    const count = this.data.length
     const disableButton = true
-    return { rowProps, count, rowKey, disableButton, checkedRowKeysRef, columnsCopy, checkedRows }
+    return { rowProps, disableButton, checkedRowKeysRef, checkedRows }
   },
   methods: {
     handleCheck(rowKeys: DataTableRowKey[], rows: DataTableColumns) {
-      console.log(rowKeys)
-      console.log(rows)
+      // console.log(rowKeys)
+      // console.log(rows)
       this.checkedRowKeysRef = rowKeys
       this.checkedRows = rows
       this.disableButton = !rows.length
@@ -89,6 +90,11 @@ export default defineComponent({
   components: {
     IosAdd,
     IosSettings
+  },
+  computed: {
+    counts() {
+      return this.data.length
+    }
   }
 })
 </script>

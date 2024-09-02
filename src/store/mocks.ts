@@ -100,7 +100,7 @@ const mockTr1: TransportRequest = {
 export const mockTrList: TransportRequest[] = [mockTr, mockTr1]
 
 const mockJob: Job = {
-  uuid: 1000,
+  id: 1,
   name: 'Mock job 01',
   description: 'JRIA task: XXX',
   status: 'FATAL',
@@ -112,7 +112,7 @@ const mockJob: Job = {
 }
 
 const mockJob1: Job = {
-  uuid: 1001,
+  id: 2,
   name: 'Mock job 02',
   description: 'JRIA task: XXX',
   status: 'FATAL',
@@ -124,7 +124,7 @@ const mockJob1: Job = {
 }
 
 const mockJob2: Job = {
-  uuid: 1002,
+  id: 3,
   name: 'Mock job 02',
   description: 'JRIA task: XXX',
   status: 'FINISHED',
@@ -139,11 +139,10 @@ export const mockJobList: Job[] = [mockJob, mockJob1, mockJob2]
 
 const mockSteps: (DeployStep | ImportStep)[] = [
   {
-    uuid: 1233,
-    job: mockJob,
+    id: 1233,
     status: 'DRAFT',
     type: 'Import',
-    tenant: mockTMSEndpoint,
+    apiEndpoint: mockTMSEndpoint,
     trs: [],
     createdAt: '',
     createdBy: '',

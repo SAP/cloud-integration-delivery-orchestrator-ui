@@ -1,15 +1,15 @@
 <template>
   <n-card hoverable size="small">
     <template #header>
-      <n-text v-if="step.tenant">{{ step.tenant.description }}</n-text>
-      <n-text v-if="!step.tenant" type="warning">Choose a TMS Node</n-text>
+      <n-text v-if="step.transport_node_name">{{ step.transport_node_name }}</n-text>
+      <n-text v-else type="warning">Choose a Transport Node</n-text>
     </template>
     <template #header-extra> {{ step.status }} </template>
-    <n-text v-if="!step.targets || !step.targets.length" type="warning">Transport Requests:</n-text>
+    <n-text v-if="!step.transport_requests" type="warning">Transport Requests:</n-text>
     <n-text v-else>Transport Requests:</n-text>
-
+    <!-- transport requests -->
     <n-space>
-      <n-tag v-for="(tr, index) in step.targets" :key="index">{{ tr.uuid }}</n-tag>
+      <n-tag v-for="(tr, index) in step.transport_requests" :key="index">{{ tr }}</n-tag>
     </n-space>
   </n-card>
 </template>
@@ -17,7 +17,7 @@
 <script lang="ts">
 import { defineComponent } from 'vue'
 import type { PropType } from 'vue'
-import type { ImportStep, Step } from '../store/index'
+import type { ImportStep } from '../store/index'
 
 export default defineComponent({
   data() {
@@ -25,7 +25,7 @@ export default defineComponent({
   },
   emits: ['update:value'],
   props: {
-    step: { type: Object as PropType<Step>, required: true }
+    step: { type: Object as PropType<ImportStep>, required: true }
   }
 })
 </script>

@@ -30,9 +30,10 @@ const router = createRouter({
       ]
     },
     {
-      path: '/flow',
+      path: '/flow/:jobId',
       name: 'flow',
-      component: () => import('@/views/FlowView.vue')
+      component: () => import('@/views/FlowView.vue'),
+      props: true
     },
     {
       path: '/config',

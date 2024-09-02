@@ -10,26 +10,24 @@ export const statusDict = {
 }
 
 export interface Job {
-  uuid: number
+  id: number
   name: string
   description: string
-  steps: Step[] //steps under this job instance
   status: 'DRAFT' | 'SUBMITTED' | 'RUNNING' | 'FINISHED' | 'FATAL'
+  steps: Step[] //steps under this job instance
 
-  createdBy: string
-  modifiedBy: string
-  createdAt: string
-  modifiedAt: string
+  createdBy?: string
+  modifiedBy?: string
+  createdAt?: string
+  modifiedAt?: string
 }
 
 export interface Step {
-  uuid?: number
-  job: Job // A job which this step belongs to
+  id: number
   status: 'DRAFT' | 'SUBMITTED' | 'RUNNING' | 'FINISHED' | 'FATAL'
   type: string
 
-  tenant: ApiEndpoint
-  targets: object[]
+  endpoint_id: number
 
   createdBy?: string
   modifiedBy?: string
@@ -38,11 +36,27 @@ export interface Step {
 }
 
 export interface ImportStep extends Step {
-  targets: TransportRequest[] // transport requests
+  transport_node_id: number
+  transport_node_name: string
+  transport_requests: number[] // transport requests
 }
+export function validate(job: Job) {
 
+  for (const step of job.steps) {
+    if (step.type === 'Import') {
+      const importStep = step as ImportStep
+      if (!(importStep.endpoint_id>0 && importStep.transport_node_id>0 && importStep.transport_node_name.length && importStep.transport_requests.length)) 
+        return false
+    }else if (step.type === 'Deploy') {
+      const deployStep = step as DeployStep
+      if(!(deployStep.endpoint_id>0 && deployStep.package_id>0 && deployStep.artifacts_ids.length)) return false
+    }
+  }
+  return true
+}
 export interface DeployStep extends Step {
-  targets: object[] // types might be scriptCollections, iflows, packages
+  package_id: number
+  artifacts_ids: number[]
 }
 
 export interface UndeployStep extends Step {
@@ -51,6 +65,7 @@ export interface UndeployStep extends Step {
 
 export interface ApiEndpoint {
   id: number
+  name: string
   type: 'TMS' | 'CPI'
   status: 'reachable' | 'fail to connect' | 'draft'
   description: string
@@ -65,11 +80,18 @@ export interface ApiEndpoint {
   modifiedAt: string
 }
 
+export interface TransportNode {
+  id: number
+  description: string
+  name: string
+
+}
+
 export interface TransportRequest {
-  uuid: number
+  id: number
   description: string
   status: string
-  entryNode: string
+  origin: string
   createdAt: string
   createdBy: string
 }

@@ -1,5 +1,5 @@
 import type { DataTableColumns, DataTableRowKey } from 'naive-ui'
-import type { ApiEndpoint, Job, TransportRequest } from '.'
+import type { ApiEndpoint, Job, TransportNode, TransportRequest } from '.'
 import { h } from 'vue'
 import type { Router } from 'vue-router'
 import { IosArrowForward } from '@vicons/ionicons4'
@@ -114,11 +114,16 @@ export function createImportJobColums(router: Router): DataTableColumns<Job> {
     },
     {
       title: 'ID',
-      key: 'uuid',
+      key: 'id',
       resizable: true
     },
     {
       title: 'Job Name',
+      key: 'name',
+      resizable: true
+    },
+    {
+      title: 'Description',
       key: 'description',
       resizable: true
     },
@@ -147,7 +152,10 @@ export function createImportJobColums(router: Router): DataTableColumns<Job> {
             style: { width: '18px', height: '18px' },
             onClick: () => {
               console.log(row)
-              router.push('/flow')
+              router.push({
+                name: 'flow',
+                params: { jobId: row.id }
+              })
             }
           },
           [h(IosArrowForward)]
@@ -156,6 +164,31 @@ export function createImportJobColums(router: Router): DataTableColumns<Job> {
     }
   ]
 }
+
+export const transportNodesColums: DataTableColumns<TransportNode> = [
+  {
+    type: 'selection',
+    multiple: false,
+    disabled(row: Object) {
+      return false
+    }
+  },
+  {
+    title: 'ID',
+    key: 'id',
+    resizable: true
+  },
+  {
+    title: 'Name',
+    key: 'name',
+    resizable: true
+  },
+  {
+    title: 'Description',
+    key: 'description',
+    resizable: true
+  }
+]
 
 export const transportRequestColums: DataTableColumns<TransportRequest> = [
   {
@@ -166,7 +199,7 @@ export const transportRequestColums: DataTableColumns<TransportRequest> = [
   },
   {
     title: 'Transport Request',
-    key: 'uuid',
+    key: 'id',
     resizable: true
   },
   {
@@ -186,7 +219,7 @@ export const transportRequestColums: DataTableColumns<TransportRequest> = [
   },
   {
     title: 'Entry Node',
-    key: 'entryNode',
+    key: 'origin',
     resizable: true
   },
   {
