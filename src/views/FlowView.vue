@@ -9,7 +9,7 @@
             v-model:value="jobInstance.name"
             v-if="jobInstance.status === 'DRAFT'"
             placeholder="Job Name"
-            :status="jobInstance.name.length ? 'success':'error'"
+            :status="jobInstance.name.length ? 'success' : 'error'"
             clearable
           />
           <span class="ui5-title-root" v-else>{{ jobInstance.name }}</span>
@@ -28,33 +28,41 @@
         <!-- action group -->
         <n-flex justify="start">
           <!-- Edit button -->
-          <n-button @click="jobInstance.status = 'DRAFT'" quaternary>
+          <n-tooltip trigger="hover">
             Edit
-            <template #icon>
-              <n-icon color="#0e7a0d" size="25">
-                <edit16-regular />
-              </n-icon>
+            <template #trigger>
+              <n-button @click="jobInstance.status = 'DRAFT'" quaternary>
+                <template #icon>
+                  <n-icon color="#0e7a0d" size="25">
+                    <edit16-regular />
+                  </n-icon>
+                </template>
+              </n-button>
             </template>
-          </n-button>
+          </n-tooltip>
 
           <n-divider vertical />
 
           <!-- Submit Button -->
-          <n-button :disabled="jobInstance.status === 'SUBMITTED'" @click="handleSubmit">
-            Submit
+          <n-button :disabled="jobInstance.status === 'SUBMITTED'" @click="handleSave">
+            Save
           </n-button>
-          <n-button :disabled="jobInstance.status === 'DRAFT'">Run</n-button>
+          <n-button :disabled="jobInstance.status === 'DRAFT'">Execute</n-button>
           <n-button :disabled="jobInstance.status === 'DRAFT'">Retry</n-button>
           <n-divider vertical />
           <!-- Delete button -->
-          <n-button quaternary>
+          <n-tooltip trigger="hover">
             Delete
-            <template #icon>
-              <n-icon color="#0e7a0d" size="25">
-                <Delete28Regular />
-              </n-icon>
+            <template #trigger>
+              <n-button quaternary @click="handleDelete">
+                <template #icon>
+                  <n-icon color="#0e7a0d" size="25">
+                    <Delete28Regular />
+                  </n-icon>
+                </template>
+              </n-button>
             </template>
-          </n-button>
+          </n-tooltip>
         </n-flex>
       </n-flex>
     </n-card>
@@ -96,9 +104,11 @@
               <template #title>
                 {{ step.type }}
               </template>
-              <import-step-card v-if="step.type === 'Import'" :step="step as ImportStep" />
 
-              <deploy-step-card v-if="step.type === 'Deploy'" :step="step as DeployStep" />
+              <component
+                :is="step.type === 'Import' ? 'ImportStepCard' : 'DeployStepCard'"
+                :step="step"
+              />
             </n-step>
           </n-steps>
         </n-gi>
@@ -108,11 +118,17 @@
           <div style="position: sticky; top: 200px">
             <n-flex class="table-class" vertical align="start">
               <div style="font-size: 15px; font-weight: bold">
-                <span v-if="current > 0">Config Step {{ current }}:</span>
+                <span v-if="current > 0">Detail of Step {{ current }}:</span>
               </div>
-              
-              <ImportConfig :key="current-1" :step="jobInstance.steps[current-1] as ImportStep" v-if="current > 0 && jobInstance.steps[current-1].type === 'Import'" />
 
+              <component
+                v-if="current > 0"
+                :is="
+                  jobInstance.steps[current - 1].type === 'Import' ? 'ImportConfig' : 'DeployConfig'
+                "
+                :key="current - 1"
+                :step="jobInstance.steps[current - 1] as ImportStep"
+              />
             </n-flex>
           </div>
         </n-gi>
@@ -127,8 +143,16 @@ import { type DataTableColumns, type StepsProps } from 'naive-ui'
 import ImportStepCard from '../components/ImportStepCard.vue'
 import DeployStepCard from '../components/DeployStepCard.vue'
 import {
-   type ImportStep, type DeployStep, type Job, type Step, type ToolBar, type ApiEndpoint, type Package,
-   
+  type ImportStep,
+  type DeployStep,
+  type Job,
+  type Step,
+  type ToolBar,
+  type ApiEndpoint,
+  type Package,
+  DeleteJob,
+  SaveJob,
+  FetchJob
 } from '../store/index'
 import {
   stepTypeOptions,
@@ -138,29 +162,24 @@ import {
 import { Edit16Regular, Delete28Regular } from '@vicons/fluent'
 import axios from 'axios'
 import ImportConfig from '../components/ImportConfig.vue'
+import DeployConfig from '../components/DeployConfig.vue'
 
 export default defineComponent({
   props: {
-    jobId: {required: true, type: String}
+    jobId: { required: true, type: String }
   },
   components: {
     ImportStepCard,
     DeployStepCard,
     ImportConfig,
+    DeployConfig,
     Edit16Regular,
     Delete28Regular
   },
   created() {
-    this.getJob()
+    FetchJob(this.jobId).then((job)=>{this.jobInstance = job})
   },
   data() {
-    const customToolBars: ToolBar[] = [
-      {
-        text: 'select',
-        func: (rows: DataTableColumns) => {}
-      }
-    ]
-
     const jobInstance: Job = {
       name: '',
       description: '',
@@ -176,7 +195,6 @@ export default defineComponent({
       currentStatus: 'process',
       current: -1,
       trColums: transportRequestColums,
-      customToolBars,
       apiEndpointSelectColums
     }
   },
@@ -186,37 +204,34 @@ export default defineComponent({
         id: -1,
         status: 'DRAFT',
         type: stepType,
-        endpoint_id: -1,
+        endpoint_id: -1
       }
       this.jobInstance.steps.push(newStep)
       this.current = this.jobInstance.steps.length
     },
 
-    handleSubmit() {
+    handleSave() {
       // update job
-      axios.put(`/api/v1/job`,this.jobInstance)
-      .catch(err => {
-
+      SaveJob(this.jobInstance)
+        .then(() => FetchJob(this.jobId)) // refresh
+        .then(job => {
+          this.jobInstance = job
+        })
+        
+    },
+    handleDelete() {
+      DeleteJob(this.jobInstance)
+      .then(job => {
+        this.$router.go(-1)
       })
-      .then(()=>{
-        this.getJob()  //refresh
-      })
+      
     },
     handleCurrent(current: number) {
       this.current = current
     },
-    getJob() {
-      axios
-      .get(`/api/v1/job/${this.jobId}`)
-      .then(resp=>{
-        this.jobInstance = resp.data.result
-      })
-    }
   },
-  computed: {
-  },
-  watch: {
-  }
+  computed: {},
+  watch: {}
 })
 </script>
 <style scoped>

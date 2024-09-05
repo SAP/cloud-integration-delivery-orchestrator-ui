@@ -1,10 +1,10 @@
 <template>
-  <data-table title="Import Jobs" :columns="columns" :data="data" :handle-add="handleAdd" :row-key="(row: Job) => row.id" />
+  <data-table title="Import Jobs" :columns="columns" :data="jobs" :handle-add="handleAdd" :row-key="(row: Job) => row.id" :custom-tool-bars="customToolBars"/>
 </template>
 
 <script lang="ts">
 import { defineComponent, h, ref } from 'vue'
-import { type Job } from '@/store/index'
+import { type Job, type ToolBar } from '@/store/index'
 import type { DataTableColumns, DataTableRowKey } from 'naive-ui'
 import DataTable from '@/components/DataTable.vue'
 import { createImportJobColums } from '@/store/const-data'
@@ -14,8 +14,7 @@ export default defineComponent({
   components: { DataTable },
   data() {
     const columns: DataTableColumns<Job> = createImportJobColums(this.$router)
-    const data: Job[] = []
-    const currentRow = ref(data[0])
+    const jobs: Job[] = []
 
     const handleAdd: Function = (data: Job[]) => {
       const job: Job = {
@@ -36,13 +35,25 @@ export default defineComponent({
         })
       
     }
-    return { columns, data, handleAdd, currentRow }
+    const customToolBars: ToolBar[] = [
+      {
+        text: 'Delete', 
+        func: (rows: DataTableColumns) => {
+          // TODO batch or promise.all() ?
+          axios.delete(`/api/v1/job/${rows[0].id}`)
+            .then(resp => {
+              this.getJobs()
+            })
+      }},
+      {text: 'refresh', func: () => {this.getJobs()}}
+    ]
+    return { columns, jobs, handleAdd, customToolBars }
   },
   methods: {
     getJobs() {
       axios.get('/api/v1/job')
         .then(resp => {
-          this.data = resp.data.result
+          this.jobs = resp.data.result
         })
     }
   },

@@ -1,14 +1,38 @@
+import axios from 'axios'
 import type { DataTableColumns } from 'naive-ui'
 import { defineStore } from 'pinia'
 
-export const statusDict = {
-  DRAFT: 'wait',
-  SUBMITTED: 'wait',
-  RUNNING: 'process',
-  FINISHED: 'finish',
-  FATAL: 'error'
+export function FetchJob(jobId: number|string): Promise<Job> {
+  return axios.get(`/api/v1/job/${jobId}`).then((resp) => resp.data.result)
 }
 
+export function SaveJob(job: Job): Promise<Job> {
+  return axios.put(`/api/v1/job`, job)
+    .then((resp) => 
+      resp.data.result)
+}
+
+export function ExecuteJob(job: Job) {
+
+}
+
+export function DeleteJob(job: Job): Promise<Job>{
+  return axios
+  .delete(`/api/v1/job/${job.id}`)
+  .then(resp => 
+    resp.data.result
+  )
+}
+
+export function NewJob(): Job{
+  return {
+    name: '',
+    description: '',
+    status: 'DRAFT',
+    steps: [],
+    id: -1,
+  }
+}
 export interface Job {
   id: number
   name: string
@@ -40,29 +64,18 @@ export interface ImportStep extends Step {
   transport_node_name: string
   transport_requests: number[] // transport requests
 }
-export function validate(job: Job) {
 
-  for (const step of job.steps) {
-    if (step.type === 'Import') {
-      const importStep = step as ImportStep
-      if (!(importStep.endpoint_id>0 && importStep.transport_node_id>0 && importStep.transport_node_name.length && importStep.transport_requests.length)) 
-        return false
-    }else if (step.type === 'Deploy') {
-      const deployStep = step as DeployStep
-      if(!(deployStep.endpoint_id>0 && deployStep.package_id>0 && deployStep.artifacts_ids.length)) return false
-    }
-  }
-  return true
-}
 export interface DeployStep extends Step {
-  package_id: number
-  artifacts_ids: number[]
+  endpoint_name: string // cpi tenant name
+  package_id: string
+  artifact_ids: string[]
 }
 
 export interface UndeployStep extends Step {
   targets: object[]
 }
 
+// api endpoints, including tms, cpi
 export interface ApiEndpoint {
   id: number
   name: string
@@ -79,6 +92,15 @@ export interface ApiEndpoint {
   createdAt: string
   modifiedAt: string
 }
+export function GetApiEndpointsByType(type: 'CPI'|'TMS'): Promise<ApiEndpoint[]> {
+  return axios
+  .get('/api/v1/apiEndpoints', {
+    params: { type: type }
+  })
+  .then(resp => resp.data.result)
+}
+
+// TMS
 
 export interface TransportNode {
   id: number
@@ -95,12 +117,49 @@ export interface TransportRequest {
   createdAt: string
   createdBy: string
 }
-
+export function GetTransportNodes(): Promise<TransportNode[]> {
+  return axios.get('/api/v1/tms/nodes')
+    .then(resp => resp.data.result)
+}
+export function GetTransportRequests(node_id: number|string): Promise<TransportRequest[]>{
+  return axios
+  .get('/api/v1/tms/trs', {
+    params: { transportNode: node_id }
+  }).then((response) =>  response.data.result)
+}
+// CPI
 export interface Package {
   Id: string
   Name: string
   Description: string
   Version: string
+  Mode: string
+  ModifiedBy: string
+  ModifiedAt: string
+}
+
+export interface Artifact {
+  Id: string
+  Version: string
+  Name: string
+}
+
+
+
+export function GetPackages(tenantId:number|string): Promise<Package[]> {
+  return axios.get('/api/v1/tanant/packages', {
+    params: {tenant: tenantId}
+  })
+  .then(resp => resp.data.result)
+}
+
+export function GetArtifacts(tenantId: number, packageId:string): Promise<Artifact[]> {
+  return axios
+    .get('/api/v1/tenant/packages/iflows', {
+    params: {tenant: tenantId, package: packageId}
+  })
+    .then(resp => 
+      resp.data.result)
 }
 
 export interface ToolBar {

@@ -1,21 +1,18 @@
 <template>
-  <n-card hoverable>
-    <n-space vertical>
-      CPI tenant
-      <n-select
-        v-model:value="deployStep.tenant"
-        placeholder="Choose CPI tenant"
-        :options="tenantOptions"
-      />
-      Artifacts
-      <n-select
-        v-model:value="deployStep.artifacts"
-        placeholder="choose Artifacts"
-        :options="artifactsOptions"
-        multiple
-      />
+  <n-card hoverable size="small">
+    <template #header>
+      <n-text v-if="step.endpoint_id">{{ step.endpoint_name }}</n-text>
+      <n-text v-else type="warning">Choose a CPI Tenant</n-text>
+    </template>
+    <n-text v-if="step.package_id"> {{ step.package_id}}</n-text>
+    <n-text v-else type="warning"> Choose Package </n-text>
+    <n-space>
+      <n-text :type="step.artifact_ids && step.artifact_ids.length ? 'success':'warning'">Artifacts:</n-text>
     </n-space>
-    <n-button @click="onSubmit">Submit</n-button>
+    
+    <n-space>
+      <n-tag v-for="(artifact, index) in step.artifact_ids" :key="index"> {{ artifact }}</n-tag>
+    </n-space>
   </n-card>
 </template>
 
@@ -32,26 +29,7 @@ export default defineComponent({
   data() {
     return {
       deployStep: this.step,
-      tenantOptions: [
-        {
-          label: 'cpi ctest 01',
-          value: 'CPICTest01'
-        },
-        {
-          label: 'cpi prod',
-          value: 'CPIPRODEON'
-        }
-      ],
-      artifactsOptions: [
-        {
-          label: '17003',
-          value: '17004'
-        },
-        {
-          label: '3242342',
-          value: '534534'
-        }
-      ]
+      
     }
   },
   methods: {
@@ -62,3 +40,10 @@ export default defineComponent({
   }
 })
 </script>
+
+<style scoped>
+
+.n-card {
+  width: 300px;
+}
+</style>

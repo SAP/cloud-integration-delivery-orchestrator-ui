@@ -1,5 +1,5 @@
 import type { DataTableColumns, DataTableRowKey } from 'naive-ui'
-import type { ApiEndpoint, Job, TransportNode, TransportRequest } from '.'
+import type { ApiEndpoint, Artifact, Job, Package, TransportNode, TransportRequest } from '.'
 import { h } from 'vue'
 import type { Router } from 'vue-router'
 import { IosArrowForward } from '@vicons/ionicons4'
@@ -207,11 +207,11 @@ export const transportRequestColums: DataTableColumns<TransportRequest> = [
     key: 'description',
     resizable: true
   },
-  {
-    title: 'Owner',
-    key: 'createdBy',
-    resizable: true
-  },
+  // {
+  //   title: 'Owner',
+  //   key: 'createdBy',
+  //   resizable: true
+  // },
   {
     title: 'Status',
     key: 'status',
@@ -227,6 +227,70 @@ export const transportRequestColums: DataTableColumns<TransportRequest> = [
     key: 'createdAt',
     resizable: true
   }
+]
+
+export const packageColums: DataTableColumns<Package> = [
+  {
+    type: 'selection',
+    multiple: false,
+    disabled(row: Object) {
+      return false
+    }
+  },
+  {
+    title: 'ID',
+    key: 'Id',
+    resizable: true
+  },
+  {
+    title: 'Name',
+    key: 'Name',
+    resizable: true
+  },
+  {
+    title: 'Version',
+    key: 'Version',
+    resizable: true
+  },
+  {
+    title: 'Mode',
+    key: 'Mode',
+    resizable: true
+  },
+  {
+    title: 'ModifiedBy',
+    key: 'ModifiedBy',
+    resizable: true
+  },
+  {
+    title: 'ModifiedAt',
+    key: 'ModifiedAt',
+    resizable: true
+  }
+]
+
+export const artifactColumns: DataTableColumns<Artifact> = [
+  {
+    type: 'selection',
+    disabled(row: Object) {
+      return false
+    }
+  },
+  {
+    title: 'ID',
+    key: 'Id',
+    resizable: true
+  },
+  {
+    title: 'Name',
+    key: 'Name',
+    resizable: true
+  },
+  {
+    title: 'Version',
+    key: 'Version',
+    resizable: true
+  },
 ]
 
 export const stepTypeOptions = [
