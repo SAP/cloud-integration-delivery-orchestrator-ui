@@ -17,11 +17,6 @@ export const apiEndpointSelectColums: DataTableColumns<ApiEndpoint> = [
     title: 'ID',
     key: 'id',
     resizable: true,
-    filter(value, row) {
-      value
-      return true
-    }
-
   },
   {
     title: 'Name',

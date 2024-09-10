@@ -14,10 +14,8 @@ export default defineComponent({
     }
   },
   data() {
-    // const subContent = this.$router.currentRoute.value.name
-    const subContent = 'Home'
     return {
-      subContent
+      route: this.$router
     }
   }
 })
@@ -30,7 +28,7 @@ export default defineComponent({
         <IosArrowBack @click="handleBack" />
       </n-icon>
       <n-image width="70" src="/SAP_BIG.png" preview-disabled @click="handleHome" />
-      <h2>{{ subContent }}</h2>
+      <h2>{{ route.currentRoute.name }}</h2>
     </n-flex>
   </div>
 

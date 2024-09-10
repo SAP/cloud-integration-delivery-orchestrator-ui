@@ -9,7 +9,7 @@
     :loading="!cpitenants || cpitenants.length === 0"
   />
   <data-table 
-    :title="'Packages of '+step.endpoint_id"
+    :title="'Packages of '+step.endpoint_name"
     :data="packages"
     :columns="packageColums"
     :row-key="(row: Package) => row.Id"

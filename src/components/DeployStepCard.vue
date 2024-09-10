@@ -1,7 +1,7 @@
 <template>
   <n-card hoverable size="small" closable>
     <template #header>
-      <n-text v-if="step.endpoint_id">{{ step.endpoint_name }}</n-text>
+      <n-text v-if="step.endpoint_id && step.endpoint_id!=-1">{{ step.endpoint_name }}</n-text>
       <n-text v-else type="warning">Choose a CPI Tenant</n-text>
     </template>
     <n-text v-if="step.package_id"> {{ step.package_id}}</n-text>

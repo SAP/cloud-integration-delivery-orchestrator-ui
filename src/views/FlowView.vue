@@ -93,7 +93,7 @@
       </n-flex>
     </div>
 
-    <!-- step list -->
+    <!-- step list with config view -->
     <n-card class="card-shadow-class">
       <div style="margin-bottom: 15px; font-size: 15px; font-weight: bold">Job Detail</div>
       <n-grid x-gap="40" :cols="5">
@@ -107,32 +107,26 @@
 
               <component
                 :is="step.type === 'Import' ? 'ImportStepCard' : 'DeployStepCard'"
-                :step="step" 
+                :step="step"
                 @close="handleCloseStep(step, index)"
               />
-
             </n-step>
           </n-steps>
         </n-gi>
 
         // choose config
         <n-gi span="3">
-          <div style="position: sticky; top: 200px">
-            <n-flex class="table-class" vertical align="start">
-              <div style="font-size: 15px; font-weight: bold">
-                <span v-if="current > 0">Detail of Step {{ current }}:</span>
-              </div>
-
-              <component
-                v-if="current > 0"
-                :is="
-                  jobInstance.steps[current - 1].type === 'Import' ? 'ImportConfig' : 'DeployConfig'
-                "
-                :key="current - 1"
-                :step="jobInstance.steps[current - 1]"
-              />
-            </n-flex>
-          </div>
+          <n-flex class="table-class" vertical align="start">
+            <span v-if="current > 0" style="font-size: 15px; font-weight: bold">
+              Details of Step {{ current }}:
+            </span>
+            <component
+              v-if="current > 0"
+              :is="jobInstance.steps[current - 1].type === 'Import' ? 'ImportConfig' : 'DeployConfig'"
+              :key="current - 1"
+              :step="jobInstance.steps[current - 1]"
+            />
+          </n-flex>
         </n-gi>
       </n-grid>
     </n-card>
@@ -181,7 +175,9 @@ export default defineComponent({
     Delete28Regular
   },
   created() {
-    FetchJob(this.jobId).then((job)=>{this.jobInstance = job})
+    FetchJob(this.jobId).then((job) => {
+      this.jobInstance = job
+    })
   },
   data() {
     const jobInstance: Job = {
@@ -221,34 +217,35 @@ export default defineComponent({
       const msg = this.message.loading('Saving')
       SaveJob(this.jobInstance)
         .then(() => FetchJob(this.jobId)) // refresh
-        .then(job => {
+        .then((job) => {
           this.jobInstance = job
-          msg.type= 'success'
+          msg.type = 'success'
           msg.content = 'Job Saved'
         })
     },
     handleDeleteJob() {
-      DeleteJob(this.jobInstance)
-      .then(job => { this.$router.go(-1) })
+      DeleteJob(this.jobInstance).then((job) => {
+        this.$router.go(-1)
+      })
     },
     handleCurrent(current: number) {
       this.current = current
     },
     handleCloseStep(step: Step, index: number) {
       if (step.id == -1) {
-        this.jobInstance.steps = this.jobInstance.steps.filter((v, i) => i!=index)
+        this.jobInstance.steps = this.jobInstance.steps.filter((v, i) => i != index)
         this.message.info(`Removed an unsaved step ${this.current}`)
         this.current = -1
-      }else {
+      } else {
         DeleteStep(step.id, step.type)
-        .then(() => FetchJob(this.jobId))
-        .then(job => { 
-          this.jobInstance = job
-          this.message.success(`Step ${this.current} Deleted`)
-          this.current = -1
-        })
+          .then(() => FetchJob(this.jobId))
+          .then((job) => {
+            this.jobInstance = job
+            this.message.success(`Step ${this.current} Deleted`)
+            this.current = -1
+          })
       }
-    },
+    }
   },
   computed: {},
   watch: {}
