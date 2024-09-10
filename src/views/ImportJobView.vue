@@ -1,5 +1,5 @@
 <template>
-  <data-table title="Import Jobs" :columns="columns" :data="jobs" :handle-add="handleAdd" :row-key="(row: Job) => row.id" :custom-tool-bars="customToolBars"/>
+  <data-table title="Import Transport Requests" :columns="columns" :data="jobs" :handle-add="handleAdd" :row-key="(row: Job) => row.id" :custom-tool-bars="customToolBars"/>
 </template>
 
 <script lang="ts">

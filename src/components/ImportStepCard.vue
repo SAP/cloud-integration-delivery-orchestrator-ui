@@ -1,5 +1,5 @@
 <template>
-  <n-card hoverable size="small">
+  <n-card hoverable size="small" closable>
     <template #header>
       <n-text v-if="step.transport_node_name">{{ step.transport_node_name }}</n-text>
       <n-text v-else type="warning">Choose a Transport Node</n-text>
@@ -23,7 +23,6 @@ export default defineComponent({
   data() {
     return {}
   },
-  emits: ['update:value'],
   props: {
     step: { type: Object as PropType<ImportStep>, required: true }
   }

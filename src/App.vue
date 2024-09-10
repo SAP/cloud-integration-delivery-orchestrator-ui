@@ -35,7 +35,9 @@ export default defineComponent({
   </div>
 
   <div class="body-class">
-    <router-view />
+    <n-message-provider placement="bottom-left">
+      <router-view />
+    </n-message-provider>
   </div>
 </template>
 

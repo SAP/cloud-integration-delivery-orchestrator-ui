@@ -59,6 +59,13 @@ export interface Step {
   modifiedAt?: string
 }
 
+export function DeleteStep(stepId: number, type: string): Promise<number> {
+  return axios.delete(`/api/v1/step/`, {
+    params: {id: stepId, type: type}
+  })
+    .then(resp => resp.data.result)
+}
+
 export interface ImportStep extends Step {
   transport_node_id: number
   transport_node_name: string

@@ -27,14 +27,12 @@
 
 <script lang="ts">
 import DataTable from '@/components/DataTable.vue'
-import { GetApiEndpointsByType, GetTransportNodes, GetTransportRequests, type ApiEndpoint, type ImportStep, type Step, type TransportNode, type TransportRequest } from '@/store'
+import { GetTransportNodes, GetTransportRequests, type ApiEndpoint, type ImportStep, type Step, type TransportNode, type TransportRequest } from '@/store'
 import {
   apiEndpointSelectColums,
   transportNodesColums,
   transportRequestColums
 } from '@/store/const-data'
-import axios from 'axios'
-import type { DataTableColumns } from 'naive-ui'
 import { defineComponent, type PropType } from 'vue'
 
 export default defineComponent({

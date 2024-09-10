@@ -54,7 +54,7 @@
           <n-tooltip trigger="hover">
             Delete
             <template #trigger>
-              <n-button quaternary @click="handleDelete">
+              <n-button quaternary @click="handleDeleteJob">
                 <template #icon>
                   <n-icon color="#0e7a0d" size="25">
                     <Delete28Regular />
@@ -107,8 +107,10 @@
 
               <component
                 :is="step.type === 'Import' ? 'ImportStepCard' : 'DeployStepCard'"
-                :step="step"
+                :step="step" 
+                @close="handleCloseStep(step, index)"
               />
+
             </n-step>
           </n-steps>
         </n-gi>
@@ -127,7 +129,7 @@
                   jobInstance.steps[current - 1].type === 'Import' ? 'ImportConfig' : 'DeployConfig'
                 "
                 :key="current - 1"
-                :step="jobInstance.steps[current - 1] as ImportStep"
+                :step="jobInstance.steps[current - 1]"
               />
             </n-flex>
           </div>
@@ -138,6 +140,7 @@
 </template>
 
 <script lang="ts">
+import { useMessage } from 'naive-ui'
 import { defineComponent, type PropType } from 'vue'
 import { type DataTableColumns, type StepsProps } from 'naive-ui'
 import ImportStepCard from '../components/ImportStepCard.vue'
@@ -152,7 +155,8 @@ import {
   type Package,
   DeleteJob,
   SaveJob,
-  FetchJob
+  FetchJob,
+  DeleteStep
 } from '../store/index'
 import {
   stepTypeOptions,
@@ -195,7 +199,8 @@ export default defineComponent({
       currentStatus: 'process',
       current: -1,
       trColums: transportRequestColums,
-      apiEndpointSelectColums
+      apiEndpointSelectColums,
+      message: useMessage()
     }
   },
   methods: {
@@ -208,26 +213,41 @@ export default defineComponent({
       }
       this.jobInstance.steps.push(newStep)
       this.current = this.jobInstance.steps.length
+      this.jobInstance.status = 'DRAFT'
     },
 
     handleSave() {
       // update job
+      const msg = this.message.loading('Saving')
       SaveJob(this.jobInstance)
         .then(() => FetchJob(this.jobId)) // refresh
         .then(job => {
           this.jobInstance = job
+          msg.type= 'success'
+          msg.content = 'Job Saved'
         })
-        
     },
-    handleDelete() {
+    handleDeleteJob() {
       DeleteJob(this.jobInstance)
-      .then(job => {
-        this.$router.go(-1)
-      })
-      
+      .then(job => { this.$router.go(-1) })
     },
     handleCurrent(current: number) {
       this.current = current
+    },
+    handleCloseStep(step: Step, index: number) {
+      if (step.id == -1) {
+        this.jobInstance.steps = this.jobInstance.steps.filter((v, i) => i!=index)
+        this.message.info(`Removed an unsaved step ${this.current}`)
+        this.current = -1
+      }else {
+        DeleteStep(step.id, step.type)
+        .then(() => FetchJob(this.jobId))
+        .then(job => { 
+          this.jobInstance = job
+          this.message.success(`Step ${this.current} Deleted`)
+          this.current = -1
+        })
+      }
     },
   },
   computed: {},
