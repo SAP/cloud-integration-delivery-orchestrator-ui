@@ -1,26 +1,21 @@
 <template>
   <n-card hoverable size="small" closable>
     <template #header>
-      <n-text v-if="step.endpoint_id && step.endpoint_id!=-1">{{ step.endpoint_name }}</n-text>
+      <n-text v-if="step.Endpoint">{{ step.Endpoint }}</n-text>
       <n-text v-else type="warning">Choose a CPI Tenant</n-text>
     </template>
-    <n-text v-if="step.package_id"> {{ step.package_id}}</n-text>
+    <n-text v-if="step.PackageId" style="font-size: medium"> {{ step.PackageId}}</n-text>
     <n-text v-else type="warning"> Choose Package </n-text>
+    <p/>
     <n-space>
-      <n-text :type="step.artifact_ids && step.artifact_ids.length ? 'success':'warning'">Artifacts:</n-text>
+      <n-text :type="step.ArtifactIds && step.ArtifactIds.length ? '':'warning'">Artifacts:</n-text>
     </n-space>
     
     <n-space>
-      <n-tag v-for="(artifact, index) in step.artifact_ids" :key="index"> {{ artifact }}</n-tag>
+      <n-tag v-for="(artifact, index) in step.ArtifactIds" :key="index" type="info"> {{ artifact }}</n-tag>
     </n-space>
   </n-card>
 </template>
-
-<style scoped>
-.n-card {
-  min-width: 400px;
-}
-</style>
 
 <script lang="ts">
 import { defineComponent, type PropType } from 'vue'
@@ -45,5 +40,6 @@ export default defineComponent({
 
 .n-card {
   width: 300px;
+  min-width: 400px;
 }
 </style>

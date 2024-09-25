@@ -105,7 +105,6 @@ export default defineComponent({
   emits: ['update:checkRows', 'update:edit'],
   components: {
     IosAdd,
-    IosSettings
   },
   computed: {
     counts() {

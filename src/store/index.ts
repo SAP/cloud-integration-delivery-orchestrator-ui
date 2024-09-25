@@ -5,6 +5,12 @@ import { defineStore } from 'pinia'
 export function FetchJob(jobId: number|string): Promise<Job> {
   return axios.get(`/api/v1/job/${jobId}`).then((resp) => resp.data.result)
 }
+// type: 'Import'|'Deploy'|'Undeploy'
+export function GetJobs(type: string): Promise<Job[]> {
+  return axios.get('/api/v1/job', {
+    params:{type: type}
+  }).then(resp => resp.data.result)
+}
 
 export function SaveJob(job: Job): Promise<Job> {
   return axios.put(`/api/v1/job`, job)
@@ -12,51 +18,52 @@ export function SaveJob(job: Job): Promise<Job> {
       resp.data.result)
 }
 
-export function ExecuteJob(job: Job) {
-
+export function ExecuteJob(job: Job): Promise<Job>{
+  return axios.post(`/api/v1/job/${job.ID}`).then(resp => resp.data.result)
 }
 
 export function DeleteJob(job: Job): Promise<Job>{
   return axios
-  .delete(`/api/v1/job/${job.id}`)
+  .delete(`/api/v1/job/${job.ID}`)
   .then(resp => 
     resp.data.result
   )
 }
 
-export function NewJob(): Job{
-  return {
-    name: '',
-    description: '',
-    status: 'DRAFT',
-    steps: [],
-    id: -1,
+export function NewJob(type: string): Promise<Job>{
+  const job: Job = {
+    Name: '',
+    Description: '',
+    Status: 'Draft',
+    Steps: [],
+    Type: type,
+    ID: 0
   }
+  return axios
+    .post('/api/v1/job', job)
+    .then(resp => 
+      resp.data.result
+    )
 }
 export interface Job {
-  id: number
-  name: string
-  description: string
-  status: 'DRAFT' | 'SUBMITTED' | 'RUNNING' | 'FINISHED' | 'FATAL'
-  steps: Step[] //steps under this job instance
+  ID: number
+  Name: string
+  Description: string
+  Status: 'Draft' | 'Saved' | 'Running' | 'Finished' | 'Error'
+  Type: string // 'Deploy' | 'Import' | 'Undeploy'
+  Steps: Step[] //steps under this job instance
 
-  createdBy?: string
-  modifiedBy?: string
-  createdAt?: string
-  modifiedAt?: string
+  CreatedBy: string
+  Updatedby: string
+  CreatedAt: string
+  UpdatedAt: string
 }
 
 export interface Step {
-  id: number
-  status: 'DRAFT' | 'SUBMITTED' | 'RUNNING' | 'FINISHED' | 'FATAL'
-  type: string
+  ID: number
+  Status: 'Draft' | 'Saved' | 'Running' | 'Finished' | 'Error'
+  Type: string
 
-  endpoint_id: number
-
-  createdBy?: string
-  modifiedBy?: string
-  createdAt?: string
-  modifiedAt?: string
 }
 
 export function DeleteStep(stepId: number, type: string): Promise<number> {
@@ -67,15 +74,17 @@ export function DeleteStep(stepId: number, type: string): Promise<number> {
 }
 
 export interface ImportStep extends Step {
-  transport_node_id: number
-  transport_node_name: string
-  transport_requests: number[] // transport requests
+  TransportNodeId: number
+  TransportNodeName: string
+  TransportRequests: number[] // transport requests
 }
 
 export interface DeployStep extends Step {
-  endpoint_name: string // cpi tenant name
-  package_id: string
-  artifact_ids: string[]
+  Endpoint: string // cpi tenant name
+  PackageId: string
+  ArtifactIds: string[]
+  ArtifactTypes: string[]
+  ArtifactVersions: string[]
 }
 
 export interface UndeployStep extends Step {
@@ -84,26 +93,13 @@ export interface UndeployStep extends Step {
 
 // api endpoints, including tms, cpi
 export interface ApiEndpoint {
-  id: number
   name: string
-  type: 'TMS' | 'CPI'
-  status: 'reachable' | 'fail to connect' | 'draft'
-  description: string
-  authUrl: string
-  clientId: string
-  clientSecret: string
-  apiUrl: string
-
-  createdBy: string
-  modifiedBy: string
-  createdAt: string
-  modifiedAt: string
+  type: string
+  url: string
 }
-export function GetApiEndpointsByType(type: 'CPI'|'TMS'): Promise<ApiEndpoint[]> {
+export function GetApiEndpointsByType(): Promise<ApiEndpoint[]> {
   return axios
-  .get('/api/v1/apiEndpoints', {
-    params: { type: type }
-  })
+  .get('/api/v1/destinations')
   .then(resp => resp.data.result)
 }
 
@@ -149,6 +145,7 @@ export interface Artifact {
   Id: string
   Version: string
   Name: string
+  Type: string
 }
 
 
@@ -160,9 +157,9 @@ export function GetPackages(tenantId:number|string): Promise<Package[]> {
   .then(resp => resp.data.result)
 }
 
-export function GetArtifacts(tenantId: number, packageId:string): Promise<Artifact[]> {
+export function GetArtifacts(tenantId: string, packageId:string): Promise<Artifact[]> {
   return axios
-    .get('/api/v1/tenant/packages/iflows', {
+    .get('/api/v1/tenant/packages/artifacts', {
     params: {tenant: tenantId, package: packageId}
   })
     .then(resp => 

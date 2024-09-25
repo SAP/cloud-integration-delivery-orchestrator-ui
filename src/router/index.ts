@@ -20,37 +20,21 @@ const router = createRouter({
         {
           path: 'deploy',
           name: 'Deploy Jobs',
-          component: import('@/views/DeployJobView.vue')
+          component: () => import('@/views/DeployJobView.vue')
         },
         {
           path: 'undeploy',
           name: 'Undeploy Jobs',
-          component: import('@/views/UndeployJobView.vue')
+          component: () => import('@/views/UndeployJobView.vue')
         }
       ]
     },
     {
       path: '/flow/:jobId',
-      name: 'flow',
+      name: 'Job Flow',
       component: () => import('@/views/FlowView.vue'),
       props: true
     },
-    {
-      path: '/config',
-      name: 'Configuration',
-      children: [
-        {
-          path: 'tms-endpoints',
-          name: 'Configure TMS Endpoints',
-          component: () => import('@/views/TmsConfigView.vue')
-        },
-        {
-          path: 'cpi-tenants',
-          name: 'Configure CPI Tenants',
-          component: () => import('@/views/CpiConfigView.vue')
-        }
-      ]
-    }
   ]
 })
 

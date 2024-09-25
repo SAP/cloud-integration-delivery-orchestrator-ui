@@ -1,15 +1,15 @@
 <template>
   <n-card hoverable size="small" closable>
     <template #header>
-      <n-text v-if="step.transport_node_name">{{ step.transport_node_name }}</n-text>
+      <n-text v-if="step.TransportNodeName">{{ step.TransportNodeName }}</n-text>
       <n-text v-else type="warning">Choose a Transport Node</n-text>
     </template>
-    <template #header-extra> {{ step.status }} </template>
-    <n-text v-if="!step.transport_requests" type="warning">Transport Requests:</n-text>
+    <template #header-extra> {{ step.Status }} </template>
+    <n-text v-if="!step.TransportRequests || !step.TransportRequests.length" type="warning">Transport Requests:</n-text>
     <n-text v-else>Transport Requests:</n-text>
     <!-- transport requests -->
     <n-space>
-      <n-tag v-for="(tr, index) in step.transport_requests" :key="index">{{ tr }}</n-tag>
+      <n-tag v-for="(tr, index) in step.TransportRequests" :key="index" type="info">{{ tr }}</n-tag>
     </n-space>
   </n-card>
 </template>
@@ -31,5 +31,6 @@ export default defineComponent({
 <style scoped>
 .n-card {
   width: 300px;
+  min-width: 400px;
 }
 </style>

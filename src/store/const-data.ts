@@ -4,8 +4,7 @@ import { h } from 'vue'
 import type { Router } from 'vue-router'
 import { IosArrowForward } from '@vicons/ionicons4'
 
-// for flow view config detail
-export const apiEndpointSelectColums: DataTableColumns<ApiEndpoint> = [
+export const apiEndpointColums: DataTableColumns<ApiEndpoint> = [
   {
     type: 'selection',
     multiple: false,
@@ -14,132 +13,68 @@ export const apiEndpointSelectColums: DataTableColumns<ApiEndpoint> = [
     }
   },
   {
-    title: 'ID',
-    key: 'id',
-    resizable: true,
-  },
-  {
     title: 'Name',
     key: 'name',
     resizable: true
   },
   {
-    title: "Description",
-    key: 'description',
+    title: 'Type',
+    key: 'type',
     resizable: true
   },
   {
-    title: 'API Endpoint',
-    key: 'apiUrl',
+    title: 'Url',
+    key: 'url',
     resizable: true
   },
-  {
-    title: 'Status',
-    key: 'status',
-    resizable: true
-  }
 ]
 
-export const apiEndpointColums: DataTableColumns<ApiEndpoint> = [
-  {
-    type: 'selection',
-    disabled(row: Object) {
-      return false
-    }
-  },
-  {
-    title: 'ID',
-    key: 'uuid',
-    resizable: true
-  },
-  {
-    title: 'Name',
-    key: 'description',
-    resizable: true
-  },
-  {
-    title: 'UAA Token URL',
-    key: 'tokenUrl',
-    resizable: true
-  },
-  {
-    title: 'API Endpoint',
-    key: 'endpointUrl',
-    resizable: true
-  },
-  {
-    title: 'Credential ID',
-    key: 'credentialId',
-    resizable: true
-  },
-  {
-    title: 'Credential Secret',
-    key: 'credentialSecret',
-    resizable: true
-  },
-  {
-    title: 'Created by',
-    key: 'createdBy',
-    resizable: true
-  },
-  {
-    title: 'Created At',
-    key: 'createdAt',
-    resizable: true
-  },
-  {
-    title: 'Changed By',
-    key: 'changedBy',
-    resizable: true
-  },
-  {
-    title: 'Changed At',
-    key: 'changedAt',
-    resizable: true
-  },
-  {
-    title: 'Status',
-    key: 'status',
-    resizable: true
-  }
-]
-
-export function createImportJobColums(router: Router): DataTableColumns<Job> {
+export function createJobColums(router: Router): DataTableColumns<Job> {
   return [
     {
       type: 'selection',
       disabled(row: Job) {
-        return row.status === 'FATAL'
+        return row.Status === 'FATAL'
       }
     },
     {
       title: 'ID',
-      key: 'id',
+      key: 'ID',
       resizable: true
     },
     {
       title: 'Job Name',
-      key: 'name',
+      key: 'Name',
       resizable: true
     },
     {
       title: 'Description',
-      key: 'description',
+      key: 'Description',
       resizable: true
     },
     {
       title: 'Status',
-      key: 'status',
+      key: 'Status',
       resizable: true
     },
     {
       title: 'Created by',
-      key: 'createdBy',
+      key: 'CreatedBy',
       resizable: true
     },
     {
       title: 'Created At',
-      key: 'createdAt',
+      key: 'CreatedAt',
+      resizable: true
+    },
+    {
+      title: 'Modified by',
+      key: 'UpdatedBy',
+      resizable: true
+    },
+    {
+      title: 'Modified at',
+      key: 'UpdatedAt',
       resizable: true
     },
     {
@@ -153,8 +88,8 @@ export function createImportJobColums(router: Router): DataTableColumns<Job> {
             onClick: () => {
               console.log(row)
               router.push({
-                name: 'flow',
-                params: { jobId: row.id }
+                name: 'Job Flow',
+                params: { jobId: row.ID }
               })
             }
           },
@@ -287,23 +222,19 @@ export const artifactColumns: DataTableColumns<Artifact> = [
     resizable: true
   },
   {
+    title: 'Type',
+    key: 'Type',
+    resizable: true
+  },
+  {
     title: 'Version',
     key: 'Version',
     resizable: true
   },
 ]
 
-export const stepTypeOptions = [
-  {
-    label: 'Import TRs',
-    value: 'Import'
-  },
-  {
-    label: 'Deploy Artifacts(iflow, package, scriptCollection)',
-    value: 'Deploy'
-  },
-  {
-    label: 'Undeploy Artifacts',
-    value: 'Undeploy'
-  }
-]
+export const stepTypeOptions = {
+  Import: 'Import Transport Requests',
+  Deploy: 'Deploy Artifacts(iflow, package, scriptCollection)',
+  Undeploy: 'UnDeploy Artifacts(iflow, package, scriptCollection)'
+}

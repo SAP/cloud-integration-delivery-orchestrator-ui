@@ -1,3 +1,10 @@
+<template>
+    <JobsList title="Deploy Artifacts" type="Deploy"/>
+</template>
 <script lang="ts">
-export default {}
+import { defineComponent } from 'vue';
+import JobsList from '@/components/JobsList.vue';
+export default defineComponent({
+    components:{JobsList}
+})
 </script>

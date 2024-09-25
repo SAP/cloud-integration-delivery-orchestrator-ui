@@ -1,0 +1,27 @@
+ID: mmt.ui.app.iflow.transport
+_schema-version: "2.1"
+version: 1.8.4
+parameters:
+  deploy_mode: html5-repo
+  domain: cfapps.sap.hana.ondemand.com
+  appname: macov2
+  stage: devops
+modules:
+  - name: com.sap.cd.maco.mmt.ui.approuter
+    type: approuter.nodejs
+    path: deployer
+    parameters:
+      disk-quota: 512M
+      memory: 256M
+      hosts:
+        - ${appname}-${tenant_id}
+      stack: cflinuxfs4        
+    properties:
+      sapui5url: ${sapui5_url}
+      GIT_COMMIT: latest_git_commit_id
+      DEPLOY_TIMESTAMP: latest_deploy_timestap
+      #SAP_JWT_TRUST_ACL: '[{"clientid":"*","identityzone":"*"}]'
+      SAP_JWT_TRUST_ACL:
+        - clientid: "*"
+          identityzone: "*"
+      TENANT_HOST_PATTERN: ^${appname}-(.*).${domain} # get tenant id

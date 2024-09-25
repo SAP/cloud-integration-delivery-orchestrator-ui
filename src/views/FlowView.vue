@@ -3,66 +3,55 @@
     <!-- head -->
     <n-card class="header-card-shadow-class">
       <n-flex justify="space-between">
+        <!-- Job Name -->
         <n-flex vertical>
           <n-input
             class="ui5-title-root"
-            v-model:value="jobInstance.name"
-            v-if="jobInstance.status === 'DRAFT'"
+            v-model:value="jobInstance.Name"
             placeholder="Job Name"
-            :status="jobInstance.name.length ? 'success' : 'error'"
             clearable
+            autofocus
+            v-if="editing"
           />
-          <span class="ui5-title-root" v-else>{{ jobInstance.name }}</span>
-
+          <span class="ui5-title-root" v-else-if="jobInstance.Name">{{ jobInstance.Name }}</span>
+          <n-text v-else class="ui5-title-root" type="warning">Empty Name</n-text>
+          <!-- job description -->
           <n-input
-            v-model:value="jobInstance.description"
-            v-if="jobInstance.status === 'DRAFT'"
+            v-model:value="jobInstance.Description"
             placeholder="Description"
             size="large"
             clearable
+            autofocus
+            v-if="editing"
           />
-          <n-text style="color: gray" v-else>{{ jobInstance.description }}</n-text>
+          <n-text style="color: gray" v-else-if="jobInstance.Description">{{
+            jobInstance.Description
+          }}</n-text>
+          <n-text v-else type="warning">Empty Description</n-text>
         </n-flex>
-        <n-tag type="info">{{ jobInstance.status }}</n-tag>
+
+        <n-tag type="info">{{ status }}</n-tag>
 
         <!-- action group -->
         <n-flex justify="start">
           <!-- Edit button -->
-          <n-tooltip trigger="hover">
-            Edit
-            <template #trigger>
-              <n-button @click="jobInstance.status = 'DRAFT'" quaternary>
-                <template #icon>
-                  <n-icon color="#0e7a0d" size="25">
-                    <edit16-regular />
-                  </n-icon>
-                </template>
-              </n-button>
-            </template>
-          </n-tooltip>
+          <IconBtn tip="Edit" :handler="onEdit">
+            <edit16-regular />
+          </IconBtn>
+          <!-- Delete button -->
+          <IconBtn tip="Delete" :handler="handleDeleteJob">
+            <Delete28Regular />
+          </IconBtn>
 
           <n-divider vertical />
 
           <!-- Submit Button -->
-          <n-button :disabled="jobInstance.status === 'SUBMITTED'" @click="handleSave">
-            Save
-          </n-button>
-          <n-button :disabled="jobInstance.status === 'DRAFT'">Execute</n-button>
-          <n-button :disabled="jobInstance.status === 'DRAFT'">Retry</n-button>
-          <n-divider vertical />
-          <!-- Delete button -->
-          <n-tooltip trigger="hover">
-            Delete
-            <template #trigger>
-              <n-button quaternary @click="handleDeleteJob">
-                <template #icon>
-                  <n-icon color="#0e7a0d" size="25">
-                    <Delete28Regular />
-                  </n-icon>
-                </template>
-              </n-button>
-            </template>
-          </n-tooltip>
+          <IconBtn tip="Save" :handler="handleSave" :disabled="!editing">
+            <SaveAltRound />
+          </IconBtn>
+          <IconBtn tip="Execute" :handler="onExecute" :disabled="editing">
+            <StartTwotone />
+          </IconBtn>
         </n-flex>
       </n-flex>
     </n-card>
@@ -80,33 +69,29 @@
         <!-- choose step type -->
         <n-flex vertical>
           Create Steps Mannually:
-          <n-flex vertical>
-            <n-button
-              v-for="(stepType, index) in stepTypeOptions"
-              :key="index"
-              @click="handleCreateStep(stepType.value)"
-            >
-              {{ stepType.label }}</n-button
-            >
-          </n-flex>
+          <n-button @click="handleCreateStep(jobInstance.Type)">
+            {{ stepTypeOptions[jobInstance.Type] }}
+          </n-button>
         </n-flex>
       </n-flex>
     </div>
 
     <!-- step list with config view -->
     <n-card class="card-shadow-class">
-      <div style="margin-bottom: 15px; font-size: 15px; font-weight: bold">Job Detail</div>
+      <div style="margin-bottom: 15px; font-size: 15px; font-weight: bold">
+        {{ jobInstance.Type }} Job Detail
+      </div>
       <n-grid x-gap="40" :cols="5">
         <!-- step lists -->
         <n-gi span="2">
           <n-steps vertical :current="current" @update:current="handleCurrent">
-            <n-step v-for="(step, index) in jobInstance.steps" :key="index">
+            <n-step v-for="(step, index) in jobInstance.Steps" :key="index">
               <template #title>
-                {{ step.type }}
+                {{ step.Status }}
               </template>
 
               <component
-                :is="step.type === 'Import' ? 'ImportStepCard' : 'DeployStepCard'"
+                :is="jobInstance.Type === 'Import' ? 'ImportStepCard' : 'DeployStepCard'"
                 :step="step"
                 @close="handleCloseStep(step, index)"
               />
@@ -114,17 +99,16 @@
           </n-steps>
         </n-gi>
 
-        // choose config
+        <!-- choose config -->
         <n-gi span="3">
-          <n-flex class="table-class" vertical align="start">
-            <span v-if="current > 0" style="font-size: 15px; font-weight: bold">
+          <n-flex class="table-class" vertical align="start" v-if="current > 0">
+            <span style="font-size: 15px; font-weight: bold">
               Details of Step {{ current }}:
             </span>
             <component
-              v-if="current > 0"
-              :is="jobInstance.steps[current - 1].type === 'Import' ? 'ImportConfig' : 'DeployConfig'"
+              :is="jobInstance.Type === 'Import' ? 'ImportConfig' : 'DeployConfig'"
               :key="current - 1"
-              :step="jobInstance.steps[current - 1]"
+              :step="jobInstance.Steps[current - 1]"
             />
           </n-flex>
         </n-gi>
@@ -135,33 +119,27 @@
 
 <script lang="ts">
 import { useMessage } from 'naive-ui'
-import { defineComponent, type PropType } from 'vue'
-import { type DataTableColumns, type StepsProps } from 'naive-ui'
+import { defineComponent } from 'vue'
 import ImportStepCard from '../components/ImportStepCard.vue'
 import DeployStepCard from '../components/DeployStepCard.vue'
+import { SaveAltRound, StartTwotone } from '@vicons/material'
 import {
-  type ImportStep,
   type DeployStep,
   type Job,
   type Step,
   type ToolBar,
-  type ApiEndpoint,
   type Package,
   DeleteJob,
   SaveJob,
   FetchJob,
-  DeleteStep
+  DeleteStep,
+  ExecuteJob
 } from '../store/index'
-import {
-  stepTypeOptions,
-  transportRequestColums,
-  apiEndpointSelectColums
-} from '@/store/const-data'
+import { stepTypeOptions, transportRequestColums } from '@/store/const-data'
 import { Edit16Regular, Delete28Regular } from '@vicons/fluent'
-import axios from 'axios'
 import ImportConfig from '../components/ImportConfig.vue'
 import DeployConfig from '../components/DeployConfig.vue'
-
+import IconBtn from '@/components/IconBtn.vue'
 export default defineComponent({
   props: {
     jobId: { required: true, type: String }
@@ -172,46 +150,46 @@ export default defineComponent({
     ImportConfig,
     DeployConfig,
     Edit16Regular,
-    Delete28Regular
+    Delete28Regular,
+    SaveAltRound,
+    StartTwotone,
+    IconBtn
   },
   created() {
     FetchJob(this.jobId).then((job) => {
       this.jobInstance = job
+      this.status = job.Status
     })
   },
   data() {
-    const jobInstance: Job = {
-      name: '',
-      description: '',
-      status: 'DRAFT',
-      steps: [],
-      id: -1
-    }
+    const jobInstance: Job = {}
 
     return {
       selectedStepType: null,
       stepTypeOptions,
       jobInstance,
-      currentStatus: 'process',
       current: -1,
       trColums: transportRequestColums,
-      apiEndpointSelectColums,
-      message: useMessage()
+      message: useMessage(),
+      editing: false,
+      status: ''
     }
   },
   methods: {
     handleCreateStep(stepType: string) {
-      const newStep: Step = {
-        id: -1,
-        status: 'DRAFT',
-        type: stepType,
-        endpoint_id: -1
+      if (!this.editing) {
+        this.message.error('Not in edit mode.')
+        return
       }
-      this.jobInstance.steps.push(newStep)
-      this.current = this.jobInstance.steps.length
-      this.jobInstance.status = 'DRAFT'
+      const newStep: Step = {
+        ID: -1,
+        Status: 'Draft',
+        Type: stepType
+      }
+      this.jobInstance.Steps.push(newStep)
+      this.current = this.jobInstance.Steps.length
+      // this.jobInstance.status = 'DRAFT'
     },
-
     handleSave() {
       // update job
       const msg = this.message.loading('Saving')
@@ -221,6 +199,8 @@ export default defineComponent({
           this.jobInstance = job
           msg.type = 'success'
           msg.content = 'Job Saved'
+          this.editing = false
+          this.status = job.Status
         })
     },
     handleDeleteJob() {
@@ -229,26 +209,33 @@ export default defineComponent({
       })
     },
     handleCurrent(current: number) {
-      this.current = current
+      this.current = Math.min(current, this.jobInstance.Steps.length)
     },
     handleCloseStep(step: Step, index: number) {
-      if (step.id == -1) {
-        this.jobInstance.steps = this.jobInstance.steps.filter((v, i) => i != index)
-        this.message.info(`Removed an unsaved step ${this.current}`)
-        this.current = -1
-      } else {
-        DeleteStep(step.id, step.type)
-          .then(() => FetchJob(this.jobId))
-          .then((job) => {
-            this.jobInstance = job
-            this.message.success(`Step ${this.current} Deleted`)
-            this.current = -1
-          })
+      if (!this.editing) {
+        this.message.error('Not in edit mode')
+        return
       }
+      if (step.ID == -1) {
+        this.jobInstance.Steps = this.jobInstance.Steps.filter((v, i) => i != index)
+        this.message.info(`Removed an draft step: ${this.current}`)
+        return
+      }
+      DeleteStep(step.ID, this.jobInstance.Type)
+        .then(() => FetchJob(this.jobId))
+        .then((job) => {
+          this.jobInstance = job
+          this.message.success(`Step ${this.current} Deleted`)
+        })
+    },
+    onEdit() {
+      this.editing = true
+      this.status = 'DRAFT'
+    },
+    onExecute() {
+      ExecuteJob(this.jobInstance).then(resp => {})
     }
   },
-  computed: {},
-  watch: {}
 })
 </script>
 <style scoped>
