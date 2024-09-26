@@ -238,3 +238,8 @@ export const stepTypeOptions = {
   Deploy: 'Deploy Artifacts(iflow, package, scriptCollection)',
   Undeploy: 'UnDeploy Artifacts(iflow, package, scriptCollection)'
 }
+
+export interface ToolBar {
+  text: String
+  func(rows: DataTableColumns): void
+}

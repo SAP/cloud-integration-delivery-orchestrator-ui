@@ -19,7 +19,7 @@
 
 <script lang="ts">
 import { defineComponent, type PropType } from 'vue'
-import { type DeployStep } from '../store/index'
+import { type DeployStep } from '../service/index'
 export default defineComponent({
   data() {
     return {

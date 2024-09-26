@@ -33,12 +33,12 @@
 <script lang="ts">
 import { defineComponent, type PropType } from 'vue'
 import DataTable from '@/components/DataTable.vue'
-import { GetApiEndpointsByType, GetArtifacts, GetPackages, type ApiEndpoint, type Artifact, type DeployStep, type Package } from '@/store'
+import { GetApiEndpointsByType, GetArtifacts, GetPackages, type ApiEndpoint, type Artifact, type DeployStep, type Package } from '@/service'
 import {
   apiEndpointColums,
   artifactColumns,
   packageColums
-} from '@/store/const-data'
+} from '@/service/consts'
 export default defineComponent({
   props: {
     step: { type: Object as PropType<DeployStep>, required: true }

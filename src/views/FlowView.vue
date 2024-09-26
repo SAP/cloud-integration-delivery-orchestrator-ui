@@ -124,18 +124,15 @@ import ImportStepCard from '../components/ImportStepCard.vue'
 import DeployStepCard from '../components/DeployStepCard.vue'
 import { SaveAltRound, StartTwotone } from '@vicons/material'
 import {
-  type DeployStep,
   type Job,
   type Step,
-  type ToolBar,
-  type Package,
   DeleteJob,
   SaveJob,
   FetchJob,
   DeleteStep,
   ExecuteJob
-} from '../store/index'
-import { stepTypeOptions, transportRequestColums } from '@/store/const-data'
+} from '../service/index'
+import { stepTypeOptions, transportRequestColums } from '@/service/consts'
 import { Edit16Regular, Delete28Regular } from '@vicons/fluent'
 import ImportConfig from '../components/ImportConfig.vue'
 import DeployConfig from '../components/DeployConfig.vue'
@@ -156,10 +153,7 @@ export default defineComponent({
     IconBtn
   },
   created() {
-    FetchJob(this.jobId).then((job) => {
-      this.jobInstance = job
-      this.status = job.Status
-    })
+    this.refresh()
   },
   data() {
     const jobInstance: Job = {}
@@ -192,15 +186,13 @@ export default defineComponent({
     },
     handleSave() {
       // update job
-      const msg = this.message.loading('Saving')
+      const msg = window.$message.loading('Saving')
       SaveJob(this.jobInstance)
-        .then(() => FetchJob(this.jobId)) // refresh
+        .then(() => this.refresh()) // refresh
         .then((job) => {
-          this.jobInstance = job
           msg.type = 'success'
           msg.content = 'Job Saved'
           this.editing = false
-          this.status = job.Status
         })
     },
     handleDeleteJob() {
@@ -222,10 +214,9 @@ export default defineComponent({
         return
       }
       DeleteStep(step.ID, this.jobInstance.Type)
-        .then(() => FetchJob(this.jobId))
+        .then(() => this.refresh())
         .then((job) => {
-          this.jobInstance = job
-          this.message.success(`Step ${this.current} Deleted`)
+          window.$message.success(`Step ${this.current} Deleted`)
         })
     },
     onEdit() {
@@ -233,7 +224,21 @@ export default defineComponent({
       this.status = 'DRAFT'
     },
     onExecute() {
-      ExecuteJob(this.jobInstance).then(resp => {})
+      ExecuteJob(this.jobInstance).then(()=>{this.refresh()})
+    },
+    refresh() {
+      FetchJob(this.jobId).then(job => {
+        this.jobInstance = job as unknown as Job
+        // update job status based on steps' status
+        if(this.jobInstance.Steps.filter((v,i) => v.Status === 'Error').length) this.status = 'Error'
+        else if (this.jobInstance.Steps.filter((v,i) => v.Status === 'Running').length) this.status = 'Running'
+        else {
+          const arr = this.jobInstance.Steps.filter((v,i) => v.Status === 'Finished')
+          if (arr.length === this.jobInstance.Steps.length) this.status = 'Finished'
+          else this.status = this.jobInstance.Status
+        }
+        return job
+      })
     }
   },
 })

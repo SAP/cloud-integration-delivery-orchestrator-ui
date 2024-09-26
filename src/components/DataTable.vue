@@ -45,7 +45,7 @@
 
 <script lang="ts">
 import { defineComponent, h, reactive, type PropType } from 'vue'
-import { type ToolBar } from '@/store'
+import { type ToolBar } from '@/service/consts'
 import type { DataTableColumns, DataTableRowKey } from 'naive-ui'
 import { IosAdd, IosSettings } from '@vicons/ionicons4'
 

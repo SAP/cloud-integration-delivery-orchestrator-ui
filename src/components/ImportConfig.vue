@@ -27,12 +27,12 @@
 
 <script lang="ts">
 import DataTable from '@/components/DataTable.vue'
-import { GetTransportNodes, GetTransportRequests, type ApiEndpoint, type ImportStep, type Step, type TransportNode, type TransportRequest } from '@/store'
+import { GetTransportNodes, GetTransportRequests, type ApiEndpoint, type ImportStep, type Step, type TransportNode, type TransportRequest } from '@/service'
 import {
   apiEndpointColums,
   transportNodesColums,
   transportRequestColums
-} from '@/store/const-data'
+} from '@/service/consts'
 import { defineComponent, type PropType } from 'vue'
 
 export default defineComponent({

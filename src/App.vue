@@ -1,9 +1,11 @@
 <script lang="ts">
 import { defineComponent } from 'vue'
 import { IosArrowBack } from '@vicons/ionicons4'
+import MessageItem from '@/components/MessageComp.vue';
 export default defineComponent({
   components: {
-    IosArrowBack
+    IosArrowBack,
+    MessageItem,
   },
   methods: {
     handleBack() {
@@ -34,6 +36,7 @@ export default defineComponent({
 
   <div class="body-class">
     <n-message-provider placement="bottom-left">
+      <MessageItem/>
       <router-view />
     </n-message-provider>
   </div>
