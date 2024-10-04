@@ -5,26 +5,26 @@ const router = createRouter({
   routes: [
     {
       path: '/',
-      name: 'home',
+      name: 'MMT Devops',
       component: () => import('@/views/HomeView.vue')
     },
     {
       path: '/jobs',
-      name: 'Jobs',
+      name: 'CPI Jobs',
       children: [
         {
           path: 'import',
-          name: 'Import Jobs',
+          name: 'Import Transport Requests',
           component: () => import('@/views/ImportJobView.vue')
         },
         {
           path: 'deploy',
-          name: 'Deploy Jobs',
+          name: 'Deploy Design Time Artifacts',
           component: () => import('@/views/DeployJobView.vue')
         },
         {
           path: 'undeploy',
-          name: 'Undeploy Jobs',
+          name: 'Undeploy Design Time Artifacts',
           component: () => import('@/views/UndeployJobView.vue')
         }
       ]

@@ -4,7 +4,6 @@
       <n-text v-if="step.TransportNodeName">{{ step.TransportNodeName }}</n-text>
       <n-text v-else type="warning">Choose a Transport Node</n-text>
     </template>
-    <template #header-extra> {{ step.Status }} </template>
     <n-text v-if="!step.TransportRequests || !step.TransportRequests.length" type="warning">Transport Requests:</n-text>
     <n-text v-else>Transport Requests:</n-text>
     <!-- transport requests -->

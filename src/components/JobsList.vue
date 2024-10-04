@@ -6,6 +6,7 @@
     :handle-add="handleAdd"
     :row-key="(row: Job) => row.ID"
     :custom-tool-bars="customToolBars"
+    :enable-search="false"
   />
 </template>
 

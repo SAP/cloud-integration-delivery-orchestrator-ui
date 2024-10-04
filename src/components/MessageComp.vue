@@ -8,7 +8,7 @@ import { defineComponent } from 'vue'
 // content
 export default defineComponent({
   setup () {
-    window.$message = useMessage() // 关键代码
+    window.$message = useMessage()
   }
 })
 </script>

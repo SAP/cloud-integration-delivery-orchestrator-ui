@@ -15,7 +15,8 @@ export const apiEndpointColums: DataTableColumns<ApiEndpoint> = [
   {
     title: 'Name',
     key: 'name',
-    resizable: true
+    resizable: true,
+    sortOrder: 'descend'
   },
   {
     title: 'Type',
@@ -34,7 +35,7 @@ export function createJobColums(router: Router): DataTableColumns<Job> {
     {
       type: 'selection',
       disabled(row: Job) {
-        return row.Status === 'FATAL'
+        return row.Status === 'Error'
       }
     },
     {
@@ -88,8 +89,7 @@ export function createJobColums(router: Router): DataTableColumns<Job> {
             onClick: () => {
               console.log(row)
               router.push({
-                name: 'Job Flow',
-                params: { jobId: row.ID }
+                path: `/flow/${row.ID}`,
               })
             }
           },
@@ -116,7 +116,8 @@ export const transportNodesColums: DataTableColumns<TransportNode> = [
   {
     title: 'Name',
     key: 'name',
-    resizable: true
+    resizable: true,
+    sortOrder: 'descend'
   },
   {
     title: 'Description',
@@ -135,7 +136,8 @@ export const transportRequestColums: DataTableColumns<TransportRequest> = [
   {
     title: 'Transport Request',
     key: 'id',
-    resizable: true
+    resizable: true,
+    sortOrder: 'descend'
   },
   {
     title: 'Transport Description',
@@ -175,7 +177,8 @@ export const packageColums: DataTableColumns<Package> = [
   {
     title: 'ID',
     key: 'Id',
-    resizable: true
+    resizable: true,
+    sortOrder: 'descend'
   },
   {
     title: 'Name',
@@ -214,7 +217,8 @@ export const artifactColumns: DataTableColumns<Artifact> = [
   {
     title: 'ID',
     key: 'Id',
-    resizable: true
+    resizable: true,
+    sortOrder: 'descend'
   },
   {
     title: 'Name',

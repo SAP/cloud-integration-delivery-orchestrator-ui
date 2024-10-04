@@ -6,5 +6,5 @@ export default defineComponent({
 })
 </script>
 <template>
-    <JobsList title="Undeploy Artifacts" type="Undeploy"/>
+    <JobsList title="Undeploy Aritifact Jobs" type="Undeploy"/>
 </template>

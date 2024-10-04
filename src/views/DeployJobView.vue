@@ -1,5 +1,5 @@
 <template>
-    <JobsList title="Deploy Artifacts" type="Deploy"/>
+    <JobsList title="Deploy Artifact Jobs" type="Deploy"/>
 </template>
 <script lang="ts">
 import { defineComponent } from 'vue';

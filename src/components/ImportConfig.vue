@@ -21,18 +21,26 @@
         :key="step.TransportNodeId"
       />
     </n-tab-pane>
-    <n-tab-pane name="Log" tab="Log"> Hey Jude </n-tab-pane>
+    <n-tab-pane name="Log" tab="Execution Log">
+      <n-alert title="Artifact Deploy Status" type="default">
+        ActionId: {{ step.ActionId }} - {{ step.Status }}
+      </n-alert>
+    </n-tab-pane>
   </n-tabs>
 </template>
 
 <script lang="ts">
 import DataTable from '@/components/DataTable.vue'
-import { GetTransportNodes, GetTransportRequests, type ApiEndpoint, type ImportStep, type Step, type TransportNode, type TransportRequest } from '@/service'
 import {
-  apiEndpointColums,
-  transportNodesColums,
-  transportRequestColums
-} from '@/service/consts'
+  GetTransportNodes,
+  GetTransportRequests,
+  type ApiEndpoint,
+  type ImportStep,
+  type Step,
+  type TransportNode,
+  type TransportRequest
+} from '@/service'
+import { transportNodesColums, transportRequestColums } from '@/service/consts'
 import { defineComponent, type PropType } from 'vue'
 
 export default defineComponent({
@@ -43,9 +51,9 @@ export default defineComponent({
     DataTable
   },
   created() {
-    GetTransportNodes().then(nodes => this.transportNodes = nodes)
+    GetTransportNodes().then((nodes) => (this.transportNodes = nodes))
     if (!this.step.TransportNodeId) return
-    GetTransportRequests(this.step.TransportNodeId).then(trs=>this.transportRequests=trs)
+    GetTransportRequests(this.step.TransportNodeId).then((trs) => (this.transportRequests = trs))
   },
   computed: {
     apiEndpointTitle() {
@@ -60,13 +68,16 @@ export default defineComponent({
       tmsList,
       transportNodes,
       transportRequests,
-      apiEndpointColums,
       transportNodesColums,
       transportRequestColums
     }
   },
   methods: {
     handleTransportNodes(rows: TransportNode[]) {
+      if (this.step.Status === 'Running' || this.step.Status === 'Finished' || this.step.Status === 'Error') {
+        window.$message.warning(`Do not modify step with status ${this.step.Status}`)
+        return
+      }
       const transportNode = rows[0]
       this.step.TransportNodeName = transportNode.name
       this.step.TransportNodeId = transportNode.id
@@ -74,12 +85,12 @@ export default defineComponent({
       this.step.TransportRequests = []
       this.transportRequests = []
       this.step.Status = 'Draft'
-      GetTransportRequests(this.step.TransportNodeId).then(trs=>this.transportRequests=trs)
+      GetTransportRequests(this.step.TransportNodeId).then((trs) => (this.transportRequests = trs))
     },
     handleTransportRequests(rows: TransportRequest[]) {
-      this.step.TransportRequests = rows.map((v,i) => v.id)
+      this.step.TransportRequests = rows.map((v, i) => v.id)
       this.step.Status = 'Draft'
-    },
+    }
   }
 })
 </script>

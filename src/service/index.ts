@@ -43,6 +43,7 @@ export interface Job {
   Status: 'Draft' | 'Saved' | 'Running' | 'Finished' | 'Error'
   Type: string // 'Deploy' | 'Import' | 'Undeploy'
   Steps: Step[] //steps under this job instance
+  ExecutionLogs: ExecutionLog[]
 
   CreatedBy: string
   Updatedby: string
@@ -67,6 +68,7 @@ export interface ImportStep extends Step {
   TransportNodeId: number
   TransportNodeName: string
   TransportRequests: number[] // transport requests
+  ActionId: number
 }
 
 export interface DeployStep extends Step {
@@ -75,10 +77,21 @@ export interface DeployStep extends Step {
   ArtifactIds: string[]
   ArtifactTypes: string[]
   ArtifactVersions: string[]
+  TaskIds: string[]
+  TaskStatuses: string[]
 }
 
 export interface UndeployStep extends Step {
   targets: object[]
+}
+
+export interface ExecutionLog {
+  CreatedAt: string
+  JobId: number
+  StepId: number
+  Sequence: number
+  StepType: string
+  Log: string
 }
 
 // api endpoints, including tms, cpi

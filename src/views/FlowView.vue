@@ -79,13 +79,13 @@
     <!-- step list with config view -->
     <n-card class="card-shadow-class">
       <div style="margin-bottom: 15px; font-size: 15px; font-weight: bold">
-        {{ jobInstance.Type }} Job Detail
+        {{ jobInstance.Type }} Job {{ jobInstance.ID }} Detail
       </div>
       <n-grid x-gap="40" :cols="5">
         <!-- step lists -->
         <n-gi span="2">
           <n-steps vertical :current="current" @update:current="handleCurrent">
-            <n-step v-for="(step, index) in jobInstance.Steps" :key="index">
+            <n-step v-for="(step, index) in jobInstance.Steps" :key="index" :status="mapStatus(step.Status)">
               <template #title>
                 {{ step.Status }}
               </template>
@@ -109,7 +109,14 @@
               :is="jobInstance.Type === 'Import' ? 'ImportConfig' : 'DeployConfig'"
               :key="current - 1"
               :step="jobInstance.Steps[current - 1]"
+              v-if="checkStatus(jobInstance.Steps[current - 1])"
             />
+            <div>
+              Job Execution Logs
+              <n-alert :title="`Step ${log.Sequence} at ${log.CreatedAt}`" type="warning" v-for="(log, i) in jobInstance.ExecutionLogs" :key="i">
+                {{log.Log}}
+              </n-alert>
+            </div>
           </n-flex>
         </n-gi>
       </n-grid>
@@ -239,6 +246,27 @@ export default defineComponent({
         }
         return job
       })
+    },
+    checkStatus(step: Step) {
+      // if (step.Status === 'Finished' || step.Status === 'Running' || step.Status === 'Error') {
+      //   window.$message.error(`Step with status ${step.Status} cannot be modified.`)
+      //   return false
+      // }
+      return true
+    },
+    mapStatus(status: string) {
+      switch (status) {
+        case 'Draft':
+          return 'wait'
+        case 'Running':
+          return 'process'
+        case 'Finished':
+          return 'finish'
+        case 'Error':
+          return 'error'
+        default:
+          return 'wait'
+      }
     }
   },
 })
