@@ -1,5 +1,11 @@
 import type { DataTableColumns } from 'naive-ui'
 import http from './http'
+import { defineStore } from 'pinia'
+
+
+export const Login = (code: string, state: string, callbackUrl: string) => {
+  return http.get(`/api/v1/userInfo?code=${code}&state=${state}&callbackUrl=${callbackUrl}`)
+}
 
 // returns Job instance
 export const FetchJob = (jobId: number|string) => {
@@ -159,4 +165,63 @@ export const GetArtifacts = (tenantId: string, packageId:string) => {
   return http.get('/api/v1/tenant/packages/artifacts', {
     params: {tenant: tenantId, package: packageId}
   })
+}
+
+export const useUserInfoStore = defineStore('userInfo', {
+  state: () => ({
+    userInfo: null as UserInfo | null,
+  }),
+  actions: {
+    isLogged() {
+      return this.user !== null;
+    }
+  },
+  getters: {
+    user: (state) => {
+      if (state.userInfo) {
+        return state.userInfo
+      }
+      const item = window.localStorage.getItem('userInfo')
+      if (item) {
+        return JSON.parse(item) as UserInfo
+      }
+      return null
+    },
+  }
+});
+
+export interface UserInfo {
+	avatar_url: string;
+	bio: any;
+	blog: string;
+	company: any;
+	created_at: string;
+	email: string;
+	events_url: string;
+	followers: number;
+	followers_url: string;
+	following: number;
+	following_url: string;
+	gists_url: string;
+	gravatar_id: string;
+	hireable: any;
+	html_url: string;
+	id: number;
+	location: any;
+	login: string;
+	name: string;
+	node_id: string;
+	organizations_url: string;
+	public_gists: number;
+	public_repos: number;
+	received_events_url: string;
+	repos_url: string;
+	site_admin: boolean;
+	starred_url: string;
+	subscriptions_url: string;
+	suspended_at: any;
+	twitter_username: any;
+	type: string;
+	updated_at: string;
+	url: string;
 }

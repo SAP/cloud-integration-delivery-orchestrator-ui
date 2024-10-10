@@ -1,11 +1,12 @@
 <script lang="ts">
 import { defineComponent } from 'vue'
 import { IosArrowBack } from '@vicons/ionicons4'
-import MessageItem from '@/components/MessageComp.vue';
+import MessageItem from '@/components/MessageComp.vue'
+import { useUserInfoStore, type UserInfo } from './service'
 export default defineComponent({
   components: {
     IosArrowBack,
-    MessageItem,
+    MessageItem
   },
   methods: {
     handleBack() {
@@ -19,24 +20,47 @@ export default defineComponent({
     return {
       route: this.$router
     }
-  }
+  },
+  computed: {
+    canBack() {
+      return this.$router.currentRoute.value.path !== '/'
+    },
+    avartarSrc() {
+      const userInfo = useUserInfoStore().user as UserInfo
+      if (userInfo) {
+        // doug.liu@sap.com => DL
+        const emailParts = userInfo.email.split('.')
+        if (emailParts.length >= 2) {
+            return (emailParts[0][0] + emailParts[1][0]).toUpperCase()
+        }
+      }
+      return 'Unkown'
+    }
+  },
 })
 </script>
 
 <template>
   <div class="header-class">
-    <n-flex>
-      <n-icon size="30px">
-        <IosArrowBack @click="handleBack" />
-      </n-icon>
-      <n-image width="70" src="/SAP_BIG.png" preview-disabled @click="handleHome" />
-      <h2>{{ route.currentRoute.name }}</h2>
+    <n-flex justify="space-between">
+      <n-flex>
+        <n-icon size="30px">
+          <IosArrowBack @click="handleBack" v-if="canBack" />
+        </n-icon>
+        <n-image width="70" src="/SAP_BIG.png" preview-disabled @click="handleHome" />
+        <h2>{{ route.currentRoute.name }}</h2>
+      </n-flex>
+      <n-avatar
+        style="margin-right: 10px;"
+        round
+        size="medium"
+      >{{ avartarSrc }}</n-avatar>
     </n-flex>
   </div>
 
   <div class="body-class">
     <n-message-provider placement="bottom-left">
-      <MessageItem/>
+      <MessageItem />
       <router-view />
     </n-message-provider>
   </div>
