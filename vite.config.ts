@@ -19,6 +19,7 @@ export default defineConfig({
         // rewrite: (path) => path.replace(/^\/api/, '')
       }
     },
-    port: Number(process.env.PORT) || 5173
+    port: Number(process.env.PORT) || 5173,
+    host: true
   }
 })

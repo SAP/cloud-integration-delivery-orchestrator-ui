@@ -1,9 +1,8 @@
-import type { DataTableColumns } from 'naive-ui'
 import http from './http'
 import { defineStore } from 'pinia'
 
 export const Login = (code: string, state: string, callbackUrl: string) => {
-  return http.get(`/api/v1/userInfo?code=${code}&state=${state}`)
+  return http.get(`/api/v1/userInfo?code=${code}&state=${state}&callbackUrl=${callbackUrl}`)
 }
 
 // returns Job instance

@@ -3,7 +3,6 @@ import { createRouter, createWebHistory } from 'vue-router'
 
 const LoginCallback = {
   mounted() {
-    
     const params = new URLSearchParams(window.location.search)
     const code = params.get('code')
     const state = params.get('state')
@@ -63,7 +62,7 @@ const router = createRouter({
   ]
 })
 
-const callbackUrl = 'https://mmt-ui-app-iflow-deploy.cfapps.sap.hana.ondemand.com/callback'
+const callbackUrl = 'http://localhost:5173/callback'
 const clientId = 'e413f654a5f193da8bed'
 
 router.beforeEach((to, from) => {
