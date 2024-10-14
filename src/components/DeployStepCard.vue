@@ -4,15 +4,19 @@
       <n-text v-if="step.Endpoint">{{ step.Endpoint }}</n-text>
       <n-text v-else type="warning">Choose a CPI Tenant</n-text>
     </template>
-    <n-text v-if="step.PackageId" style="font-size: medium"> {{ step.PackageId}}</n-text>
+    <n-text v-if="step.PackageId" style="font-size: medium"> {{ step.PackageId }}</n-text>
     <n-text v-else type="warning"> Choose Package </n-text>
-    <p/>
+    <p />
     <n-space>
-      <n-text :type="step.ArtifactIds && step.ArtifactIds.length ? '':'warning'">Artifacts:</n-text>
+      <n-text :type="step.ArtifactIds && step.ArtifactIds.length ? '' : 'warning'"
+        >Artifacts:</n-text
+      >
     </n-space>
-    
+
     <n-space>
-      <n-tag v-for="(artifact, index) in step.ArtifactIds" :key="index" type="info"> {{ artifact }}</n-tag>
+      <n-tag v-for="(artifact, index) in step.ArtifactIds" :key="index" type="info">
+        {{ artifact }}</n-tag
+      >
     </n-space>
   </n-card>
 </template>
@@ -23,8 +27,7 @@ import { type DeployStep } from '../service/index'
 export default defineComponent({
   data() {
     return {
-      deployStep: this.step,
-      
+      deployStep: this.step
     }
   },
   methods: {
@@ -37,7 +40,6 @@ export default defineComponent({
 </script>
 
 <style scoped>
-
 .n-card {
   width: 300px;
   min-width: 400px;

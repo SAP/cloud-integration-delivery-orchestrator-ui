@@ -2,26 +2,23 @@ import type { DataTableColumns } from 'naive-ui'
 import http from './http'
 import { defineStore } from 'pinia'
 
-
 export const Login = (code: string, state: string, callbackUrl: string) => {
   return http.get(`/api/v1/userInfo?code=${code}&state=${state}&callbackUrl=${callbackUrl}`)
 }
 
 // returns Job instance
-export const FetchJob = (jobId: number|string) => {
+export const FetchJob = (jobId: number | string) => {
   return http.get(`/api/v1/job/${jobId}`)
 }
 
 // type: 'Import'|'Deploy'|'Undeploy'
 export const GetJobs = (type: string) => {
   return http.get('/api/v1/job', {
-    params:{type: type}
+    params: { type: type }
   })
 }
 
-export const SaveJob = (job: Job) => 
-  http.put(`/api/v1/job`, job)
-
+export const SaveJob = (job: Job) => http.put(`/api/v1/job`, job)
 
 export const ExecuteJob = (job: Job) => {
   return http.post(`/api/v1/job/${job.ID}`)
@@ -61,12 +58,11 @@ export interface Step {
   ID: number
   Status: 'Draft' | 'Saved' | 'Running' | 'Finished' | 'Error'
   Type: string
-
 }
 
 export const DeleteStep = (stepId: number, type: string) => {
   return http.delete(`/api/v1/step/`, {
-    params: {id: stepId, type: type}
+    params: { id: stepId, type: type }
   })
 }
 
@@ -116,7 +112,6 @@ export interface TransportNode {
   id: number
   description: string
   name: string
-
 }
 
 export interface TransportRequest {
@@ -130,7 +125,7 @@ export interface TransportRequest {
 export const GetTransportNodes = () => {
   return http.get('/api/v1/tms/nodes')
 }
-export const GetTransportRequests = (node_id: number|string) => {
+export const GetTransportRequests = (node_id: number | string) => {
   return http.get('/api/v1/tms/trs', {
     params: { transportNode: node_id }
   })
@@ -153,27 +148,25 @@ export interface Artifact {
   Type: string
 }
 
-
-
-export const GetPackages = (tenantId:number|string) => {
+export const GetPackages = (tenantId: number | string) => {
   return http.get('/api/v1/tanant/packages', {
-    params: {tenant: tenantId}
+    params: { tenant: tenantId }
   })
 }
 
-export const GetArtifacts = (tenantId: string, packageId:string) => {
+export const GetArtifacts = (tenantId: string, packageId: string) => {
   return http.get('/api/v1/tenant/packages/artifacts', {
-    params: {tenant: tenantId, package: packageId}
+    params: { tenant: tenantId, package: packageId }
   })
 }
 
 export const useUserInfoStore = defineStore('userInfo', {
   state: () => ({
-    userInfo: null as UserInfo | null,
+    userInfo: null as UserInfo | null
   }),
   actions: {
     isLogged() {
-      return this.user !== null;
+      return this.user !== null
     }
   },
   getters: {
@@ -186,42 +179,42 @@ export const useUserInfoStore = defineStore('userInfo', {
         return JSON.parse(item) as UserInfo
       }
       return null
-    },
+    }
   }
-});
+})
 
 export interface UserInfo {
-	avatar_url: string;
-	bio: any;
-	blog: string;
-	company: any;
-	created_at: string;
-	email: string;
-	events_url: string;
-	followers: number;
-	followers_url: string;
-	following: number;
-	following_url: string;
-	gists_url: string;
-	gravatar_id: string;
-	hireable: any;
-	html_url: string;
-	id: number;
-	location: any;
-	login: string;
-	name: string;
-	node_id: string;
-	organizations_url: string;
-	public_gists: number;
-	public_repos: number;
-	received_events_url: string;
-	repos_url: string;
-	site_admin: boolean;
-	starred_url: string;
-	subscriptions_url: string;
-	suspended_at: any;
-	twitter_username: any;
-	type: string;
-	updated_at: string;
-	url: string;
+  avatar_url: string
+  bio: any
+  blog: string
+  company: any
+  created_at: string
+  email: string
+  events_url: string
+  followers: number
+  followers_url: string
+  following: number
+  following_url: string
+  gists_url: string
+  gravatar_id: string
+  hireable: any
+  html_url: string
+  id: number
+  location: any
+  login: string
+  name: string
+  node_id: string
+  organizations_url: string
+  public_gists: number
+  public_repos: number
+  received_events_url: string
+  repos_url: string
+  site_admin: boolean
+  starred_url: string
+  subscriptions_url: string
+  suspended_at: any
+  twitter_username: any
+  type: string
+  updated_at: string
+  url: string
 }

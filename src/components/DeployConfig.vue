@@ -32,9 +32,10 @@
       />
     </n-tab-pane>
     <n-tab-pane name="Execution Log" tab="Execution Log">
-      <n-alert title="Artifact Deploy Status" type="default"> 
+      <n-alert title="Artifact Deploy Status" type="default">
         <p v-for="(artifactId, index) in step.ArtifactIds" :key="index">
-          {{ artifactId }} : {{ step.ArtifactVersions[index] }} - {{ step.TaskIds[index] }} - {{ step.TaskStatuses[index] }}
+          {{ artifactId }} : {{ step.ArtifactVersions[index] }} - {{ step.TaskIds[index] }} -
+          {{ step.TaskStatuses[index] }}
         </p>
       </n-alert>
     </n-tab-pane>
@@ -83,7 +84,11 @@ export default defineComponent({
   },
   methods: {
     handleApiEndpoint(rows: ApiEndpoint[]) {
-      if (this.step.Status === 'Running' || this.step.Status === 'Finished' || this.step.Status === 'Error') {
+      if (
+        this.step.Status === 'Running' ||
+        this.step.Status === 'Finished' ||
+        this.step.Status === 'Error'
+      ) {
         window.$message.warning(`Do not modify step with status ${this.step.Status}`)
         return
       }

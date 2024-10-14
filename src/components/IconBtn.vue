@@ -13,12 +13,12 @@
   </n-tooltip>
 </template>
 <script lang="ts">
-import { defineComponent } from 'vue';
+import { defineComponent } from 'vue'
 export default defineComponent({
-    props: {
-        tip: {type: String, required: true},
-        handler: {type: Function},
-        disabled: {type: Boolean}
-    }
+  props: {
+    tip: { type: String, required: true },
+    handler: { type: Function },
+    disabled: { type: Boolean }
+  }
 })
 </script>

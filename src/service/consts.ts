@@ -27,7 +27,7 @@ export const apiEndpointColums: DataTableColumns<ApiEndpoint> = [
     title: 'Url',
     key: 'url',
     resizable: true
-  },
+  }
 ]
 
 export function createJobColums(router: Router): DataTableColumns<Job> {
@@ -89,7 +89,7 @@ export function createJobColums(router: Router): DataTableColumns<Job> {
             onClick: () => {
               console.log(row)
               router.push({
-                path: `/flow/${row.ID}`,
+                path: `/flow/${row.ID}`
               })
             }
           },
@@ -234,7 +234,7 @@ export const artifactColumns: DataTableColumns<Artifact> = [
     title: 'Version',
     key: 'Version',
     resizable: true
-  },
+  }
 ]
 
 export const stepTypeOptions = {

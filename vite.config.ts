@@ -15,9 +15,10 @@ export default defineConfig({
   server: {
     proxy: {
       '^/api/v1/.*': {
-        target: 'http://127.0.0.1:9000'
+        target: process.env.BE_URL || 'http://localhost:8080'
         // rewrite: (path) => path.replace(/^\/api/, '')
       }
-    }
+    },
+    port: Number(process.env.PORT) || 5173
   }
 })

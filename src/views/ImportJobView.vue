@@ -1,14 +1,11 @@
 <template>
-  <JobsList title="Import TR Jobs" type="Import"/>
-  
+  <JobsList title="Import TR Jobs" type="Import" />
 </template>
 
 <script lang="ts">
-import JobsList from '@/components/JobsList.vue';
-import {defineComponent} from 'vue'
+import JobsList from '@/components/JobsList.vue'
+import { defineComponent } from 'vue'
 export default defineComponent({
-  components: { JobsList },
-  
+  components: { JobsList }
 })
 </script>
-

@@ -39,14 +39,14 @@ const router = createRouter({
     {
       path: '/callback',
       name: 'Oauth',
-      component: () => LoginCallback,
+      component: () => LoginCallback
     }
   ]
 })
 
 const LoginCallback = {
   mounted() {
-    const callbackUrl = "http://localhost:5173/callback"
+    const callbackUrl = 'http://localhost:5173/callback'
     const params = new URLSearchParams(window.location.search)
     const code = params.get('code')
     const state = params.get('state')
@@ -60,19 +60,18 @@ const LoginCallback = {
       useUserInfoStore().userInfo = userInfo
       this.$router.push('/')
     })
-    
-  },
+  }
 }
 
 router.beforeEach((to, from) => {
   const isLogged = useUserInfoStore().isLogged()
   if (!isLogged && to.path !== '/callback') {
     window.$message.info('Redirect to login')
-    window.location.href = "https://github.wdf.sap.corp/login/oauth/authorize?client_id=e413f654a5f193da8bed&response_type=code&redirect_uri=http://localhost:5173/callback&state=123"
+    window.location.href =
+      'https://github.wdf.sap.corp/login/oauth/authorize?client_id=e413f654a5f193da8bed&response_type=code&redirect_uri=http://localhost:5173/callback&state=123'
     return false
   }
   return true
 })
-
 
 export default router

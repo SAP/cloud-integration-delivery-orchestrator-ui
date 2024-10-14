@@ -15,7 +15,13 @@
         </n-button>
 
         <!-- add toolbar -->
-        <n-button quaternary type="info" class="icon-class" @click="handleAdd(data)" v-if="handleAdd">
+        <n-button
+          quaternary
+          type="info"
+          class="icon-class"
+          @click="handleAdd(data)"
+          v-if="handleAdd"
+        >
           <n-icon><IosAdd /> </n-icon>
         </n-button>
       </n-flex>

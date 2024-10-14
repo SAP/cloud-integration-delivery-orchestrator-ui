@@ -31,12 +31,12 @@ export default defineComponent({
         // doug.liu@sap.com => DL
         const emailParts = userInfo.email.split('.')
         if (emailParts.length >= 2) {
-            return (emailParts[0][0] + emailParts[1][0]).toUpperCase()
+          return (emailParts[0][0] + emailParts[1][0]).toUpperCase()
         }
       }
-      return 'Unkown'
+      return '?'
     }
-  },
+  }
 })
 </script>
 
@@ -50,11 +50,7 @@ export default defineComponent({
         <n-image width="70" src="/SAP_BIG.png" preview-disabled @click="handleHome" />
         <h2>{{ route.currentRoute.name }}</h2>
       </n-flex>
-      <n-avatar
-        style="margin-right: 10px;"
-        round
-        size="medium"
-      >{{ avartarSrc }}</n-avatar>
+      <n-avatar style="margin-right: 10px" round size="medium">{{ avartarSrc }}</n-avatar>
     </n-flex>
   </div>
 

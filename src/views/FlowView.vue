@@ -85,7 +85,11 @@
         <!-- step lists -->
         <n-gi span="2">
           <n-steps vertical :current="current" @update:current="handleCurrent">
-            <n-step v-for="(step, index) in jobInstance.Steps" :key="index" :status="mapStatus(step.Status)">
+            <n-step
+              v-for="(step, index) in jobInstance.Steps"
+              :key="index"
+              :status="mapStatus(step.Status)"
+            >
               <template #title>
                 {{ step.Status }}
               </template>
@@ -102,9 +106,7 @@
         <!-- choose config -->
         <n-gi span="3">
           <n-flex class="table-class" vertical align="start" v-if="current > 0">
-            <span style="font-size: 15px; font-weight: bold">
-              Details of Step {{ current }}:
-            </span>
+            <span style="font-size: 15px; font-weight: bold"> Details of Step {{ current }}: </span>
             <component
               :is="jobInstance.Type === 'Import' ? 'ImportConfig' : 'DeployConfig'"
               :key="current - 1"
@@ -113,8 +115,13 @@
             />
             <div>
               Job Execution Logs
-              <n-alert :title="`Step ${log.Sequence} at ${log.CreatedAt}`" type="warning" v-for="(log, i) in jobInstance.ExecutionLogs" :key="i">
-                {{log.Log}}
+              <n-alert
+                :title="`Step ${log.Sequence} at ${log.CreatedAt}`"
+                type="warning"
+                v-for="(log, i) in jobInstance.ExecutionLogs"
+                :key="i"
+              >
+                {{ log.Log }}
               </n-alert>
             </div>
           </n-flex>
@@ -231,16 +238,20 @@ export default defineComponent({
       this.status = 'DRAFT'
     },
     onExecute() {
-      ExecuteJob(this.jobInstance).then(()=>{this.refresh()})
+      ExecuteJob(this.jobInstance).then(() => {
+        this.refresh()
+      })
     },
     refresh() {
-      FetchJob(this.jobId).then(job => {
+      FetchJob(this.jobId).then((job) => {
         this.jobInstance = job as unknown as Job
         // update job status based on steps' status
-        if(this.jobInstance.Steps.filter((v,i) => v.Status === 'Error').length) this.status = 'Error'
-        else if (this.jobInstance.Steps.filter((v,i) => v.Status === 'Running').length) this.status = 'Running'
+        if (this.jobInstance.Steps.filter((v, i) => v.Status === 'Error').length)
+          this.status = 'Error'
+        else if (this.jobInstance.Steps.filter((v, i) => v.Status === 'Running').length)
+          this.status = 'Running'
         else {
-          const arr = this.jobInstance.Steps.filter((v,i) => v.Status === 'Finished')
+          const arr = this.jobInstance.Steps.filter((v, i) => v.Status === 'Finished')
           if (arr.length === this.jobInstance.Steps.length) this.status = 'Finished'
           else this.status = this.jobInstance.Status
         }
@@ -268,7 +279,7 @@ export default defineComponent({
           return 'wait'
       }
     }
-  },
+  }
 })
 </script>
 <style scoped>

@@ -1,7 +1,6 @@
 import axios from 'axios'
 
-const service = axios.create({
-})
+const service = axios.create({})
 
 // service.interceptors.request.use(
 //     config => {
@@ -21,16 +20,15 @@ const service = axios.create({
 // )
 
 service.interceptors.response.use(
-    response => {
-        const res = response.data
-        if (res.msg) 
-            window.$message.info(res.msg)
-        return res.result
-    },
-    error => {
-        window.$message.error(error.response.data.msg)
-        return Promise.reject(error.response.data.msg)
-    }
+  (response) => {
+    const res = response.data
+    if (res.msg) window.$message.info(res.msg)
+    return res.result
+  },
+  (error) => {
+    window.$message.error(error.response.data.msg)
+    return Promise.reject(error.response.data.msg)
+  }
 )
 
 export default service
