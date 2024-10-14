@@ -1,8 +1,10 @@
 applications:
-- name: stage-devops-ui-app-iflow-transport-test-deploy
-  command: ls ./node_modules/.bin; npm run start
+- name: mmt-ui-app-iflow-deploy
+  memory: 2G
+  disk_quota: 2G
+  command: npm run start
   buildpacks:
     - nodejs_buildpack
   environments:
-    - BE_URL: https://stage-devops-ui-app-iflow-transport-test.cfapps.eu10.hana.ondemand.com
+    - BE_URL: https://stage-devops-srv-iflow-deploy.cfapps.sap.hana.ondemand.com
   

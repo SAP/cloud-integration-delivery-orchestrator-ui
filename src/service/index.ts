@@ -3,7 +3,7 @@ import http from './http'
 import { defineStore } from 'pinia'
 
 export const Login = (code: string, state: string, callbackUrl: string) => {
-  return http.get(`/api/v1/userInfo?code=${code}&state=${state}&callbackUrl=${callbackUrl}`)
+  return http.get(`/api/v1/userInfo?code=${code}&state=${state}`)
 }
 
 // returns Job instance
