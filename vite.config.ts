@@ -3,23 +3,26 @@ import { fileURLToPath, URL } from 'node:url'
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import vueJsx from '@vitejs/plugin-vue-jsx'
+import {port, beUrl } from './src/service/consts'
 
 // https://vitejs.dev/config/
-export default defineConfig({
-  plugins: [vue(), vueJsx()],
-  resolve: {
-    alias: {
-      '@': fileURLToPath(new URL('./src', import.meta.url))
-    }
-  },
-  server: {
-    proxy: {
-      '^/api/v1/.*': {
-        target: process.env.BE_URL || 'http://localhost:8080'
-        // rewrite: (path) => path.replace(/^\/api/, '')
+export default defineConfig(() => {
+  return {
+    plugins: [vue(), vueJsx()],
+    resolve: {
+      alias: {
+        '@': fileURLToPath(new URL('./src', import.meta.url))
       }
     },
-    port: Number(process.env.PORT) || 5173,
-    host: true
+    server: {
+      proxy: {
+        '^/api/v1/.*': {
+          target: beUrl,
+          // rewrite: (path) => path.replace(/^\/api/, '')
+        }
+      },
+      port: port,
+      host: true
+    }
   }
 })

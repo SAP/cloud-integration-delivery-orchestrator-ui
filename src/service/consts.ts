@@ -4,6 +4,18 @@ import { h } from 'vue'
 import type { Router } from 'vue-router'
 import { IosArrowForward } from '@vicons/ionicons4'
 
+export const clientId = 'e413f654a5f193da8bed'
+
+// local
+// export const callbackUrl = 'http://localhost:5173/callback'
+// export const beUrl = 'http://localhost:8080'
+// export const port = 5173
+
+// remote
+export const callbackUrl = 'https://mmt-ui-app-iflow-deploy.cfapps.sap.hana.ondemand.com/callback'
+export const beUrl = 'https://stage-devops-srv-iflow-deploy.cfapps.sap.hana.ondemand.com'
+export const port = 8080
+
 export const apiEndpointColums: DataTableColumns<ApiEndpoint> = [
   {
     type: 'selection',
