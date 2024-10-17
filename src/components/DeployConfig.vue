@@ -53,7 +53,7 @@ import {
   type Artifact,
   type DeployStep,
   type Package
-} from '@/service'
+} from '@/service/api'
 import { apiEndpointColums, artifactColumns, packageColums } from '@/service/consts'
 export default defineComponent({
   props: {

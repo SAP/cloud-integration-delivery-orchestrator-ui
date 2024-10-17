@@ -18,6 +18,9 @@ export default defineConfig(() => {
       proxy: {
         '^/api/v1/.*': {
           target: beUrl,
+          // changeOrigin: true, // 允许跨域
+          // ws: true,  // 允许websocket代理
+          secure: false
           // rewrite: (path) => path.replace(/^\/api/, '')
         }
       },

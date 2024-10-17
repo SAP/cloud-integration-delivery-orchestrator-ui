@@ -1,4 +1,4 @@
-import { useUserInfoStore } from '@/service'
+import { useUserInfoStore } from '@/service/api'
 import { callbackUrl, clientId } from '@/service/consts'
 import { createRouter, createWebHistory } from 'vue-router'
 

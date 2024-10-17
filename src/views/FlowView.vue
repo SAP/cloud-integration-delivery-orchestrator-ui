@@ -145,7 +145,7 @@ import {
   FetchJob,
   DeleteStep,
   ExecuteJob
-} from '../service/index'
+} from '../service/api'
 import { stepTypeOptions, transportRequestColums } from '@/service/consts'
 import { Edit16Regular, Delete28Regular } from '@vicons/fluent'
 import ImportConfig from '../components/ImportConfig.vue'

@@ -39,7 +39,7 @@ import {
   type Step,
   type TransportNode,
   type TransportRequest
-} from '@/service'
+} from '@/service/api'
 import { transportNodesColums, transportRequestColums } from '@/service/consts'
 import { defineComponent, type PropType } from 'vue'
 

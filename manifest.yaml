@@ -5,6 +5,6 @@ applications:
   command: npm run start
   buildpacks:
     - nodejs_buildpack
-  environments:
-    - BE_URL: https://stage-devops-srv-iflow-deploy.cfapps.sap.hana.ondemand.com
+  # environments:
+  #   - BE_URL: https://stage-devops-srv-iflow-deploy.cfapps.sap.hana.ondemand.com
   

@@ -12,7 +12,7 @@
 
 <script lang="ts">
 import { defineComponent, h, ref } from 'vue'
-import { DeleteJob, GetJobs, NewJob, type Job } from '@/service/index'
+import { DeleteJob, GetJobs, NewJob, type Job } from '@/service/api'
 import { type ToolBar } from '@/service/consts'
 import type { DataTableColumns, DataTableRowKey } from 'naive-ui'
 import DataTable from '@/components/DataTable.vue'

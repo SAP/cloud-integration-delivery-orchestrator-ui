@@ -1,17 +1,19 @@
 import type { DataTableColumns, DataTableRowKey } from 'naive-ui'
-import type { ApiEndpoint, Artifact, Job, Package, TransportNode, TransportRequest } from '.'
+import type { ApiEndpoint, Artifact, Job, Package, TransportNode, TransportRequest } from './api'
 import { h } from 'vue'
 import type { Router } from 'vue-router'
 import { IosArrowForward } from '@vicons/ionicons4'
 
-export const clientId = 'e413f654a5f193da8bed'
 
-// local
+// local. use test oauth app: https://github.wdf.sap.corp/settings/applications/3443
+// export const clientId = 'e642e8c0547789a31ce3'
+// export const cliendSecret = 'REDACTED'
 // export const callbackUrl = 'http://localhost:5173/callback'
 // export const beUrl = 'http://localhost:8080'
 // export const port = 5173
 
-// remote
+// remote. use oauth app: https://github.wdf.sap.corp/settings/applications/3431
+export const clientId = 'e413f654a5f193da8bed'
 export const callbackUrl = 'https://mmt-ui-app-iflow-deploy.cfapps.sap.hana.ondemand.com/callback'
 export const beUrl = 'https://stage-devops-srv-iflow-deploy.cfapps.sap.hana.ondemand.com'
 export const port = 8080

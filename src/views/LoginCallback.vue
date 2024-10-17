@@ -3,7 +3,7 @@
 </template>
 
 <script lang="ts">
-import { Login, useUserInfoStore, type UserInfo } from '@/service'
+import { Login, useUserInfoStore, type UserInfo } from '@/service/api'
 import { callbackUrl } from '@/service/consts';
 import { defineComponent } from 'vue'
 export default defineComponent({

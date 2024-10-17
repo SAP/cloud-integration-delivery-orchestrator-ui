@@ -40,7 +40,7 @@
 </template>
 <script lang="ts">
 import { defineComponent, type PropType } from 'vue'
-import { type ApiEndpoint } from '@/service'
+import { type ApiEndpoint } from '@/service/api'
 export default defineComponent({
   props: {
     value: { type: Object as PropType<ApiEndpoint>, require: true }
