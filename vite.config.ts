@@ -3,11 +3,12 @@ import { fileURLToPath, URL } from 'node:url'
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import vueJsx from '@vitejs/plugin-vue-jsx'
-import {port, beUrl } from './src/service/consts'
+import {port, beUrl, targetUrl } from './src/service/consts'
 
 // https://vitejs.dev/config/
 export default defineConfig(() => {
   return {
+    base: '/',
     plugins: [vue(), vueJsx()],
     resolve: {
       alias: {
@@ -18,14 +19,21 @@ export default defineConfig(() => {
       proxy: {
         '^/api/v1/.*': {
           target: beUrl,
-          // changeOrigin: true, // 允许跨域
-          // ws: true,  // 允许websocket代理
-          secure: false
+          changeOrigin: true, // changes the origin of the host header to the target URL
+          secure: false,
+          // ws: true,
           // rewrite: (path) => path.replace(/^\/api/, '')
+        },
+        '^/user/.*': {
+          target: targetUrl,
+          rewrite: (path) => path.replace(/^\/user/, ''),
+          secure: false,
+          changeOrigin: true,
         }
       },
       port: port,
-      host: true
+      host: true,
+      cors: true
     }
   }
 })

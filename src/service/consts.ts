@@ -7,16 +7,48 @@ import { IosArrowForward } from '@vicons/ionicons4'
 
 // local. use test oauth app: https://github.wdf.sap.corp/settings/applications/3443
 // export const clientId = 'e642e8c0547789a31ce3'
-// export const cliendSecret = 'REDACTED'
+// export const clientSecret = 'REDACTED'
 // export const callbackUrl = 'http://localhost:5173/callback'
 // export const beUrl = 'http://localhost:8080'
 // export const port = 5173
 
 // remote. use oauth app: https://github.wdf.sap.corp/settings/applications/3431
-export const clientId = 'e413f654a5f193da8bed'
+// export const clientId = 'e413f654a5f193da8bed'
+// export const clientSecret = "REDACTED"
+// export const callbackUrl = 'https://mmt-ui-app-iflow-deploy.cfapps.sap.hana.ondemand.com/callback'
+// export const beUrl = 'https://stage-devops-srv-iflow-deploy.cfapps.sap.hana.ondemand.com'
+// export const port = 8080
+
+// local maco.account400
+// export const clientId = '74653741-4458-4cc6-902a-4681533d1509'
+// export const clientSecret = "REDACTED"
+// export const callbackUrl = 'http://localhost:5173/callback'
+// export const beUrl = 'http://localhost:8080'
+// export const port = 5173
+
+// remote. maco.account400: https://maco.accounts400.ondemand.com/admin/#/applications/668667c6474e930344d2f375
+export const clientId = '74653741-4458-4cc6-902a-4681533d1509'
+export const clientSecret = "REDACTED"
 export const callbackUrl = 'https://mmt-ui-app-iflow-deploy.cfapps.sap.hana.ondemand.com/callback'
 export const beUrl = 'https://stage-devops-srv-iflow-deploy.cfapps.sap.hana.ondemand.com'
 export const port = 8080
+
+// maco.account400 
+export const authUrl = `https://maco.accounts400.ondemand.com/oauth2/authorize?client_id=${clientId}&redirect_uri=${callbackUrl}&response_type=code&state=123&scope=email`
+// github.wdf.sap.corp
+// export const authUrl = `https://github.wdf.sap.corp/login/oauth/authorize?client_id=${clientId}&response_type=code&redirect_uri=${callbackUrl}&state=123`
+
+// maco.account400
+export const targetUrl = 'https://maco.accounts400.ondemand.com'
+
+// maco.account400
+export const tokenEndpoint = '/user/oauth2/token'
+export const userInfoEndpoint = '/user/oauth2/userinfo'
+
+// github
+// export const tokenEndpoint = '/user/login/oauth/access_token'
+// export const userInfoEndpoint = '/user/api/v3/user'
+
 
 export const apiEndpointColums: DataTableColumns<ApiEndpoint> = [
   {

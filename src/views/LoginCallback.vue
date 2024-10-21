@@ -15,10 +15,11 @@ export default defineComponent({
       window.$message.error('Invalid callback params, code or state not found.')
       return
     }
-    Login(code, state, callbackUrl).then((res) => {
-      const userInfo = res as unknown as UserInfo
-      window.localStorage.setItem('userInfo', JSON.stringify(userInfo))
-      useUserInfoStore().userInfo = userInfo
+    Login(code, state, callbackUrl)
+      .then((user: UserInfo) => {
+      window.localStorage.setItem('userInfo', JSON.stringify(user))
+      useUserInfoStore().userInfo = user
+      window.$message.info('Login success')
       this.$router.push('/')
     })
   }

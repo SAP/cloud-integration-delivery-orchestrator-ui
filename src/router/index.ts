@@ -1,5 +1,5 @@
 import { useUserInfoStore } from '@/service/api'
-import { callbackUrl, clientId } from '@/service/consts'
+import { authUrl, callbackUrl, clientId } from '@/service/consts'
 import { createRouter, createWebHistory } from 'vue-router'
 
 const router = createRouter({
@@ -49,8 +49,7 @@ router.beforeEach((to, from) => {
   const isLogged = useUserInfoStore().isLogged()
   if (!isLogged && to.path !== '/callback') {
     window.$message.info('Redirect to login')
-    window.location.href =
-      `https://github.wdf.sap.corp/login/oauth/authorize?client_id=${clientId}&response_type=code&redirect_uri=${callbackUrl}&state=123`
+    window.location.href =  authUrl
     return false
   }
   return true

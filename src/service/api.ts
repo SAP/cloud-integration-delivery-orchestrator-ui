@@ -1,8 +1,32 @@
+import axios from 'axios'
+import { clientId, clientSecret, tokenEndpoint, userInfoEndpoint } from './consts'
 import http from './http'
 import { defineStore } from 'pinia'
 
-export const Login = (code: string, state: string, callbackUrl: string) => {
-  return http.get(`/api/v1/userInfo?code=${code}&state=${state}&callbackUrl=${callbackUrl}`)
+
+export const Login = (code: string, state: string, redirectUri: string) => {
+  const instance = axios.create({headers: {'Accept': 'application/json'}})
+  instance.defaults.headers['Content-Type'] = 'application/x-www-form-urlencoded'
+  return instance.post(tokenEndpoint, {
+    grant_type: 'authorization_code',
+    client_id: clientId,
+    code: code,
+    redirect_uri: redirectUri
+  },
+  {
+    auth: {
+      username: clientId,
+      password: clientSecret
+    }
+  }).then((res) => {
+    const token = res.data.access_token
+    instance.defaults.headers['Authorization'] = `Bearer ${token}`
+    return instance.get(userInfoEndpoint)
+  }).then(res => {
+    return res.data
+  }).catch((err) => {
+    window.$message.error(err.response)
+  })
 }
 
 // returns Job instance
