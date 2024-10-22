@@ -1,32 +1,23 @@
 <template>
-  <n-tabs type="segment" animated>
-    <n-tab-pane name="Config" tab="Config">
-      <data-table
-        title="Transport Nodes"
-        :data="transportNodes"
-        :columns="transportNodesColums"
-        :row-key="(row: TransportNode) => row.id"
-        @update:check-rows="handleTransportNodes"
-        :default-checked-row-keys="[step.TransportNodeId]"
-        :loading="!transportNodes || transportNodes.length === 0"
-      />
-      <data-table
-        :title="'Transport Requests of ' + step.TransportNodeName"
-        :data="transportRequests"
-        :columns="transportRequestColums"
-        :row-key="(row: TransportRequest) => row.id"
-        @update:check-rows="handleTransportRequests"
-        :default-checked-row-keys="step.TransportRequests"
-        :loading="!transportRequests || transportRequests.length === 0"
-        :key="step.TransportNodeId"
-      />
-    </n-tab-pane>
-    <n-tab-pane name="Log" tab="Execution Log">
-      <n-alert title="Artifact Deploy Status" type="default">
-        ActionId: {{ step.ActionId }} - {{ step.Status }}
-      </n-alert>
-    </n-tab-pane>
-  </n-tabs>
+  <data-table
+    title="Transport Nodes"
+    :data="transportNodes"
+    :columns="transportNodesColums"
+    :row-key="(row: TransportNode) => row.id"
+    @update:check-rows="handleTransportNodes"
+    :default-checked-row-keys="[step.TransportNodeId]"
+    :loading="!transportNodes || transportNodes.length === 0"
+  />
+  <data-table
+    :title="'Transport Requests of ' + step.TransportNodeName"
+    :data="transportRequests"
+    :columns="transportRequestColums"
+    :row-key="(row: TransportRequest) => row.id"
+    @update:check-rows="handleTransportRequests"
+    :default-checked-row-keys="step.TransportRequests"
+    :loading="!transportRequests || transportRequests.length === 0"
+    :key="step.TransportNodeId"
+  />
 </template>
 
 <script lang="ts">

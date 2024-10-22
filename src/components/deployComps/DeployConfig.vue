@@ -1,45 +1,33 @@
 <template>
-  <n-tabs type="segment" animated>
-    <n-tab-pane name="Config" tab="Config">
-      <data-table
-        title="CPI Tenants"
-        :data="cpitenants"
-        :columns="apiEndpointColums"
-        :row-key="(row: ApiEndpoint) => row.name"
-        @update:check-rows="handleApiEndpoint"
-        :default-checked-row-keys="[step.Endpoint]"
-        :loading="!cpitenants || cpitenants.length === 0"
-      />
-      <data-table
-        :title="'Packages of ' + step.Endpoint"
-        :data="packages"
-        :columns="packageColums"
-        :row-key="(row: Package) => row.Id"
-        @update:check-rows="handlePackage"
-        :default-checked-row-keys="[step.PackageId]"
-        :loading="!packages || !packages.length"
-        :key="step.Endpoint"
-      />
-      <data-table
-        :title="'Design Time Artifacts of ' + step.PackageId"
-        :data="artifacts"
-        :columns="artifactColumns"
-        :row-key="(row: Artifact) => row.Id"
-        @update:check-rows="handleArtifacts"
-        :default-checked-row-keys="step.ArtifactIds"
-        :loading="!artifacts || !artifacts.length"
-        :key="step.PackageId"
-      />
-    </n-tab-pane>
-    <n-tab-pane name="Execution Log" tab="Execution Log">
-      <n-alert title="Artifact Deploy Status" type="default">
-        <p v-for="(artifactId, index) in step.ArtifactIds" :key="index">
-          {{ artifactId }} : {{ step.ArtifactVersions[index] }} - {{ step.TaskIds[index] }} -
-          {{ step.TaskStatuses[index] }}
-        </p>
-      </n-alert>
-    </n-tab-pane>
-  </n-tabs>
+  <data-table
+    title="CPI Tenants"
+    :data="cpitenants"
+    :columns="apiEndpointColums"
+    :row-key="(row: ApiEndpoint) => row.name"
+    @update:check-rows="handleApiEndpoint"
+    :default-checked-row-keys="[step.Endpoint]"
+    :loading="!cpitenants || cpitenants.length === 0"
+  />
+  <data-table
+    :title="'Packages of ' + step.Endpoint"
+    :data="packages"
+    :columns="packageColums"
+    :row-key="(row: Package) => row.Id"
+    @update:check-rows="handlePackage"
+    :default-checked-row-keys="[step.PackageId]"
+    :loading="!packages || !packages.length"
+    :key="step.Endpoint"
+  />
+  <data-table
+    :title="'Design Time Artifacts of ' + step.PackageId"
+    :data="artifacts"
+    :columns="artifactColumns"
+    :row-key="(row: Artifact) => row.Id"
+    @update:check-rows="handleArtifacts"
+    :default-checked-row-keys="step.ArtifactIds"
+    :loading="!artifacts || !artifacts.length"
+    :key="step.PackageId"
+  />
 </template>
 
 <script lang="ts">

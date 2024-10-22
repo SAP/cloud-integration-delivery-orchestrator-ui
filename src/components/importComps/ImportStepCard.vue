@@ -18,7 +18,7 @@
 <script lang="ts">
 import { defineComponent } from 'vue'
 import type { PropType } from 'vue'
-import type { ImportStep } from '../service/api'
+import type { ImportStep } from '../../service/api'
 
 export default defineComponent({
   data() {

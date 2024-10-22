@@ -26,15 +26,14 @@ export default defineComponent({
       return this.$router.currentRoute.value.path !== '/'
     },
     avartarSrc() {
-      const userInfo = useUserInfoStore().user as UserInfo
-      if (userInfo) {
-        // doug.liu@sap.com => DL
-        const emailParts = userInfo.email.split('.')
-        if (emailParts.length >= 2) {
-          return (emailParts[0][0] + emailParts[1][0]).toUpperCase()
-        }
+      const user = useUserInfoStore().user
+      if (!user) return '?'
+      // eg. doug.liu@sap.com => DL
+      const emailParts = user.email.split('.')
+      if (emailParts.length >= 2) {
+        return (emailParts[0][0] + emailParts[1][0]).toUpperCase()
       }
-      return '?'
+      
     }
   }
 })

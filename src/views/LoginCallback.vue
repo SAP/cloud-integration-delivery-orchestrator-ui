@@ -12,15 +12,14 @@ export default defineComponent({
     const code = params.get('code')
     const state = params.get('state')
     if (code === null || state === null) {
-      window.$message.error('Invalid callback params, code or state not found.')
+      window.$message.error('Oauth login failed: Invalid callback params, code or state not found.')
       return
     }
     Login(code, state, callbackUrl)
       .then((user: UserInfo) => {
-      window.localStorage.setItem('userInfo', JSON.stringify(user))
-      useUserInfoStore().userInfo = user
-      window.$message.info('Login success')
-      this.$router.push('/')
+        useUserInfoStore().setUser(user)
+        window.$message.info('Login success')
+        this.$router.push('/')
     })
   }
 })

@@ -1,5 +1,20 @@
 <template>
   <div style="margin: 0 42px">
+    <n-modal v-model:show="showModal">
+      <n-card style="width: 70%" title="Execution Log" :bordered="false" size="small" role="dialog" aria-modal="true" >
+      <component :is="comps.log" :steps="jobInstance.Steps"/>
+        <h4>Job Execution Logs</h4>
+        <n-alert
+          :title="`Step ${log.Sequence} at ${log.CreatedAt}`"
+          type="warning"
+          v-for="(log, i) in jobInstance.ExecutionLogs"
+          :key="i"
+        >
+          {{ log.Log }}
+        </n-alert>
+        
+      </n-card>
+    </n-modal>
     <!-- head -->
     <n-card class="header-card-shadow-class">
       <n-flex justify="space-between">
@@ -52,6 +67,8 @@
           <IconBtn tip="Execute" :handler="onExecute" :disabled="editing">
             <StartTwotone />
           </IconBtn>
+
+          <n-button type="primary" @click="showModal = true">Logs</n-button>
         </n-flex>
       </n-flex>
     </n-card>
@@ -95,7 +112,7 @@
               </template>
 
               <component
-                :is="jobInstance.Type === 'Import' ? 'ImportStepCard' : 'DeployStepCard'"
+                :is="comps.stepCard"
                 :step="step"
                 @close="handleCloseStep(step, index)"
               />
@@ -108,22 +125,11 @@
           <n-flex class="table-class" vertical align="start" v-if="current > 0">
             <span style="font-size: 15px; font-weight: bold"> Details of Step {{ current }}: </span>
             <component
-              :is="jobInstance.Type === 'Import' ? 'ImportConfig' : 'DeployConfig'"
+              :is="comps.config"
               :key="current - 1"
               :step="jobInstance.Steps[current - 1]"
               v-if="checkStatus(jobInstance.Steps[current - 1])"
             />
-            <div>
-              Job Execution Logs
-              <n-alert
-                :title="`Step ${log.Sequence} at ${log.CreatedAt}`"
-                type="warning"
-                v-for="(log, i) in jobInstance.ExecutionLogs"
-                :key="i"
-              >
-                {{ log.Log }}
-              </n-alert>
-            </div>
           </n-flex>
         </n-gi>
       </n-grid>
@@ -134,8 +140,8 @@
 <script lang="ts">
 import { useMessage } from 'naive-ui'
 import { defineComponent } from 'vue'
-import ImportStepCard from '../components/ImportStepCard.vue'
-import DeployStepCard from '../components/DeployStepCard.vue'
+import ImportStepCard from '@/components/importComps/ImportStepCard.vue'
+import DeployStepCard from '@/components/deployComps/DeployStepCard.vue'
 import { SaveAltRound, StartTwotone } from '@vicons/material'
 import {
   type Job,
@@ -148,8 +154,10 @@ import {
 } from '../service/api'
 import { stepTypeOptions, transportRequestColums } from '@/service/consts'
 import { Edit16Regular, Delete28Regular } from '@vicons/fluent'
-import ImportConfig from '../components/ImportConfig.vue'
-import DeployConfig from '../components/DeployConfig.vue'
+import ImportConfig from '@/components/importComps/ImportConfig.vue'
+import DeployConfig from '@/components/deployComps/DeployConfig.vue'
+import ImportLog from '@/components/importComps/ImportLog.vue'
+import DeployLog from '@/components/deployComps/DeployLog.vue'
 import IconBtn from '@/components/IconBtn.vue'
 export default defineComponent({
   props: {
@@ -160,6 +168,8 @@ export default defineComponent({
     DeployStepCard,
     ImportConfig,
     DeployConfig,
+    ImportLog,
+    DeployLog,
     Edit16Regular,
     Delete28Regular,
     SaveAltRound,
@@ -180,7 +190,20 @@ export default defineComponent({
       trColums: transportRequestColums,
       message: useMessage(),
       editing: false,
-      status: ''
+      status: '',
+      showModal: false
+    }
+  },
+  computed: {
+    comps() {
+      const stepCard = this.jobInstance.Type === 'Import' ? 'ImportStepCard' : 'DeployStepCard'
+      const config = this.jobInstance.Type === 'Import' ? 'ImportConfig' : 'DeployConfig'
+      const log = this.jobInstance.Type === 'Import' ? 'ImportLog' : 'DeployLog'
+      return {
+        stepCard: stepCard,
+        config: config,
+        log: log,
+      }
     }
   },
   methods: {
@@ -245,16 +268,7 @@ export default defineComponent({
     refresh() {
       FetchJob(this.jobId).then((job) => {
         this.jobInstance = job as unknown as Job
-        // update job status based on steps' status
-        if (this.jobInstance.Steps.filter((v, i) => v.Status === 'Error').length)
-          this.status = 'Error'
-        else if (this.jobInstance.Steps.filter((v, i) => v.Status === 'Running').length)
-          this.status = 'Running'
-        else {
-          const arr = this.jobInstance.Steps.filter((v, i) => v.Status === 'Finished')
-          if (arr.length === this.jobInstance.Steps.length) this.status = 'Finished'
-          else this.status = this.jobInstance.Status
-        }
+        this.status = this.jobInstance.Status
         return job
       })
     },
@@ -265,13 +279,14 @@ export default defineComponent({
       // }
       return true
     },
+    // maps status to naive-ui status: wait, process, finish, error
     mapStatus(status: string) {
       switch (status) {
         case 'Draft':
           return 'wait'
         case 'Running':
           return 'process'
-        case 'Finished':
+        case 'Success':
           return 'finish'
         case 'Error':
           return 'error'
@@ -282,6 +297,7 @@ export default defineComponent({
   }
 })
 </script>
+
 <style scoped>
 .header-card-shadow-class {
   border-radius: 0.5rem;

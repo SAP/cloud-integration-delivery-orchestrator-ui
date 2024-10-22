@@ -1,23 +1,20 @@
 import axios from 'axios'
+import { useUserInfoStore } from './api'
 
 const service = axios.create({})
 
-// service.interceptors.request.use(
-//     config => {
-//         if (config.method === 'post' || config.method === 'put' || config.method === 'delete') {
-//             config.headers['Content-Type'] = 'application/json'
-//             // 序列化
-//             config.data = JSON.stringify(config.data)
-//             if (config.type === 'form') {
-//                 config.headers['Content-Type'] = 'multipart/form-data'
-//             }
-//         }
-//         return config
-//     },
-//     error => {
-//         Promise.reject(error)
-//     }
-// )
+service.interceptors.request.use(
+    config => {
+      const userInfo = useUserInfoStore().user
+      if (!userInfo) throw new Error('User not logged in')
+      config.headers['X-User-Email'] = userInfo.email
+      return config
+    },
+    error => {
+      window.$message.error(`request failed: ${error}`)
+      Promise.reject(error)
+    }
+)
 
 service.interceptors.response.use(
   (response) => {

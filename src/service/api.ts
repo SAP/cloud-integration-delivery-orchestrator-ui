@@ -12,8 +12,7 @@ export const Login = (code: string, state: string, redirectUri: string) => {
     client_id: clientId,
     code: code,
     redirect_uri: redirectUri
-  },
-  {
+  }, {
     auth: {
       username: clientId,
       password: clientSecret
@@ -25,7 +24,7 @@ export const Login = (code: string, state: string, redirectUri: string) => {
   }).then(res => {
     return res.data
   }).catch((err) => {
-    window.$message.error(err.response)
+    window.$message.error(`Login failed: ${err.response}`)
   })
 }
 
@@ -38,7 +37,7 @@ export const FetchJob = (jobId: number | string) => {
 export const GetJobs = (type: string) => {
   return http.get('/api/v1/job', {
     params: { type: type }
-  })
+  }) as Promise<Job[]>
 }
 
 export const SaveJob = (job: Job) => http.put(`/api/v1/job`, job)
@@ -58,9 +57,14 @@ export const NewJob = (type: string) => {
     Status: 'Draft',
     Steps: [],
     Type: type,
-    ID: 0
+    ID: 0,
+    CreatedBy: '',
+    ExecutionLogs: [],
+    Updatedby: '',
+    CreatedAt: '',
+    UpdatedAt: ''
   }
-  return http.post('/api/v1/job', job)
+  return http.post('/api/v1/job', job) as Promise<Job>
 }
 export interface Job {
   ID: number
@@ -190,10 +194,14 @@ export const useUserInfoStore = defineStore('userInfo', {
   actions: {
     isLogged() {
       return this.user !== null
+    },
+    setUser(user: UserInfo) {
+      this.userInfo = user
+      window.localStorage.setItem('userInfo', JSON.stringify(user))
     }
   },
   getters: {
-    user: (state) => {
+    user: (state) => { // return a UserInfo object from this store or localsotrage
       if (state.userInfo) {
         return state.userInfo
       }
