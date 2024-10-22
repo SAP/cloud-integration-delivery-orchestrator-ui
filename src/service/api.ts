@@ -50,19 +50,13 @@ export const DeleteJob = (job: Job) => {
   return http.delete(`/api/v1/job/${job.ID}`)
 }
 
-export const NewJob = (type: string) => {
+export const NewJob = (type: string, name:string, desc:string) => {
   const job: Job = {
-    Name: '',
-    Description: '',
+    Name: name,
+    Description: desc,
     Status: 'Draft',
-    Steps: [],
     Type: type,
     ID: 0,
-    CreatedBy: '',
-    ExecutionLogs: [],
-    Updatedby: '',
-    CreatedAt: '',
-    UpdatedAt: ''
   }
   return http.post('/api/v1/job', job) as Promise<Job>
 }
@@ -83,7 +77,7 @@ export interface Job {
 
 export interface Step {
   ID: number
-  Status: 'Draft' | 'Saved' | 'Running' | 'Finished' | 'Error'
+  Status: 'Draft' | 'Saved' | 'Running' | 'Success' | 'Error'
   Type: string
 }
 

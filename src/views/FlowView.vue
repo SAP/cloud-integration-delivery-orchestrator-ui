@@ -1,8 +1,17 @@
 <template>
   <div style="margin: 0 42px">
     <n-modal v-model:show="showModal">
-      <n-card style="width: 70%" title="Execution Log" :bordered="false" size="small" role="dialog" aria-modal="true" >
-      <component :is="comps.log" :steps="jobInstance.Steps"/>
+      <n-card
+        style="width: 70%"
+        title="Execution Log"
+        :bordered="false"
+        size="small"
+        role="dialog"
+        aria-modal="true"
+      >
+        <!-- step log -->
+        <component :is="comps.log" :steps="jobInstance.Steps" />
+        <!-- job log -->
         <h4>Job Execution Logs</h4>
         <n-alert
           :title="`Step ${log.Sequence} at ${log.CreatedAt}`"
@@ -12,7 +21,6 @@
         >
           {{ log.Log }}
         </n-alert>
-        
       </n-card>
     </n-modal>
     <!-- head -->
@@ -111,11 +119,7 @@
                 {{ step.Status }}
               </template>
 
-              <component
-                :is="comps.stepCard"
-                :step="step"
-                @close="handleCloseStep(step, index)"
-              />
+              <component :is="comps.stepCard" :step="step" @close="handleCloseStep(step, index)" />
             </n-step>
           </n-steps>
         </n-gi>
@@ -202,7 +206,7 @@ export default defineComponent({
       return {
         stepCard: stepCard,
         config: config,
-        log: log,
+        log: log
       }
     }
   },

@@ -67,7 +67,7 @@ export default defineComponent({
     handleTransportNodes(rows: TransportNode[]) {
       if (
         this.step.Status === 'Running' ||
-        this.step.Status === 'Finished' ||
+        this.step.Status === 'Success' ||
         this.step.Status === 'Error'
       ) {
         window.$message.warning(`Do not modify step with status ${this.step.Status}`)

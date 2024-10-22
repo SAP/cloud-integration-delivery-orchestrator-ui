@@ -1,9 +1,20 @@
 <template>
+  <n-modal v-model:show="showModal" preset="dialog" title="Dialog" positive-text="确认"
+    @positive-click="handleAdd"
+  >
+    <template #header>
+      <div>Create {{ type }} job</div>
+    </template>
+    Job Name:
+    <n-input v-model:value="jobName" aria-placeholder="Job Name" />
+    Description:
+    <n-input v-model:value="jobDesc" aria-placeholder="Job Description" />
+  </n-modal>
   <data-table
     :title="title"
     :columns="columns"
     :data="jobList"
-    :handle-add="handleAdd"
+    :handle-add="() => {showModal = true}"
     :row-key="(row: Job) => row.ID"
     :custom-tool-bars="customToolBars"
     :enable-search="false"
@@ -24,19 +35,20 @@ export default defineComponent({
     type: { required: true, type: String }
   },
   components: { DataTable },
-  data() {
-    const columns: DataTableColumns<Job> = createJobColums(this.$router)
-    var jobList: Job[] = []
-    const userInfo = useUserInfoStore().user
-
-    const handleAdd: Function = (data: Job[]) => {
-      NewJob(this.type).then((job) => {
+  methods: {
+    handleAdd(data: Job[]) {
+      NewJob(this.type, this.jobName, this.jobDesc).then((job) => {
         this.$router.push({
           name: 'Job Flow',
           params: { jobId: job.ID }
         })
       })
     }
+  },
+  data() {
+    const columns: DataTableColumns<Job> = createJobColums(this.$router)
+    var jobList: Job[] = []
+    const userInfo = useUserInfoStore().user
     const customToolBars: ToolBar[] = [
       {
         text: 'Delete',
@@ -56,7 +68,7 @@ export default defineComponent({
         }
       }
     ]
-    return { columns, jobList: jobList, handleAdd, customToolBars }
+    return { columns, jobList: jobList, customToolBars, showModal: false, jobName: '', jobDesc: '' }
   },
   created() {
     GetJobs(this.type).then((resp) => {
