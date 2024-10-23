@@ -75,8 +75,8 @@
           <IconBtn tip="Execute" :handler="onExecute" :disabled="editing">
             <StartTwotone />
           </IconBtn>
-
-          <n-button type="primary" @click="showModal = true">Logs</n-button>
+          <n-divider vertical />
+          <n-button @click="showModal = true" quaternary type="primary">Execution Log</n-button>
         </n-flex>
       </n-flex>
     </n-card>

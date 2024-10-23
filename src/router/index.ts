@@ -12,7 +12,7 @@ const router = createRouter({
     },
     {
       path: '/jobs',
-      name: 'CPI Jobs',
+      name: 'Jobs of Cloud Integration and Transport',
       children: [
         {
           path: 'import',

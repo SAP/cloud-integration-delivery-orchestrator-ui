@@ -25,6 +25,7 @@ import DataTable from '@/components/DataTable.vue'
 import {
   GetTransportNodes,
   GetTransportRequests,
+  validate,
   type ApiEndpoint,
   type ImportStep,
   type Step,
@@ -42,9 +43,9 @@ export default defineComponent({
     DataTable
   },
   created() {
-    GetTransportNodes().then((nodes) => (this.transportNodes = nodes))
+    GetTransportNodes().then((nodes) => {this.transportNodes = nodes})
     if (!this.step.TransportNodeId) return
-    GetTransportRequests(this.step.TransportNodeId).then((trs) => (this.transportRequests = trs))
+    GetTransportRequests(this.step.TransportNodeId).then((trs) => {this.transportRequests = trs})
   },
   computed: {
     apiEndpointTitle() {
@@ -65,14 +66,7 @@ export default defineComponent({
   },
   methods: {
     handleTransportNodes(rows: TransportNode[]) {
-      if (
-        this.step.Status === 'Running' ||
-        this.step.Status === 'Success' ||
-        this.step.Status === 'Error'
-      ) {
-        window.$message.warning(`Do not modify step with status ${this.step.Status}`)
-        return
-      }
+      if(!validate(this.step)) return
       const transportNode = rows[0]
       this.step.TransportNodeName = transportNode.name
       this.step.TransportNodeId = transportNode.id
@@ -83,6 +77,7 @@ export default defineComponent({
       GetTransportRequests(this.step.TransportNodeId).then((trs) => (this.transportRequests = trs))
     },
     handleTransportRequests(rows: TransportRequest[]) {
+      if(!validate(this.step)) return
       this.step.TransportRequests = rows.map((v, i) => v.id)
       this.step.Status = 'Draft'
     }

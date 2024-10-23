@@ -2,8 +2,18 @@ import axios from 'axios'
 import { clientId, clientSecret, tokenEndpoint, userInfoEndpoint } from './consts'
 import http from './http'
 import { defineStore } from 'pinia'
-
-
+// validate if a step can be modified
+export const validate = (step: Step) => {
+  if (
+    step.Status === 'Running' ||
+    step.Status === 'Success' ||
+    step.Status === 'Error'
+  ) {
+    window.$message.warning(`Do not modify step with status ${step.Status}`)
+    return false
+  }
+  return true
+}
 export const Login = (code: string, state: string, redirectUri: string) => {
   const instance = axios.create({headers: {'Accept': 'application/json'}})
   instance.defaults.headers['Content-Type'] = 'application/x-www-form-urlencoded'
@@ -50,15 +60,12 @@ export const DeleteJob = (job: Job) => {
   return http.delete(`/api/v1/job/${job.ID}`)
 }
 
-export const NewJob = (type: string, name:string, desc:string) => {
-  const job: Job = {
-    Name: name,
-    Description: desc,
-    Status: 'Draft',
-    Type: type,
-    ID: 0,
-  }
+export const NewJob = (job: Job) => {
   return http.post('/api/v1/job', job) as Promise<Job>
+}
+
+export const CopyJob = (job: Job) => {
+  return http.post('/api/v1/job/copy/'+job.ID) as Promise<Job>
 }
 export interface Job {
   ID: number

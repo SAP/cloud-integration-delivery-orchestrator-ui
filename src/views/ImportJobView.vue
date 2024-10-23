@@ -1,5 +1,5 @@
 <template>
-  <JobsList title="Import TR Jobs" type="Import" />
+  <JobsList title="Import Transport Request Jobs" type="Import" />
 </template>
 
 <script lang="ts">

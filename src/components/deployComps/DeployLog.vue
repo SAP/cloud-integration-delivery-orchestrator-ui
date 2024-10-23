@@ -1,7 +1,7 @@
 <template>
   <h4>Artifact Deploy Status</h4>
   <div v-for="(step, i) in steps" :key="i">
-    <n-alert :title="`Step ${i + 1}`" type="default">
+    <n-alert :title="`Step ${i + 1} - ${step.Endpoint}`" type="default">
       <p v-for="(artifactId, index) in step.ArtifactIds" :key="index">
         {{ artifactId }} : {{ step.ArtifactVersions[index] }} - {{ step.TaskIds[index] }} -
         {{ step.TaskStatuses[index] }}

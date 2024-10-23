@@ -1,20 +1,18 @@
 <template>
-  <n-modal v-model:show="showModal" preset="dialog" title="Dialog" positive-text="确认"
-    @positive-click="handleAdd"
-  >
+  <n-modal v-model:show="showModal" preset="dialog" title="Dialog" >
     <template #header>
       <div>Create {{ type }} job</div>
     </template>
     Job Name:
-    <n-input v-model:value="jobName" aria-placeholder="Job Name" />
+    <n-input v-model:value="jobName" placeholder="Job Name" />
     Description:
-    <n-input v-model:value="jobDesc" aria-placeholder="Job Description" />
+    <n-input v-model:value="jobDesc" placeholder="Job Description" />
+    <template #action>
+      <n-button type="primary" @click="handleAdd">Create</n-button>
+    </template>
   </n-modal>
-  <data-table
-    :title="title"
-    :columns="columns"
-    :data="jobList"
-    :handle-add="() => {showModal = true}"
+  <data-table :title="title" :columns="columns" :data="jobList"
+    :handle-add="() => { showModal = true }"
     :row-key="(row: Job) => row.ID"
     :custom-tool-bars="customToolBars"
     :enable-search="false"
@@ -23,7 +21,7 @@
 
 <script lang="ts">
 import { defineComponent, h, ref } from 'vue'
-import { DeleteJob, GetJobs, NewJob, useUserInfoStore, type Job } from '@/service/api'
+import { CopyJob, DeleteJob, GetJobs, NewJob, useUserInfoStore, type Job } from '@/service/api'
 import { type ToolBar } from '@/service/consts'
 import type { DataTableColumns, DataTableRowKey } from 'naive-ui'
 import DataTable from '@/components/DataTable.vue'
@@ -37,7 +35,46 @@ export default defineComponent({
   components: { DataTable },
   methods: {
     handleAdd(data: Job[]) {
-      NewJob(this.type, this.jobName, this.jobDesc).then((job) => {
+      if (!this.jobName || !this.jobDesc) {
+        window.$message.warning('Please input job name and description')
+        return
+      }
+      const job: Job = {
+        Name: this.jobName,
+        Description: this.jobDesc,
+        Status: 'Draft',
+        Type: this.type,
+        ID: 0,
+      }
+      NewJob(job).then((job) => {
+        this.$router.push({
+          name: 'Job Flow',
+          params: { jobId: job.ID }
+        })
+      })
+    },
+    handleDelete(rows: DataTableColumns) {
+      if (rows.length === 0) {
+        window.$message.warning('Please select at least one job')
+        return
+      }
+      rows.forEach((row) => {
+        DeleteJob(row as unknown as Job).then((resp) => GetJobs(this.type)).then((resp) => (this.jobList = resp))
+      })
+    },
+    handleRefresh() {
+      GetJobs(this.type).then((resp) => {
+        this.jobList = resp
+      })
+    },
+    handleCopy(rows: DataTableColumns) {
+      if (rows.length === 0 || rows.length > 1) {
+        window.$message.warning('Please select only one job')
+        return
+      }
+      const job = rows[0] as unknown as Job
+      
+      CopyJob(job).then((job) => {
         this.$router.push({
           name: 'Job Flow',
           params: { jobId: job.ID }
@@ -52,20 +89,15 @@ export default defineComponent({
     const customToolBars: ToolBar[] = [
       {
         text: 'Delete',
-        func: (rows: DataTableColumns) => {
-          // TODO batch or promise.all() ?
-          DeleteJob(rows[0] as unknown as Job)
-            .then((resp) => GetJobs(this.type))
-            .then((resp) => (jobList = resp))
-        }
+        func: this.handleDelete
       },
       {
         text: 'refresh',
-        func: () => {
-          GetJobs(this.type).then((resp) => {
-            jobList = resp
-          })
-        }
+        func: this.handleRefresh
+      },
+      {
+        text: 'copy',
+        func: this.handleCopy
       }
     ]
     return { columns, jobList: jobList, customToolBars, showModal: false, jobName: '', jobDesc: '' }

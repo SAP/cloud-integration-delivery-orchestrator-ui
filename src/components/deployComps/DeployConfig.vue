@@ -37,6 +37,7 @@ import {
   GetApiEndpointsByType,
   GetArtifacts,
   GetPackages,
+  validate,
   type ApiEndpoint,
   type Artifact,
   type DeployStep,
@@ -72,14 +73,7 @@ export default defineComponent({
   },
   methods: {
     handleApiEndpoint(rows: ApiEndpoint[]) {
-      if (
-        this.step.Status === 'Running' ||
-        this.step.Status === 'Success' ||
-        this.step.Status === 'Error'
-      ) {
-        window.$message.warning(`Do not modify step with status ${this.step.Status}`)
-        return
-      }
+      if(!validate(this.step)) return
       this.step.Endpoint = rows[0].name
       this.packages = []
       this.artifacts = []
@@ -89,6 +83,7 @@ export default defineComponent({
       GetPackages(this.step.Endpoint).then((pkgs) => (this.packages = pkgs))
     },
     handlePackage(rows: Package[]) {
+      if(!validate(this.step)) return
       this.step.PackageId = rows[0].Id
       this.artifacts = []
       this.step.ArtifactIds = []
@@ -98,6 +93,7 @@ export default defineComponent({
       )
     },
     handleArtifacts(rows: Artifact[]) {
+      if(!validate(this.step)) return
       this.step.ArtifactIds = rows.map((v, i) => v.Id)
       this.step.ArtifactTypes = rows.map((v, i) => v.Type)
       this.step.ArtifactVersions = rows.map((v, i) => v.Version)
