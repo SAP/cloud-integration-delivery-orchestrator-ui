@@ -15,7 +15,7 @@
 
     <n-space>
       <n-tag v-for="(artifact, index) in step.ArtifactIds" :key="index" type="info">
-        {{ artifact }}:{{  }}</n-tag
+        {{ artifact }}:{{ step.ArtifactVersions[index] }}</n-tag
       >
     </n-space>
   </n-card>

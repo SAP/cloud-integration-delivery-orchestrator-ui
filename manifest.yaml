@@ -2,7 +2,7 @@ applications:
 - name: mmt-ui-app-iflow-deploy
   memory: 2G
   disk_quota: 2G
-  command: npm run start
+  command: npm run preview
   buildpacks:
     - nodejs_buildpack
   # environments:

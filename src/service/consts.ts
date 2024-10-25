@@ -56,7 +56,7 @@ export const apiEndpointColums: DataTableColumns<ApiEndpoint> = [
 ]
 
 export function createJobColums(router: Router): DataTableColumns<Job> {
-  return [
+  const colums: DataTableColumns<Job> =  [
     {
       type: 'selection',
       disabled(row: Job) {
@@ -112,7 +112,6 @@ export function createJobColums(router: Router): DataTableColumns<Job> {
           {
             style: { width: '18px', height: '18px' },
             onClick: () => {
-              console.log(row)
               router.push({
                 path: `/flow/${row.ID}`
               })
@@ -123,6 +122,26 @@ export function createJobColums(router: Router): DataTableColumns<Job> {
       }
     }
   ]
+  colums.forEach((col) => {
+    if (col.type === 'selection' || col.key === 'arrow') {
+      return
+    }
+    col.render = (row: Job) => {
+      return h(
+        'div',
+        {
+          onClick: () => {
+            console.log(row)
+            router.push({
+              path: `/flow/${row.ID}`
+            })
+          }
+        },
+        row[col.key]
+      )
+    }
+  })
+  return colums
 }
 
 export const transportNodesColums: DataTableColumns<TransportNode> = [

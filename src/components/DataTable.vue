@@ -76,7 +76,7 @@ export default defineComponent({
     enableSearch: { type: Boolean, default: true }
   },
   data() {
-    const rowProps = (row: Object) => {
+    const rowProps = (row: Job) => {
       return {
         style: 'cursor: pointer;',
         onClick: () => {

@@ -16,6 +16,7 @@
     :row-key="(row: Job) => row.ID"
     :custom-tool-bars="customToolBars"
     :enable-search="false"
+    :key="jobList.length"
   />
 </template>
 
