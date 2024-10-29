@@ -71,13 +71,13 @@ export interface Job {
   ID: number
   Name: string
   Description: string
-  Status: 'Draft' | 'Saved' | 'Running' | 'Finished' | 'Error'
+  Status: 'Draft' | 'Saved' | 'Running' | 'Success' | 'Error' | 'Unknown'
   Type: string // 'Deploy' | 'Import' | 'Undeploy'
   Steps: Step[] //steps under this job instance
   ExecutionLogs: ExecutionLog[]
 
   CreatedBy: string
-  Updatedby: string
+  UpdatedBy: string
   CreatedAt: string
   UpdatedAt: string
 }
@@ -86,6 +86,12 @@ export interface Step {
   ID: number
   Status: 'Draft' | 'Saved' | 'Running' | 'Success' | 'Error'
   Type: string
+  CreatedAt: string
+	UpdatedAt: string
+  UpdatedBy:   string
+  TriggeredBy: string
+	TriggeredAt: string
+	EndedAt:     string
 }
 
 export const DeleteStep = (stepId: number, type: string) => {

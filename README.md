@@ -37,3 +37,9 @@ npm run build
 ```sh
 npm run lint
 ```
+
+### TODO
+- timestamp when trigger job. timestamp of each step
+- use 'reason', not description
+- cancel button in edit mode, in FlowView
+- schedule job to refresh status of job if a job is running

@@ -1,5 +1,6 @@
 <template>
   <div style="margin: 0 42px">
+    <!-- execution log modal -->
     <n-modal v-model:show="showModal">
       <n-card
         style="width: 70%"
@@ -25,60 +26,55 @@
     </n-modal>
     <!-- head -->
     <n-card class="header-card-shadow-class">
-      <n-flex justify="space-between">
-        <!-- Job Name -->
-        <n-flex vertical>
-          <n-input
-            class="ui5-title-root"
-            v-model:value="jobInstance.Name"
-            placeholder="Job Name"
-            clearable
-            autofocus
-            v-if="editing"
-          />
-          <span class="ui5-title-root" v-else-if="jobInstance.Name">{{ jobInstance.Name }}</span>
-          <n-text v-else class="ui5-title-root" type="warning">Empty Name</n-text>
-          <!-- job description -->
-          <n-input
-            v-model:value="jobInstance.Description"
-            placeholder="Description"
-            size="large"
-            clearable
-            autofocus
-            v-if="editing"
-          />
-          <n-text style="color: gray" v-else-if="jobInstance.Description">{{
-            jobInstance.Description
-          }}</n-text>
-          <n-text v-else type="warning">Empty Description</n-text>
-        </n-flex>
-
-        <n-tag type="info">{{ status }}</n-tag>
-
-        <!-- action group -->
-        <n-flex justify="start">
+      <n-grid x-gap="10" :cols="5">
+        <!-- job name and desctiption -->
+        <n-gi>
+          <n-flex vertical>
+            <!-- Job name -->
+            <n-input class="ui5-title-root" v-model:value="jobInstance.Name" placeholder="Job Name" clearable autofocus v-if="editing"/>
+            <span class="ui5-title-root" v-else-if="jobInstance.Name">{{ jobInstance.Name }}</span>
+            <!-- job description -->
+            <n-input v-model:value="jobInstance.Description" placeholder="Description" size="large" clearable v-if="editing" />
+            <n-text style="color: gray" v-else-if="jobInstance.Description">{{ jobInstance.Description }}</n-text>
+          </n-flex>
+        </n-gi>
+        <n-gi>
+          <!-- job status tag -->
+          <n-tag :type=toJobStatusTag>{{ status }}</n-tag>
+        </n-gi>
+        <n-gi span="2">
+          <n-flex vertical>
+            <n-text style="color: gray; font-size: 12px">Created By: {{ jobInstance.CreatedBy }} at {{ toLocalTime(jobInstance.CreatedAt) }}</n-text>
+            <n-text style="color: gray; font-size: 12px">Updated By: {{ jobInstance.UpdatedBy }} at {{ toLocalTime(jobInstance.UpdatedAt) }}</n-text>
+          </n-flex>
+        </n-gi>
+        <!-- action buttions -->
+        <n-gi>
           <!-- Edit button -->
           <IconBtn tip="Edit" :handler="onEdit">
             <edit16-regular />
           </IconBtn>
+          <IconBtn tip="Cancel" :handler="refresh" v-if="editing">
+            <CancelOutlined />
+          </IconBtn>
           <!-- Delete button -->
-          <IconBtn tip="Delete" :handler="handleDeleteJob">
+          <IconBtn tip="Delete" :handler="handleDeleteJob" v-if="!editing">
             <Delete28Regular />
           </IconBtn>
 
           <n-divider vertical />
 
           <!-- Submit Button -->
-          <IconBtn tip="Save" :handler="handleSave" :disabled="!editing">
+          <IconBtn tip="Save" :handler="handleSave" v-if="editing">
             <SaveAltRound />
           </IconBtn>
-          <IconBtn tip="Execute" :handler="onExecute" :disabled="editing">
+          <IconBtn tip="Execute" :handler="onExecute" v-if="!editing">
             <StartTwotone />
           </IconBtn>
           <n-divider vertical />
           <n-button @click="showModal = true" quaternary type="primary">Execution Log</n-button>
-        </n-flex>
-      </n-flex>
+        </n-gi>
+      </n-grid>
     </n-card>
 
     <!-- generate steps -->
@@ -104,7 +100,7 @@
     <!-- step list with config view -->
     <n-card class="card-shadow-class">
       <div style="margin-bottom: 15px; font-size: 15px; font-weight: bold">
-        {{ jobInstance.Type }} Job {{ jobInstance.ID }} Detail
+        {{ jobInstance.Type }} Job #{{ jobInstance.ID }} Detail
       </div>
       <n-grid x-gap="40" :cols="5">
         <!-- step lists -->
@@ -146,7 +142,7 @@ import { useMessage } from 'naive-ui'
 import { defineComponent } from 'vue'
 import ImportStepCard from '@/components/importComps/ImportStepCard.vue'
 import DeployStepCard from '@/components/deployComps/DeployStepCard.vue'
-import { SaveAltRound, StartTwotone } from '@vicons/material'
+import { SaveAltRound, StartTwotone, CancelOutlined } from '@vicons/material'
 import {
   type Job,
   type Step,
@@ -156,7 +152,7 @@ import {
   DeleteStep,
   ExecuteJob
 } from '../service/api'
-import { stepTypeOptions, transportRequestColums } from '@/service/consts'
+import { stepTypeOptions, transportRequestColums, toStepCardStatus, toLocalTime } from '@/service/consts'
 import { Edit16Regular, Delete28Regular } from '@vicons/fluent'
 import ImportConfig from '@/components/importComps/ImportConfig.vue'
 import DeployConfig from '@/components/deployComps/DeployConfig.vue'
@@ -178,7 +174,8 @@ export default defineComponent({
     Delete28Regular,
     SaveAltRound,
     StartTwotone,
-    IconBtn
+    IconBtn,
+    CancelOutlined
   },
   created() {
     this.refresh()
@@ -195,7 +192,9 @@ export default defineComponent({
       message: useMessage(),
       editing: false,
       status: '',
-      showModal: false
+      showModal: false,
+      mapStatus: toStepCardStatus,
+      toLocalTime
     }
   },
   computed: {
@@ -207,6 +206,17 @@ export default defineComponent({
         stepCard: stepCard,
         config: config,
         log: log
+      }
+    },
+    toJobStatusTag() {
+      switch (this.jobInstance.Status) { // job statuses: Error, Running, Success, Unknown, Saved, Draft
+          case 'Error':
+            return 'error'
+          case 'Running':
+          case 'Saved':
+            return 'info'
+          case 'Success':
+            return 'success'
       }
     }
   },
@@ -271,8 +281,10 @@ export default defineComponent({
     },
     refresh() {
       FetchJob(this.jobId).then((job) => {
+        this.editing = false
         this.jobInstance = job as unknown as Job
         this.status = this.jobInstance.Status
+        window.$message.success('Job Refreshed')
         return job
       })
     },
@@ -283,21 +295,6 @@ export default defineComponent({
       // }
       return true
     },
-    // maps status to naive-ui status: wait, process, finish, error
-    mapStatus(status: string) {
-      switch (status) {
-        case 'Draft':
-          return 'wait'
-        case 'Running':
-          return 'process'
-        case 'Success':
-          return 'finish'
-        case 'Error':
-          return 'error'
-        default:
-          return 'wait'
-      }
-    }
   }
 })
 </script>

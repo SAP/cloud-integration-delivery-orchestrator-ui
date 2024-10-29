@@ -291,3 +291,24 @@ export interface ToolBar {
   text: String
   func(rows: DataTableColumns): void
 }
+
+// maps Step status to naive-ui status: wait, process, finish, error
+// https://www.naiveui.com/zh-CN/os-theme/components/steps#Steps-Props 
+export function toStepCardStatus(status: string) {
+  switch (status) {
+    case 'Draft':
+      return 'wait'
+    case 'Running':
+      return 'process'
+    case 'Success':
+      return 'finish'
+    case 'Error':
+      return 'error'
+    default:
+      return 'wait'
+  }
+}
+
+export function toLocalTime(str: string) {
+  return new Date(str).toLocaleString('zh-CN')
+}

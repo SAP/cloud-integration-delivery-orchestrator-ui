@@ -52,7 +52,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, h, reactive, type PropType } from 'vue'
+import { defineComponent, h, reactive, type HTMLAttributes, type PropType } from 'vue'
 import { type ToolBar } from '@/service/consts'
 import type {
   DataTableBaseColumn,
@@ -80,9 +80,9 @@ export default defineComponent({
       return {
         style: 'cursor: pointer;',
         onClick: () => {
-          // console.log(row)
+          // conso,le.log(row)
         }
-      }
+      } as HTMLAttributes
     }
     const paginationReactive = reactive({
       page: 1,

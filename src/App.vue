@@ -14,6 +14,9 @@ export default defineComponent({
     },
     handleHome() {
       this.$router.push('/')
+    },
+    handleIDP() {
+      window.open('https://maco.accounts400.ondemand.com/')
     }
   },
   data() {
@@ -33,7 +36,11 @@ export default defineComponent({
       if (emailParts.length >= 2) {
         return (emailParts[0][0] + emailParts[1][0]).toUpperCase()
       }
-      
+    },
+    userEmail() {
+      const user = useUserInfoStore().user
+      if (!user) return ''
+      return user.email
     }
   }
 })
@@ -49,7 +56,12 @@ export default defineComponent({
         <n-image width="70" src="/SAP_BIG.png" preview-disabled @click="handleHome" />
         <h2>{{ route.currentRoute.name }}</h2>
       </n-flex>
-      <n-avatar style="margin-right: 10px" round size="medium">{{ avartarSrc }}</n-avatar>
+      <n-tooltip trigger="hover">
+        <template #trigger>
+          <n-avatar style="margin-right: 10px" round size="medium" @click="handleIDP">{{ avartarSrc }}</n-avatar>
+        </template>
+        {{ userEmail }}(maco.accounts400)
+      </n-tooltip>
     </n-flex>
   </div>
 
