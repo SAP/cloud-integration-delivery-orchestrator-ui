@@ -180,6 +180,20 @@ export default defineComponent({
   created() {
     this.refresh()
   },
+  watch: {
+    status() {
+      if (this.status !== 'Running') {
+        return
+      }
+      const id = setInterval(() => {
+        if (this.status !== 'Running') {
+          clearInterval(id)
+          return
+        }
+        this.refresh()
+      }, 1000)
+    }
+  },
   data() {
     const jobInstance: Job = {}
 
@@ -266,6 +280,7 @@ export default defineComponent({
     },
     onExecute() {
       ExecuteJob(this.jobInstance).then(() => {
+        window.$message.success('Job Triggered')
         this.refresh()
       })
     },
@@ -279,8 +294,8 @@ export default defineComponent({
       })
     },
     checkStatus(step: Step) {
-      // if (step.Status === 'Finished' || step.Status === 'Running' || step.Status === 'Error') {
-      //   window.$message.error(`Step with status ${step.Status} cannot be modified.`)
+      // if (step.Status === 'Success' || step.Status === 'Running' || step.Status === 'Error') {
+      //   window.$message.warning(`Step with status ${step.Status} cannot be modified.`)
       //   return false
       // }
       return true
