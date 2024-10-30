@@ -1,4 +1,4 @@
-import type { DataTableColumns, DataTableRowKey } from 'naive-ui'
+import { type DataTableColumns, NTag } from 'naive-ui'
 import type { ApiEndpoint, Artifact, Job, Package, TransportNode, TransportRequest } from './api'
 import { h } from 'vue'
 import type { Router } from 'vue-router'
@@ -56,6 +56,11 @@ export const apiEndpointColums: DataTableColumns<ApiEndpoint> = [
 ]
 
 export function createJobColums(router: Router): DataTableColumns<Job> {
+  const handleRouter = (row: Job) => {
+    router.push({
+      path: `/flow/${row.ID}`
+    })
+  }
   const colums: DataTableColumns<Job> =  [
     {
       type: 'selection',
@@ -71,37 +76,101 @@ export function createJobColums(router: Router): DataTableColumns<Job> {
     {
       title: 'Job Name',
       key: 'Name',
-      resizable: true
+      resizable: true,
+      render(row: Job) {
+        return h(
+          'div',
+          {
+            onClick: () => {handleRouter(row)}
+          },
+          row.Name
+        )
+      }
     },
     {
       title: 'Description',
       key: 'Description',
-      resizable: true
+      resizable: true,
+      render(row: Job) {
+        return h(
+          'div',
+          {
+            onClick: () => {handleRouter(row)}
+          },
+          row.Description
+        )
+      }
     },
     {
       title: 'Status',
       key: 'Status',
-      resizable: true
+      resizable: true,
+      render(row: Job) {
+        return h(
+          NTag,
+          {
+            type: toJobStatusTag(row.Status),
+            onClick: () => {handleRouter(row)}
+          },
+          row.Status
+        )
+      }
     },
     {
       title: 'Created by',
       key: 'CreatedBy',
-      resizable: true
+      resizable: true,
+      render(row: Job) {
+        return h(
+          'div',
+          {
+            onClick: () => {handleRouter(row)}
+          },
+          row.CreatedBy
+        )
+      }
     },
     {
       title: 'Created At',
       key: 'CreatedAt',
-      resizable: true
+      resizable: true,
+      render(row: Job) {
+        return h(
+          'div',
+          {
+            onClick: () => {handleRouter(row)}
+          },
+          toLocalTime(row.CreatedAt)
+        )
+      }
     },
     {
       title: 'Modified by',
       key: 'UpdatedBy',
-      resizable: true
+      resizable: true,
+      render(row: Job) {
+        return h(
+          'div',
+          {
+            onClick: () => {handleRouter(row)}
+          },
+          row.UpdatedBy
+        )
+      }
     },
     {
       title: 'Modified at',
       key: 'UpdatedAt',
-      resizable: true
+      resizable: true,
+      render(row: Job) {
+        return h(
+          'div',
+          {
+            onClick: () => {handleRouter(row)}
+          },
+          toLocalTime(row.UpdatedAt)
+        )
+      }
     },
     {
       title: '',
@@ -122,25 +191,6 @@ export function createJobColums(router: Router): DataTableColumns<Job> {
       }
     }
   ]
-  colums.forEach((col) => {
-    if (col.type === 'selection' || col.key === 'arrow') {
-      return
-    }
-    col.render = (row: Job) => {
-      return h(
-        'div',
-        {
-          onClick: () => {
-            console.log(row)
-            router.push({
-              path: `/flow/${row.ID}`
-            })
-          }
-        },
-        row[col.key]
-      )
-    }
-  })
   return colums
 }
 
@@ -306,6 +356,18 @@ export function toStepCardStatus(status: string) {
       return 'error'
     default:
       return 'wait'
+  }
+}
+
+export function toJobStatusTag(status: string) {
+  switch (status) { // job statuses: Error, Running, Success, Unknown, Saved, Draft
+    case 'Error':
+      return 'error'
+    case 'Running':
+    case 'Saved':
+      return 'info'
+    case 'Success':
+      return 'success'
   }
 }
 

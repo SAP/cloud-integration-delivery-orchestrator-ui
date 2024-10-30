@@ -40,7 +40,7 @@
         </n-gi>
         <n-gi>
           <!-- job status tag -->
-          <n-tag :type=toJobStatusTag>{{ status }}</n-tag>
+          <n-tag :type=toJobStatusTag(status)>{{ status }}</n-tag>
         </n-gi>
         <n-gi span="2">
           <n-flex vertical>
@@ -152,7 +152,7 @@ import {
   DeleteStep,
   ExecuteJob
 } from '../service/api'
-import { stepTypeOptions, transportRequestColums, toStepCardStatus, toLocalTime } from '@/service/consts'
+import { stepTypeOptions, transportRequestColums, toStepCardStatus, toLocalTime, toJobStatusTag } from '@/service/consts'
 import { Edit16Regular, Delete28Regular } from '@vicons/fluent'
 import ImportConfig from '@/components/importComps/ImportConfig.vue'
 import DeployConfig from '@/components/deployComps/DeployConfig.vue'
@@ -194,7 +194,8 @@ export default defineComponent({
       status: '',
       showModal: false,
       mapStatus: toStepCardStatus,
-      toLocalTime
+      toLocalTime,
+      toJobStatusTag
     }
   },
   computed: {
@@ -208,17 +209,6 @@ export default defineComponent({
         log: log
       }
     },
-    toJobStatusTag() {
-      switch (this.jobInstance.Status) { // job statuses: Error, Running, Success, Unknown, Saved, Draft
-          case 'Error':
-            return 'error'
-          case 'Running':
-          case 'Saved':
-            return 'info'
-          case 'Success':
-            return 'success'
-      }
-    }
   },
   methods: {
     handleCreateStep(stepType: string) {

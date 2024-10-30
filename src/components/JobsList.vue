@@ -60,7 +60,12 @@ export default defineComponent({
         return
       }
       rows.forEach((row) => {
-        DeleteJob(row as unknown as Job).then((resp) => GetJobs(this.type)).then((resp) => (this.jobList = resp))
+        DeleteJob(row as unknown as Job)
+          .then((resp) => GetJobs(this.type))
+          .then((resp) => {
+            window.$message.success(`job(${rows.map((row) => row.ID+',')}) deleted`)
+            this.jobList = resp
+          })
       })
     },
     handleRefresh() {
