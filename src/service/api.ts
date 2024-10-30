@@ -104,6 +104,7 @@ export interface ImportStep extends Step {
   TransportNodeId: number
   TransportNodeName: string
   TransportRequests: number[] // transport requests
+  TransportRequestDesctritions: string[]
   ActionId: number
 }
 

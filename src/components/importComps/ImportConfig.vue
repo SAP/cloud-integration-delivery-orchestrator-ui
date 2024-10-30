@@ -79,6 +79,7 @@ export default defineComponent({
     handleTransportRequests(rows: TransportRequest[]) {
       if(!validate(this.step)) return
       this.step.TransportRequests = rows.map((v, i) => v.id)
+      this.step.TransportRequestDesctritions = rows.map((v, i) => v.description)
       this.step.Status = 'Draft'
     }
   }

@@ -10,7 +10,7 @@
     <n-text v-else>Transport Requests:</n-text>
     <!-- transport requests -->
     <n-space>
-      <n-tag v-for="(tr, index) in step.TransportRequests" :key="index" type="info">{{ tr }}</n-tag>
+      <n-tag v-for="(tr, index) in step.TransportRequests" :key="index" type="info">{{ tr }}:{{ step.TransportRequestDesctritions[index] }}</n-tag>
     </n-space>
   </n-card>
 </template>
