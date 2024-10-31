@@ -1,5 +1,5 @@
 import { useUserInfoStore } from '@/service/api'
-import { authUrl, callbackUrl, clientId } from '@/service/consts'
+import { authUrl } from '@/service/consts'
 import { createRouter, createWebHistory } from 'vue-router'
 
 const router = createRouter({

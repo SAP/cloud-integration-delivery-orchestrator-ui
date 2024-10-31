@@ -24,7 +24,7 @@
 import { defineComponent, h, ref } from 'vue'
 import { CopyJob, DeleteJob, GetJobs, NewJob, useUserInfoStore, type Job } from '@/service/api'
 import { type ToolBar } from '@/service/consts'
-import type { DataTableColumns, DataTableRowKey } from 'naive-ui'
+import { NTag, type DataTableColumns, type DataTableRowKey } from 'naive-ui'
 import DataTable from '@/components/DataTable.vue'
 import { createJobColums } from '@/service/consts'
 
@@ -33,7 +33,7 @@ export default defineComponent({
     title: { required: true, type: String },
     type: { required: true, type: String }
   },
-  components: { DataTable },
+  components: { DataTable, NTag },
   methods: {
     handleAdd(data: Job[]) {
       if (!this.jobName || !this.jobDesc) {
@@ -89,7 +89,7 @@ export default defineComponent({
     }
   },
   data() {
-    const columns: DataTableColumns<Job> = createJobColums(this.$router)
+    const columns: DataTableColumns<Job> = createJobColums(this.$router, NTag)
     var jobList: Job[] = []
     const userInfo = useUserInfoStore().user
     const customToolBars: ToolBar[] = [

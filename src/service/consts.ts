@@ -1,4 +1,4 @@
-import { type DataTableColumns, NTag } from 'naive-ui'
+import { type DataTableColumns } from 'naive-ui'
 import type { ApiEndpoint, Artifact, Job, Package, TransportNode, TransportRequest } from './api'
 import { h } from 'vue'
 import type { Router } from 'vue-router'
@@ -10,20 +10,18 @@ import { IosArrowForward } from '@vicons/ionicons4'
 export const clientId = '74653741-4458-4cc6-902a-4681533d1509'
 export const clientSecret = "REDACTED"
 
-// local maco.account400
-export const callbackUrl = 'http://localhost:5173/callback'
-export const beUrl = 'http://localhost:8080'
-export const port = 5173
+// local maco.account400 oauth callback url and backend url
+// export const callbackUrl = 'http://localhost:5173/callback'
+// export const beUrl = 'http://localhost:8080'
+// export const port = 5173
 
 // remote
-// export const callbackUrl = 'https://mmt-ui-app-iflow-deploy.cfapps.sap.hana.ondemand.com/callback'
-// export const beUrl = 'https://stage-devops-srv-iflow-deploy.cfapps.sap.hana.ondemand.com'
-// export const port = 8080
+export const callbackUrl = 'https://mmt-ui-app-iflow-deploy.cfapps.sap.hana.ondemand.com/callback'
+export const beUrl = 'https://stage-devops-srv-iflow-deploy.cfapps.sap.hana.ondemand.com'
+export const port = 8080
 
 export const authUrl = `https://maco.accounts400.ondemand.com/oauth2/authorize?client_id=${clientId}&redirect_uri=${callbackUrl}&response_type=code&state=123&scope=email`
-
-export const targetUrl = 'https://maco.accounts400.ondemand.com'
-
+export const targetUrl = 'https://maco.accounts400.ondemand.com' // oauth server
 export const tokenEndpoint = '/user/oauth2/token'
 export const userInfoEndpoint = '/user/oauth2/userinfo'
 
@@ -55,7 +53,8 @@ export const apiEndpointColums: DataTableColumns<ApiEndpoint> = [
   }
 ]
 
-export function createJobColums(router: Router): DataTableColumns<Job> {
+// statusTag is a naive-ui component NTag. It can't be imported directly in this file, or vite error will raise.
+export function createJobColums(router: Router, statusTag: any): DataTableColumns<Job> {
   const handleRouter = (row: Job) => {
     router.push({
       path: `/flow/${row.ID}`
@@ -64,14 +63,24 @@ export function createJobColums(router: Router): DataTableColumns<Job> {
   const colums: DataTableColumns<Job> =  [
     {
       type: 'selection',
-      disabled(row: Job) {
-        return row.Status === 'Error'
-      }
+      // disabled(row: Job) {
+      //   return row.Status === 'Error'
+      // }
     },
     {
       title: 'ID',
       key: 'ID',
-      resizable: true
+      resizable: true,
+      render(row: Job) {
+        return h(
+          'div',
+          {
+            onClick: () => {handleRouter(row)},
+            style: { fontWeight: 'bold' }
+          },
+          row.ID
+        )
+      }
     },
     {
       title: 'Job Name',
@@ -107,7 +116,7 @@ export function createJobColums(router: Router): DataTableColumns<Job> {
       resizable: true,
       render(row: Job) {
         return h(
-          NTag,
+          statusTag,
           {
             type: toJobStatusTag(row.Status),
             onClick: () => {handleRouter(row)}
