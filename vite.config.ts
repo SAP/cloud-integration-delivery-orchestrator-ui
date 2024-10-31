@@ -1,12 +1,12 @@
 import { fileURLToPath, URL } from 'node:url'
 
-import { defineConfig } from 'vite'
+import { defineConfig, loadEnv } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import vueJsx from '@vitejs/plugin-vue-jsx'
-import {port, beUrl, targetUrl } from './src/service/consts'
 
 // https://vitejs.dev/config/
-export default defineConfig(() => {
+export default defineConfig(({mode}) => {
+  const env = loadEnv(mode, process.cwd());
   return {
     base: '/',
     plugins: [vue(), vueJsx()],
@@ -18,20 +18,20 @@ export default defineConfig(() => {
     server: {
       proxy: {
         '^/api/v1/.*': {
-          target: beUrl,
+          target: env.VITE_BE_URL,
           changeOrigin: true, // changes the origin of the host header to the target URL
           secure: false,
           // ws: true,
           // rewrite: (path) => path.replace(/^\/api/, '')
         },
         '^/user/.*': {
-          target: targetUrl,
+          target: env.VITE_TARGET_URL,
           rewrite: (path) => path.replace(/^\/user/, ''),
           secure: false,
           changeOrigin: true,
         }
       },
-      port: port,
+      port: parseInt(env.VITE_PORT),
       host: true,
       cors: true
     }

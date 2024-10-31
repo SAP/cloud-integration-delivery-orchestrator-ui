@@ -10,21 +10,11 @@ import { IosArrowForward } from '@vicons/ionicons4'
 export const clientId = '74653741-4458-4cc6-902a-4681533d1509'
 export const clientSecret = "REDACTED"
 
-// local maco.account400 oauth callback url and backend url
-// export const callbackUrl = 'http://localhost:5173/callback'
-// export const beUrl = 'http://localhost:8080'
-// export const port = 5173
-
-// remote
-export const callbackUrl = 'https://mmt-ui-app-iflow-deploy.cfapps.sap.hana.ondemand.com/callback'
-export const beUrl = 'https://stage-devops-srv-iflow-deploy.cfapps.sap.hana.ondemand.com'
-export const port = 8080
+export const callbackUrl = import.meta.env.VITE_CALLBACK_URL
 
 export const authUrl = `https://maco.accounts400.ondemand.com/oauth2/authorize?client_id=${clientId}&redirect_uri=${callbackUrl}&response_type=code&state=123&scope=email`
-export const targetUrl = 'https://maco.accounts400.ondemand.com' // oauth server
 export const tokenEndpoint = '/user/oauth2/token'
 export const userInfoEndpoint = '/user/oauth2/userinfo'
-
 
 
 export const apiEndpointColums: DataTableColumns<ApiEndpoint> = [

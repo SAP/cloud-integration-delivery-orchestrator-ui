@@ -49,7 +49,7 @@ router.beforeEach((to, from) => {
   const isLogged = useUserInfoStore().isLogged()
   if (!isLogged && to.path !== '/callback') {
     window.$message.info('Redirect to login')
-    window.location.href =  authUrl
+    window.location.href = authUrl
     return false
   }
   return true

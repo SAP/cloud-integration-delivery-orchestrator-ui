@@ -8,7 +8,7 @@
     "start": "vite",
     "build": "run-p type-check \"build-only {@}\" --",
     "preview": "vite preview --port 8080",
-    "build-only": "vite build",
+    "build-only": "vite build --mode production",
     "type-check": "vue-tsc --build --force",
     "lint": "eslint . --ext .vue,.js,.jsx,.cjs,.mjs,.ts,.tsx,.cts,.mts --fix --ignore-path .gitignore",
     "format": "prettier --write src/"
