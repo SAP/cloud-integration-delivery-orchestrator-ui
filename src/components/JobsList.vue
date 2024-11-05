@@ -5,7 +5,7 @@
     </template>
     Job Name:
     <n-input v-model:value="jobName" placeholder="Job Name" />
-    Description:
+    Transport Reason:
     <n-input v-model:value="jobDesc" placeholder="JIRA task. Transport/Deploy reason" />
     <template #action>
       <n-button type="primary" @click="handleAdd">Create</n-button>

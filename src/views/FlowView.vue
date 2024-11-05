@@ -38,14 +38,16 @@
             <n-text style="color: gray" v-else-if="jobInstance.Description">{{ jobInstance.Description }}</n-text>
           </n-flex>
         </n-gi>
+        <!-- job status tag -->
         <n-gi>
-          <!-- job status tag -->
           <n-tag :type=toJobStatusTag(status)>{{ status }}</n-tag>
         </n-gi>
+        <!-- job basic information -->
         <n-gi span="2">
           <n-flex vertical>
             <n-text style="color: gray; font-size: 12px">Created By: {{ jobInstance.CreatedBy }} at {{ toLocalTime(jobInstance.CreatedAt) }}</n-text>
             <n-text style="color: gray; font-size: 12px">Updated By: {{ jobInstance.UpdatedBy }} at {{ toLocalTime(jobInstance.UpdatedAt) }}</n-text>
+            <n-text style="color: gray; font-size: 12px">{{triggerInfo}} </n-text>
           </n-flex>
         </n-gi>
         <!-- action buttions -->
@@ -223,6 +225,13 @@ export default defineComponent({
         log: log
       }
     },
+    triggerInfo() {
+      // print the trigger info of the first step
+      if (!this.jobInstance.Steps||this.jobInstance.Steps.length === 0) {
+        return 'Job Not Triggered'
+      }
+      return `Triggred by: ${this.jobInstance.Steps[0].TriggeredBy} at ${this.toLocalTime(this.jobInstance.Steps[0].TriggeredAt)}`
+    }
   },
   methods: {
     handleCreateStep(stepType: string) {
@@ -287,7 +296,7 @@ export default defineComponent({
     refresh() {
       FetchJob(this.jobId).then((job) => {
         this.editing = false
-        this.jobInstance = job as unknown as Job
+        this.jobInstance = job as Job
         this.status = this.jobInstance.Status
         window.$message.success('Job Refreshed')
         return job
