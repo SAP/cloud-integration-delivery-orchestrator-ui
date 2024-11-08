@@ -4,7 +4,7 @@
     <n-modal v-model:show="showModal">
       <n-card
         style="width: 70%"
-        title="Execution Log"
+        :title="`Execution Log of Job #${jobInstance.ID} - ${jobInstance.Name}`"
         :bordered="false"
         size="small"
         role="dialog"
@@ -32,10 +32,16 @@
           <n-flex vertical>
             <!-- Job name -->
             <n-input class="ui5-title-root" v-model:value="jobInstance.Name" placeholder="Job Name" clearable autofocus v-if="editing"/>
-            <span class="ui5-title-root" v-else-if="jobInstance.Name">{{ jobInstance.Name }}</span>
+            <span class="ui5-title-root" v-else-if="jobInstance.Name">
+              <n-text depth="3"> Job Name: </n-text>
+              {{ jobInstance.Name }}
+            </span>
             <!-- job description -->
-            <n-input v-model:value="jobInstance.Description" placeholder="Description" size="large" clearable v-if="editing" />
-            <n-text style="color: gray" v-else-if="jobInstance.Description">{{ jobInstance.Description }}</n-text>
+            <n-input v-model:value="jobInstance.Description" placeholder="Deploy Reason" size="large" clearable v-if="editing" />
+            <n-text style="font-weight: bold" v-else-if="jobInstance.Description">
+              <n-text depth="3">Deploy Reason:</n-text>
+              {{ jobInstance.Description }}
+            </n-text>
           </n-flex>
         </n-gi>
         <!-- job status tag -->
@@ -45,15 +51,15 @@
         <!-- job basic information -->
         <n-gi span="2">
           <n-flex vertical>
-            <n-text style="color: gray; font-size: 12px">Created By: {{ jobInstance.CreatedBy }} at {{ toLocalTime(jobInstance.CreatedAt) }}</n-text>
-            <n-text style="color: gray; font-size: 12px">Updated By: {{ jobInstance.UpdatedBy }} at {{ toLocalTime(jobInstance.UpdatedAt) }}</n-text>
-            <n-text style="color: gray; font-size: 12px">{{triggerInfo}} </n-text>
+            <n-text depth=3 style="font-size: 12px">Created By: {{ jobInstance.CreatedBy }} at {{ toLocalTime(jobInstance.CreatedAt) }}</n-text>
+            <n-text depth=3 style="font-size: 12px">Updated By: {{ jobInstance.UpdatedBy }} at {{ toLocalTime(jobInstance.UpdatedAt) }}</n-text>
+            <n-text depth=3 style="font-size: 12px">{{triggerInfo}} </n-text>
           </n-flex>
         </n-gi>
         <!-- action buttions -->
         <n-gi>
           <!-- Edit button -->
-          <IconBtn tip="Edit" :handler="onEdit">
+          <IconBtn tip="Edit" :handler="onEdit" v-if="!editing">
             <edit16-regular />
           </IconBtn>
           <IconBtn tip="Cancel" :handler="refresh" v-if="editing">
@@ -91,9 +97,9 @@
         </n-upload>
         <!-- choose step type -->
         <n-flex vertical>
-          Create Steps Mannually:
-          <n-button @click="handleCreateStep(jobInstance.Type)">
-            {{ stepTypeOptions[jobInstance.Type] }}
+          <n-text strong depth="3">Create Steps Mannually:</n-text>
+          <n-button v-for="(type, i) in stepTypeOptions" :key="i" @click="handleCreateStep(i)">
+            <n-text strong>{{ type }}</n-text>
           </n-button>
         </n-flex>
       </n-flex>
@@ -102,7 +108,7 @@
     <!-- step list with config view -->
     <n-card class="card-shadow-class">
       <div style="margin-bottom: 15px; font-size: 15px; font-weight: bold">
-        {{ jobInstance.Type }} Job #{{ jobInstance.ID }} Detail
+        {{ jobInstance.Type }} Job <n-gradient-text type="success">#{{ jobInstance.ID }}</n-gradient-text> Detail
       </div>
       <n-grid x-gap="40" :cols="5">
         <!-- step lists -->
@@ -125,7 +131,7 @@
         <!-- choose config -->
         <n-gi span="3">
           <n-flex class="table-class" vertical align="start" v-if="current > 0">
-            <span style="font-size: 15px; font-weight: bold"> Details of Step {{ current }}: </span>
+            <span style="font-size: 15px; font-weight: bold"> Details of Step <n-gradient-text type="success">#{{ current }}</n-gradient-text>: </span>
             <component
               :is="comps.config"
               :key="current - 1"
@@ -240,7 +246,7 @@ export default defineComponent({
         return
       }
       const newStep: Step = {
-        ID: -1,
+        ID: 0,
         Status: 'Draft',
         Type: stepType
       }

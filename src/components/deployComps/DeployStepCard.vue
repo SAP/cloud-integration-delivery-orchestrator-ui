@@ -4,19 +4,22 @@
       <n-text v-if="step.Endpoint">{{ step.Endpoint }}</n-text>
       <n-text v-else type="warning">Choose a CPI Tenant</n-text>
     </template>
-    <n-text v-if="step.PackageId" style="font-size: medium"> {{ step.PackageId }}</n-text>
+    <template #header-extra>
+      {{step.Type}}
+    </template>
+    <!-- package id -->
+    <n-text v-if="step.PackageId" style="font-size: medium"> 
+      <n-text depth=3>Package ID:</n-text> {{ step.PackageId }}
+    </n-text>
     <n-text v-else type="warning"> Choose Package </n-text>
-    <p />
     <n-space>
-      <n-text :type="step.ArtifactIds && step.ArtifactIds.length ? '' : 'warning'"
-        >Artifacts:</n-text
-      >
+      <n-text depth=3  style="font-size: medium">Artifacts:</n-text>
     </n-space>
-
+    <!-- artifacts list -->
     <n-space>
-      <n-tag v-for="(artifact, index) in step.ArtifactIds" :key="index" type="info">
-        {{ artifact }}:{{ step.ArtifactVersions[index] }}</n-tag
-      >
+      <n-tag v-for="(artifact, index) in step.ArtifactIds" :key="index" type="info" :bordered="false">
+        {{ artifact }}:{{ step.ArtifactVersions[index] }}
+      </n-tag>
     </n-space>
   </n-card>
 </template>

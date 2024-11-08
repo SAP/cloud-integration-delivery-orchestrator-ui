@@ -1,14 +1,31 @@
 <template>
   <h4>Transport Request Import Status</h4>
   <div v-for="(step, i) in steps" :key="i">
-    <n-alert type="default">
+    <n-alert type="default" v-if="step.ActionId!==0">
       <template #header>
-        Step {{ i + 1 }} Triggered By: {{ step.TriggeredBy }} at
-        {{ toLocalTime(step.TriggeredAt) }}
+        Step <n-gradient-text type="success">#{{ i + 1 }}</n-gradient-text>
+        <n-text depth="3" italic style="font-size: 80%">
+            trigger By: {{ step.TriggeredBy }} at {{ toLocalTime(step.TriggeredAt) }}
+        </n-text>
       </template>
-      ActionId: {{ step.ActionId }} -
-      <n-tag :type="toTagStatus(step.Status)">{{ step.Status }}</n-tag>. 
-      Finished at: {{ toLocalTime(step.EndedAt) }}
+      TRs:
+      <n-tag type="info" v-for="(tr, index) in step.TransportRequests" :key="index">
+        {{ tr }}
+      </n-tag>
+      -
+      Action Id: <n-text code> {{ step.ActionId }}</n-text>
+       -
+      <n-tag :type="toTagStatus(step.Status)">{{ step.Status }}</n-tag>
+      <p/>
+      <n-text depth="3">
+        Finished at: {{ toLocalTime(step.EndedAt) }}
+      </n-text>
+    </n-alert>
+    <n-alert type="default" v-else>
+      <template #header>
+        Step <n-gradient-text type="success">#{{ i + 1 }}</n-gradient-text>
+      </template>
+      Not Triggered
     </n-alert>
   </div>
 </template>

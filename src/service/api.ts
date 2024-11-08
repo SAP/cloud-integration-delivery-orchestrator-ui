@@ -40,7 +40,7 @@ export const Login = (code: string, state: string, redirectUri: string) => {
 
 // returns Job instance
 export const FetchJob = (jobId: number | string) => {
-  return http.get(`/api/v1/job/${jobId}`)
+  return http.get(`/api/v1/job/${jobId}`) as Promise<Job>
 }
 
 // type: 'Import'|'Deploy'|'Undeploy'

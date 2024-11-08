@@ -332,8 +332,8 @@ export const artifactColumns: DataTableColumns<Artifact> = [
 
 export const stepTypeOptions = {
   Import: 'Import Transport Requests',
-  Deploy: 'Deploy Artifacts(iflow, package, scriptCollection)',
-  Undeploy: 'UnDeploy Artifacts(iflow, package, scriptCollection)'
+  Deploy: 'Deploy Artifacts(Iflow, Package, ScriptCollection)',
+  Undeploy: 'Undeploy Runtime Artifacts'
 }
 
 export interface ToolBar {
