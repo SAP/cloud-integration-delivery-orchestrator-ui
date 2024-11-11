@@ -138,7 +138,7 @@ export interface ApiEndpoint {
   url: string
 }
 export const GetApiEndpointsByType = () => {
-  return http.get('/api/v1/destinations')
+  return http.get('/api/v1/destinations') as Promise<ApiEndpoint[]>
 }
 
 // TMS
@@ -176,11 +176,22 @@ export interface Package {
   ModifiedAt: string
 }
 
+// design time artifact
 export interface Artifact {
   Id: string
   Version: string
   Name: string
   Type: string
+}
+
+export interface RuntimeArtifact {
+  Id: string
+  Version: string
+  Name: string
+  Type: string
+  DeployedBy: string
+  DeployedOn: string
+  Status: string
 }
 
 export const GetPackages = (tenantId: number | string) => {
@@ -195,6 +206,11 @@ export const GetArtifacts = (tenantId: string, packageId: string) => {
   })
 }
 
+export const GetRuntimeArtifacts = (tenantId: string) => {
+  return http.get('/api/v1/tenant/runtime', {
+    params: { tenant: tenantId }
+  }) as Promise<RuntimeArtifact[]>
+}
 export const useUserInfoStore = defineStore('userInfo', {
   state: () => ({
     userInfo: null as UserInfo | null

@@ -300,6 +300,7 @@ export const packageColums: DataTableColumns<Package> = [
   }
 ]
 
+// design artifact columns
 export const artifactColumns: DataTableColumns<Artifact> = [
   {
     type: 'selection',
@@ -326,6 +327,51 @@ export const artifactColumns: DataTableColumns<Artifact> = [
   {
     title: 'Version',
     key: 'Version',
+    resizable: true
+  }
+]
+
+export const runtimeArtifactColumns: DataTableColumns<Artifact> = [
+  {
+    type: 'selection',
+    disabled(row: Object) {
+      return false
+    }
+  },
+  {
+    title: 'ID',
+    key: 'Id',
+    resizable: true,
+    sortOrder: 'descend'
+  },
+  {
+    title: 'Name',
+    key: 'Name',
+    resizable: true
+  },
+  {
+    title: 'Type',
+    key: 'Type',
+    resizable: true
+  },
+  {
+    title: 'Version',
+    key: 'Version',
+    resizable: true
+  },
+  {
+    title: 'DeployedBy',
+    key: 'DeployedBy',
+    resizable: true
+  },
+  {
+    title: 'DeployedOn',
+    key: 'DeployedOn',
+    resizable: true
+  },
+  {
+    title: 'Status',
+    key: 'Status',
     resizable: true
   }
 ]

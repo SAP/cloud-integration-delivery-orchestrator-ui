@@ -4,14 +4,16 @@
     <n-modal v-model:show="showModal">
       <n-card
         style="width: 70%"
-        :title="`Execution Log of Job #${jobInstance.ID} - ${jobInstance.Name}`"
+        :title="`Execution Log of Job #${jobInstance.ID}: ${jobInstance.Name}`"
         :bordered="false"
         size="small"
         role="dialog"
         aria-modal="true"
       >
-        <!-- step log -->
-        <component :is="comps.log" :steps="jobInstance.Steps" />
+        <!-- step execution log -->
+         <div v-for="(step, i) in jobInstance.Steps">
+          <component :is="comps(step).log" :step="step" :key="i" :index="i"/>
+         </div>
         <!-- job log -->
         <h4>Job Execution Logs</h4>
         <n-alert
@@ -24,6 +26,7 @@
         </n-alert>
       </n-card>
     </n-modal>
+
     <!-- head -->
     <n-card class="header-card-shadow-class">
       <n-grid x-gap="10" :cols="5">
@@ -98,8 +101,8 @@
         <!-- choose step type -->
         <n-flex vertical>
           <n-text strong depth="3">Create Steps Mannually:</n-text>
-          <n-button v-for="(type, i) in stepTypeOptions" :key="i" @click="handleCreateStep(i)">
-            <n-text strong>{{ type }}</n-text>
+          <n-button v-for="(context, type) in filterStepType" :key="type" @click="handleCreateStep(type)">
+            <n-text strong>{{ context }}</n-text>
           </n-button>
         </n-flex>
       </n-flex>
@@ -123,7 +126,7 @@
                 {{ step.Status }}
               </template>
 
-              <component :is="comps.stepCard" :step="step" @close="handleCloseStep(step, index)" />
+              <component :is="comps(step).stepCard" :step="step" @close="handleCloseStep(step, index)" />
             </n-step>
           </n-steps>
         </n-gi>
@@ -132,8 +135,14 @@
         <n-gi span="3">
           <n-flex class="table-class" vertical align="start" v-if="current > 0">
             <span style="font-size: 15px; font-weight: bold"> Details of Step <n-gradient-text type="success">#{{ current }}</n-gradient-text>: </span>
+            <!-- TODO step create, update info -->
+             <n-text depth="3">
+              Updated By: {{ jobInstance.Steps[current-1].UpdatedBy }} -
+              Created At: {{ toLocalTime(jobInstance.Steps[current-1].CreatedAt) }} -
+              Updated at {{ toLocalTime(jobInstance.Steps[current-1].UpdatedAt) }}
+             </n-text>
             <component
-              :is="comps.config"
+              :is="comps(jobInstance.Steps[current-1]).config"
               :key="current - 1"
               :step="jobInstance.Steps[current - 1]"
               v-if="checkStatus(jobInstance.Steps[current - 1])"
@@ -167,6 +176,10 @@ import DeployConfig from '@/components/deployComps/DeployConfig.vue'
 import ImportLog from '@/components/importComps/ImportLog.vue'
 import DeployLog from '@/components/deployComps/DeployLog.vue'
 import IconBtn from '@/components/IconBtn.vue'
+import UnDeployStepCard from '@/components/undeployComps/UndeployStepCard.vue'
+import UndeployStepCard from '@/components/undeployComps/UndeployStepCard.vue'
+import UndeployConfig from '@/components/undeployComps/UndeployConfig.vue'
+import UndeployLog from '@/components/undeployComps/UndeployLog.vue'
 export default defineComponent({
   props: {
     jobId: { required: true, type: String }
@@ -183,7 +196,10 @@ export default defineComponent({
     SaveAltRound,
     StartTwotone,
     IconBtn,
-    CancelOutlined
+    CancelOutlined,
+    UndeployStepCard,
+    UndeployConfig,
+    UndeployLog
   },
   created() {
     this.refresh()
@@ -203,7 +219,19 @@ export default defineComponent({
     }
   },
   data() {
-    const jobInstance: Job = {}
+    const jobInstance: Job = {
+      ID: 0,
+      Name: '',
+      Description: '',
+      Status: 'Draft',
+      Type: '',
+      Steps: [],
+      ExecutionLogs: [],
+      CreatedBy: '',
+      UpdatedBy: '',
+      CreatedAt: '',
+      UpdatedAt: ''
+    }
 
     return {
       selectedStepType: null,
@@ -221,23 +249,30 @@ export default defineComponent({
     }
   },
   computed: {
-    comps() {
-      const stepCard = this.jobInstance.Type === 'Import' ? 'ImportStepCard' : 'DeployStepCard'
-      const config = this.jobInstance.Type === 'Import' ? 'ImportConfig' : 'DeployConfig'
-      const log = this.jobInstance.Type === 'Import' ? 'ImportLog' : 'DeployLog'
-      return {
-        stepCard: stepCard,
-        config: config,
-        log: log
-      }
-    },
     triggerInfo() {
       // print the trigger info of the first step
       if (!this.jobInstance.Steps||this.jobInstance.Steps.length === 0) {
         return 'Job Not Triggered'
       }
       return `Triggred by: ${this.jobInstance.Steps[0].TriggeredBy} at ${this.toLocalTime(this.jobInstance.Steps[0].TriggeredAt)}`
-    }
+    },
+    filterStepType() {
+      //filter mannually choose step types
+      const jobType = this.jobInstance.Type
+      switch (jobType) {
+        case 'Deploy':
+          return {
+            Deploy: stepTypeOptions['Deploy'],
+            Undeploy: stepTypeOptions['Undeploy']
+          }
+        case 'Import':
+          return {
+            Import: stepTypeOptions['Import']
+          }
+        default:
+          return {}
+      }
+    },
   },
   methods: {
     handleCreateStep(stepType: string) {
@@ -248,7 +283,13 @@ export default defineComponent({
       const newStep: Step = {
         ID: 0,
         Status: 'Draft',
-        Type: stepType
+        Type: stepType,
+        CreatedAt: '',
+        UpdatedAt: '',
+        UpdatedBy: '',
+        TriggeredBy: '',
+        TriggeredAt: '',
+        EndedAt: ''
       }
       this.jobInstance.Steps.push(newStep)
       this.current = this.jobInstance.Steps.length
@@ -314,6 +355,34 @@ export default defineComponent({
       //   return false
       // }
       return true
+    },
+    comps(step: Step) {
+      switch (step.Type) {
+        case 'Import':
+          return {
+            stepCard: ImportStepCard,
+            config: ImportConfig,
+            log: ImportLog
+          }
+        case 'Deploy':
+          return {
+            stepCard: DeployStepCard,
+            config: DeployConfig,
+            log: DeployLog
+          }
+        case 'Undeploy':
+          return {
+            stepCard: UnDeployStepCard,
+            config: UndeployConfig,
+            log: UndeployLog
+          }
+        default:
+          return {
+            stepCard: ImportStepCard,
+            config: ImportConfig,
+            log: ImportLog
+          }
+      }
     },
   }
 })
