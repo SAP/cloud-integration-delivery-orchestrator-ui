@@ -21,13 +21,8 @@ const router = createRouter({
         },
         {
           path: 'deploy',
-          name: 'Deploy Design Time Artifacts',
+          name: 'Deploy Design Time Artifacts/Undeploy Runtime Artifacts',
           component: () => import('@/views/DeployJobView.vue')
-        },
-        {
-          path: 'undeploy',
-          name: 'Undeploy Design Time Artifacts',
-          component: () => import('@/views/UndeployJobView.vue')
         }
       ]
     },

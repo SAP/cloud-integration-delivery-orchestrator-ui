@@ -5,7 +5,7 @@
       <n-text v-else type="warning">Choose a CPI Tenant</n-text>
     </template>
     <template #header-extra>
-      {{step.Type}}
+      <n-text type="warning" strong depth="3">{{step.Type}}</n-text>
     </template>
     <!-- artifacts list -->
     <n-space>

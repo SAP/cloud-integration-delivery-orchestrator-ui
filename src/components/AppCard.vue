@@ -14,7 +14,7 @@ export default defineComponent({
 </script>
 
 <template>
-  <n-card hoverable :title="title" header-class="headerCla" @click="jumpTo"> 10 </n-card>
+  <n-card hoverable size="small" :title="title" header-class="headerCla" @click="jumpTo"> 10 </n-card>
 </template>
 
 <style scoped>

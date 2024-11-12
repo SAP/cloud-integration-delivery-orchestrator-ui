@@ -135,7 +135,7 @@
         <n-gi span="3">
           <n-flex class="table-class" vertical align="start" v-if="current > 0">
             <span style="font-size: 15px; font-weight: bold"> Details of Step <n-gradient-text type="success">#{{ current }}</n-gradient-text>: </span>
-            <!-- TODO step create, update info -->
+            <!-- step create & update info -->
              <n-text depth="3">
               Updated By: {{ jobInstance.Steps[current-1].UpdatedBy }} -
               Created At: {{ toLocalTime(jobInstance.Steps[current-1].CreatedAt) }} -
@@ -215,23 +215,11 @@ export default defineComponent({
           return
         }
         this.refresh()
-      }, 1000)
+      }, 3000)
     }
   },
   data() {
-    const jobInstance: Job = {
-      ID: 0,
-      Name: '',
-      Description: '',
-      Status: 'Draft',
-      Type: '',
-      Steps: [],
-      ExecutionLogs: [],
-      CreatedBy: '',
-      UpdatedBy: '',
-      CreatedAt: '',
-      UpdatedAt: ''
-    }
+    const jobInstance: Job = {}
 
     return {
       selectedStepType: null,
@@ -284,12 +272,6 @@ export default defineComponent({
         ID: 0,
         Status: 'Draft',
         Type: stepType,
-        CreatedAt: '',
-        UpdatedAt: '',
-        UpdatedBy: '',
-        TriggeredBy: '',
-        TriggeredAt: '',
-        EndedAt: ''
       }
       this.jobInstance.Steps.push(newStep)
       this.current = this.jobInstance.Steps.length
@@ -319,9 +301,13 @@ export default defineComponent({
         this.message.error('Not in edit mode')
         return
       }
-      if (step.ID == -1) {
+      if (step.ID == 0) {
         this.jobInstance.Steps = this.jobInstance.Steps.filter((v, i) => i != index)
         this.message.info(`Removed an draft step: ${this.current}`)
+        return
+      }
+      if (step.Status === 'Success' || step.Status === 'Running' || step.Status === 'Error') {
+        this.message.warning(`Step with status ${step.Status} cannot be deleted.`)
         return
       }
       DeleteStep(step.ID, this.jobInstance.Type)

@@ -7,7 +7,6 @@
     @update:check-rows="handleApiEndpoint"
     :default-checked-row-keys="[step.Endpoint]"
     :loading="!cpitenants || cpitenants.length === 0"
-    :key="step.Endpoint"
   />
   <data-table
     :title="'Runtime Artifacts of ' + step.Endpoint"

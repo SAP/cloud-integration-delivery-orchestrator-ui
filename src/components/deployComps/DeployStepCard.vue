@@ -5,7 +5,7 @@
       <n-text v-else type="warning">Choose a CPI Tenant</n-text>
     </template>
     <template #header-extra>
-      {{step.Type}}
+      <n-text depth="3" strong>{{step.Type}}</n-text>
     </template>
     <!-- package id -->
     <n-text v-if="step.PackageId" style="font-size: medium"> 
