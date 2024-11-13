@@ -8,7 +8,7 @@
       </n-text>
       -
       <n-text depth="3" italic style="font-size: 80%">
-        trigger By: {{ step.TriggeredBy }} at {{ toLocalTime(step.TriggeredAt) }}
+        trigger by: {{ step.TriggeredBy }} at {{ toLocalTime(step.TriggeredAt) }}
       </n-text>
     </template>
     TRs:

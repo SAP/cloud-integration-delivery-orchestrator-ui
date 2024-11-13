@@ -37,3 +37,10 @@ npm run build
 ```sh
 npm run lint
 ```
+
+### deploy to CloudFoundry
+```sh
+npm run build-only
+cf login -a https://api.cf.sap.hana.ondemand.com/ -o MaCo-devops -s DEVOPS
+cf push
+```
