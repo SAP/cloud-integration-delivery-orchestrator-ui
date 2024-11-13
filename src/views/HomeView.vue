@@ -1,6 +1,12 @@
 <script lang="ts">
 import AppCard from '@/components/AppCard.vue'
+import { GetJobCounts } from '@/service/api';
 import { defineComponent } from 'vue'
+
+interface count {
+  count: Number
+  type:  String
+}
 export default defineComponent({
   components: {
     AppCard
@@ -8,12 +14,25 @@ export default defineComponent({
   data() {
     const routers = this.$router.getRoutes()
     const apps = []
+    const counts: count[] = []
     for (const item of routers) {
       if (item.children.length) apps.push(item)
     }
-    return {
-      apps
+    const subtitleMap = {
+      Delivery: 'Deploy/Undeploy Artifacts in CPI Tenant',
+      Import: 'Import TRs to CPI Tenant'
     }
+
+    return {
+      apps,
+      subtitleMap,
+      counts
+    }
+  },
+  created() {
+    GetJobCounts().then((res) => {
+      this.counts = res
+    })
   }
 })
 </script>
@@ -28,7 +47,9 @@ export default defineComponent({
         v-for="(child, index) in router.children"
         :key="index"
         :title="child.name"
+        :subtitle="subtitleMap[child.name]"
         :path="`${router.path}/${child.path}`"
+        :count="counts.find((item) => item.type.toLowerCase() === child.path.toLowerCase())?.count"
       />
     </n-flex>
   </div>

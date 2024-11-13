@@ -16,12 +16,12 @@ const router = createRouter({
       children: [
         {
           path: 'import',
-          name: 'Import Transport Requests',
+          name: 'Import',
           component: () => import('@/views/ImportJobView.vue')
         },
         {
           path: 'deploy',
-          name: 'Deploy Design Time Artifacts/Undeploy Runtime Artifacts',
+          name: 'Delivery',
           component: () => import('@/views/DeployJobView.vue')
         }
       ]
