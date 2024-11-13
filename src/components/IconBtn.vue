@@ -4,7 +4,7 @@
     <template #trigger>
       <n-button :disabled="disabled" @click="handler" quaternary>
         <template #icon>
-          <n-icon color="#0e7a0d" size="20">
+          <n-icon :color="color" size="20">
             <slot></slot>
           </n-icon>
         </template>
@@ -18,7 +18,8 @@ export default defineComponent({
   props: {
     tip: { type: String, required: true },
     handler: { type: Function },
-    disabled: { type: Boolean }
+    disabled: { type: Boolean },
+    color: { type: String, default: '#0e7a0d' }
   }
 })
 </script>

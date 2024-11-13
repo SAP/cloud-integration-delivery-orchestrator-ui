@@ -47,17 +47,18 @@
             </n-text>
           </n-flex>
         </n-gi>
-        <!-- job status tag -->
-        <n-gi>
-          <n-tag :type=toJobStatusTag(status)>{{ status }}</n-tag>
-        </n-gi>
+
         <!-- job basic information -->
         <n-gi span="2">
           <n-flex vertical>
-            <n-text depth=3 style="font-size: 12px">Created By: {{ jobInstance.CreatedBy }} at {{ toLocalTime(jobInstance.CreatedAt) }}</n-text>
-            <n-text depth=3 style="font-size: 12px">Updated By: {{ jobInstance.UpdatedBy }} at {{ toLocalTime(jobInstance.UpdatedAt) }}</n-text>
-            <n-text depth=3 style="font-size: 12px">{{triggerInfo}} </n-text>
+            <n-text depth=3 style="font-size: 12px" strong>Created By: {{ jobInstance.CreatedBy }} at {{ toLocalTime(jobInstance.CreatedAt) }}</n-text>
+            <n-text depth=3 style="font-size: 12px" strong>Updated By: {{ jobInstance.UpdatedBy }} at {{ toLocalTime(jobInstance.UpdatedAt) }}</n-text>
+            <n-text depth=3 style="font-size: 12px" strong>{{triggerInfo}} </n-text>
           </n-flex>
+        </n-gi>
+        <!-- job status tag -->
+        <n-gi>
+          <n-tag :type=toJobStatusTag(status)>{{ status }}</n-tag>
         </n-gi>
         <!-- action buttions -->
         <n-gi>
@@ -65,11 +66,11 @@
           <IconBtn tip="Edit" :handler="onEdit" v-if="!editing">
             <edit16-regular />
           </IconBtn>
-          <IconBtn tip="Cancel" :handler="refresh" v-if="editing">
+          <IconBtn tip="Cancel" :handler="refresh" v-if="editing" color="#df423a">
             <CancelOutlined />
           </IconBtn>
           <!-- Delete button -->
-          <IconBtn tip="Delete" :handler="handleDeleteJob" v-if="!editing">
+          <IconBtn tip="Delete" :handler="handleDeleteJob" v-if="!editing" color="#df423a">
             <Delete28Regular />
           </IconBtn>
 
