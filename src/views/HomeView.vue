@@ -18,9 +18,11 @@ export default defineComponent({
     for (const item of routers) {
       if (item.children.length) apps.push(item)
     }
-    const subtitleMap = {
+    const subtitleMap: {[key:string]: string} = {
       Delivery: 'Deploy/Undeploy Artifacts in CPI Tenant',
-      Import: 'Import TRs to CPI Tenant'
+      Import: 'Import TRs to CPI Tenant',
+      "Transport Group": 'Manage Transport Groups',
+      "Transport Plan": 'Generate Transport Plan by parsing YAML content',
     }
 
     return {

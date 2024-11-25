@@ -20,13 +20,13 @@
         trigger by {{ step.TriggeredBy }} at {{ toLocalTime(step.TriggeredAt) }}
       </n-text>
     </template>
-    <p v-for="(artifactId, index) in step.ArtifactIds" :key="index">
+    <p v-for="(artifact, index) in step.Artifacts" :key="index">
       <n-tag :bordered="false" type="info">
-        {{ artifactId }}:{{ step.ArtifactVersions[index] }}
+        {{ artifact.Id }}:{{ artifact.Version }}
       </n-tag>
-      - <n-text code>{{ step.TaskIds[index] }}</n-text> -
-      <n-tag :type="toStatusTag(step.TaskStatuses[index])">
-        {{ step.TaskStatuses[index] }}
+      - <n-text code>{{ artifact.TaskId }}</n-text> -
+      <n-tag :type="toStatusTag(artifact.Status)">
+        {{ artifact.Status }}
       </n-tag>
     </p>
     <n-text depth="3" strong>Finished at: {{ toLocalTime(step.EndedAt) }}</n-text>

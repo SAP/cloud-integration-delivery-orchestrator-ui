@@ -27,6 +27,22 @@ const router = createRouter({
       ]
     },
     {
+      path: '/tools',
+      name: 'Tools and Configurations',
+      children: [
+        {
+          path: 'parse',
+          name: 'Transport Plan',
+          component: () => import('@/views/TransportPlanListView.vue')
+        },
+        {
+          path: 'transportGroup',
+          name: 'Transport Group',
+          component: () => import('@/views/TransportGroupListView.vue')
+        }
+      ]
+    },
+    {
       path: '/flow/:jobId',
       name: 'Job Flow',
       component: () => import('@/views/FlowView.vue'),
@@ -36,6 +52,12 @@ const router = createRouter({
       path: '/callback',
       name: 'Oauth',
       component: () => import('@/views/LoginCallback.vue'),
+    },
+    {
+      path: '/transportplan/:planId',
+      name: 'Transport&Delivery Plan',
+      component: () => import('@/views/TransportPlanView.vue'),
+      props: true
     }
   ]
 })

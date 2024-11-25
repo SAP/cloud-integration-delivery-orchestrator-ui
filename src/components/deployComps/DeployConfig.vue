@@ -1,32 +1,31 @@
 <template>
   <data-table
     title="CPI Tenants"
-    :data="cpitenants"
+    :data="cpitenantOptions"
     :columns="apiEndpointColums"
     :row-key="(row: ApiEndpoint) => row.name"
     @update:check-rows="handleApiEndpoint"
     :default-checked-row-keys="[step.Endpoint]"
-    :loading="!cpitenants || cpitenants.length === 0"
+    :loading="!cpitenantOptions || cpitenantOptions.length === 0"
   />
   <data-table
     :title="'Packages of ' + step.Endpoint"
-    :data="packages"
+    :data="packageOptions"
     :columns="packageColums"
     :row-key="(row: Package) => row.Id"
     @update:check-rows="handlePackage"
-    :default-checked-row-keys="[step.PackageId]"
-    :loading="!packages || !packages.length"
+    :loading="!packageOptions || !packageOptions.length"
     :key="step.Endpoint"
   />
   <data-table
-    :title="'Design Time Artifacts of ' + step.PackageId"
-    :data="artifacts"
+    :title="'Design Time Artifacts of ' +  selectedPackage.Name"
+    :data="artifactOptions"
     :columns="artifactColumns"
     :row-key="(row: Artifact) => row.Id"
     @update:check-rows="handleArtifacts"
-    :default-checked-row-keys="step.ArtifactIds"
-    :loading="!artifacts || !artifacts.length"
-    :key="step.PackageId"
+    :default-checked-row-keys="step.Artifacts.filter((art) => art.Package === selectedPackage.Id).map((art) => art.Id)"
+    :loading="!artifactOptions || !artifactOptions.length"
+    :key="selectedPackage.Id"
   />
 </template>
 
@@ -34,7 +33,7 @@
 import { defineComponent, type PropType } from 'vue'
 import DataTable from '@/components/DataTable.vue'
 import {
-  GetApiEndpointsByType,
+  GetCPIApiEndpoints,
   GetArtifacts,
   GetPackages,
   validate,
@@ -52,52 +51,57 @@ export default defineComponent({
     DataTable
   },
   data() {
-    const cpitenants: ApiEndpoint[] = []
-    const packages: Package[] = []
-    const artifacts: Artifact[] = []
     return {
       apiEndpointColums,
       packageColums,
       artifactColumns,
-      cpitenants,
-      packages,
-      artifacts
+      cpitenantOptions: [] as ApiEndpoint[],
+      packageOptions: [] as Package[],
+      artifactOptions: [] as Artifact[],
+
+      selectedPackage: {} as Package
     }
   },
   created() {
-    GetApiEndpointsByType().then((endpoints) => (this.cpitenants = endpoints))
+    if (!this.step.Artifacts) this.step.Artifacts = []
+    GetCPIApiEndpoints().then((endpoints) => (this.cpitenantOptions = endpoints))
     if (!this.step.Endpoint) return
-    GetPackages(this.step.Endpoint).then((pkgs) => (this.packages = pkgs))
+    GetPackages(this.step.Endpoint).then((pkgs) => (this.packageOptions = pkgs))
     if (!this.step.PackageId) return
-    GetArtifacts(this.step.Endpoint, this.step.PackageId).then((atfs) => (this.artifacts = atfs))
+    GetArtifacts(this.step.Endpoint, this.step.PackageId).then(
+      (atfs) => (this.artifactOptions = atfs)
+    )
   },
   methods: {
     handleApiEndpoint(rows: ApiEndpoint[]) {
-      if(!validate(this.step)) return
-      this.step.Endpoint = rows[0].name
-      this.packages = []
-      this.artifacts = []
-      this.step.PackageId = ''
-      this.step.ArtifactIds = []
+      if (!validate(this.step)) return
       this.step.Status = 'Draft'
-      GetPackages(this.step.Endpoint).then((pkgs) => (this.packages = pkgs))
+
+      this.step.Endpoint = rows[0].name
+      // clear package and artifact options
+      this.packageOptions = []
+      this.artifactOptions = []
+
+      GetPackages(this.step.Endpoint).then((pkgs) => (this.packageOptions = pkgs))
     },
     handlePackage(rows: Package[]) {
-      if(!validate(this.step)) return
-      this.step.PackageId = rows[0].Id
-      this.artifacts = []
-      this.step.ArtifactIds = []
+      if (!validate(this.step)) return
       this.step.Status = 'Draft'
-      GetArtifacts(this.step.Endpoint, this.step.PackageId).then(
-        (artifacts) => (this.artifacts = artifacts)
-      )
+
+      this.selectedPackage = rows[0]
+      // clear artifact options
+      this.artifactOptions = []
+
+      GetArtifacts(this.step.Endpoint, this.selectedPackage.Id).then((artifacts) => {this.artifactOptions = artifacts})
     },
-    handleArtifacts(rows: Artifact[]) {
-      if(!validate(this.step)) return
-      this.step.ArtifactIds = rows.map((v, i) => v.Id)
-      this.step.ArtifactTypes = rows.map((v, i) => v.Type)
-      this.step.ArtifactVersions = rows.map((v, i) => v.Version)
+    handleArtifacts(selectedArtifacts: Artifact[]) {
+      if (!validate(this.step)) return
       this.step.Status = 'Draft'
+      selectedArtifacts.forEach((artifact) => {artifact.Package = this.selectedPackage.Id})
+      if (!this.step.Artifacts) this.step.Artifacts = []
+      // filter out artifacts in the selectedPackage, so that packaged within that package can be re-added
+      this.step.Artifacts = this.step.Artifacts.filter((art) => art.Package !== this.selectedPackage.Id)
+      this.step.Artifacts.push(...selectedArtifacts)
     }
   }
 })

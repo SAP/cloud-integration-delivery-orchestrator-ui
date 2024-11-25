@@ -4,13 +4,13 @@
       <n-text v-if="step.TransportNodeName">{{ step.TransportNodeName }}</n-text>
       <n-text v-else type="warning">Choose a Transport Node</n-text>
     </template>
-    <n-text v-if="!step.TransportRequests || !step.TransportRequests.length" type="warning"
+    <n-text v-if="!step.TransportRequests_V2 || !step.TransportRequests_V2.length" type="warning"
       >Transport Requests:</n-text
     >
     <n-text v-else>Transport Requests:</n-text>
     <!-- transport requests -->
     <n-space>
-      <n-tag v-for="(tr, index) in step.TransportRequests" :key="index" type="info">{{ tr }}:{{ step.TransportRequestDesctritions[index] }}</n-tag>
+      <n-tag v-for="(tr, index) in step.TransportRequests_V2" :key="index" type="info">{{ tr.ID }}:{{ tr.Description }}</n-tag>
     </n-space>
   </n-card>
 </template>

@@ -2,6 +2,7 @@ import axios from 'axios'
 import { clientId, clientSecret, tokenEndpoint, userInfoEndpoint } from './consts'
 import http from './http'
 import { defineStore } from 'pinia'
+import { ParaglidingSharp } from '@vicons/material'
 // validate if a step can be modified
 export const validate = (step: Step) => {
   if (
@@ -70,6 +71,93 @@ export const NewJob = (job: Job) => {
 export const CopyJob = (job: Job) => {
   return http.post('/api/v1/job/copy/'+job.ID) as Promise<Job>
 }
+
+// transport group API
+export const GetTransportGroups = () => {
+  return http.get('/api/v1/transportGroup') as Promise<TransportGroup[]>
+}
+
+export const CreateTransportGroup = (group: TransportGroup) => {
+  return http.post('/api/v1/transportGroup', group) as Promise<TransportGroup>
+}
+
+export const DeleteTransportGroup = (groupId: number) => {
+  return http.delete('/api/v1/transportGroup', {
+    params: { id: groupId }
+  })
+}
+
+// transport plan API
+export const GetTransportPlan = (planId: number) => {
+  return http.get(`/api/v1/transportplan/${planId}`) as Promise<TransportPlan>
+}
+
+export const GetTransportPlans = () => {
+  return http.get('/api/v1/transportplan') as Promise<TransportPlan[]>
+}
+
+export const SaveTransportPlan = (plan: TransportPlan) => {
+  return http.post(`/api/v1/transportplan`, plan)
+}
+
+export const DeleteTransportPlan = (planId: number) => {
+  return http.delete(`/api/v1/transportplan/${planId}`)
+}
+
+export const ParseTransportPlan = (yaml: string, transportGroupId: number, transportPlanId: number) => {
+  return http.post('/api/v1/parse', 
+    {
+      transportGroupId: transportGroupId,
+      transportPlanId: transportPlanId,
+      yamlContent: yaml
+    }
+  ) as Promise<TransportPlan>
+}
+
+export const GenImportJob = (planId: number) => {
+  return http.post(`/api/v1/transportplan/generate/import?transportPlanId=${planId}`)
+}
+
+export const GenDeployJob = (planId: number) => {
+  return http.post(`/api/v1/transportplan/generate/deploy?transportPlanId=${planId}`)
+}
+
+export interface TransportGroup {
+  ID: number
+  Name: string
+  Description: string
+  TransportNodes: TransportNode[]
+  DeployEndpoints: string[]
+  CreatedBy: string
+}
+
+
+export interface TransportPlan {
+  ID: number
+  Name: string
+  Description: string
+  CreatedAt: string
+  UpdatedAt: string
+  CreatedBy: string
+  UpdatedBy: string
+
+  TransportGroupName: string
+  TransportGroupID: number
+
+  Artifacts: Artifact[]
+  TransportRequests: TransportRequest[] // transport request numbers
+
+  ImportJobId: number // import job id in table Job
+  DeployJobId: number // deploy job id in table Job
+
+  VerifyTransportRequests: string // verify tr numbers exist in tms nodes. Pass/Fail
+  VerifyArtifacts: string // verify artifacts exist in cpi tenant. Pass/Fail
+
+  ImportJobStatus: string // update from import job status
+  DeployJobStatus: string // update from deploy job status
+}
+
+
 export interface Job {
   ID: number
   Name: string
@@ -106,23 +194,18 @@ export const DeleteStep = (stepId: number, type: string) => {
 export interface ImportStep extends Step {
   TransportNodeId: number
   TransportNodeName: string
-  TransportRequests: number[] // transport requests
-  TransportRequestDesctritions: string[]
+  TransportRequests_V2: TransportRequest[]
   ActionId: number
 }
 
 export interface DeployStep extends Step {
   Endpoint: string // cpi tenant name
   PackageId: string
-  ArtifactIds: string[]
-  ArtifactTypes: string[]
-  ArtifactVersions: string[]
-  TaskIds: string[]
-  TaskStatuses: string[]
+  Artifacts: Artifact[]  // version 2.0.0. as an replacement of ArtifactIds/Types/Versions...
 }
 
 export interface UndeployStep extends Step {
-  targets: object[]
+
 }
 
 export interface ExecutionLog {
@@ -140,7 +223,7 @@ export interface ApiEndpoint {
   type: string
   url: string
 }
-export const GetApiEndpointsByType = () => {
+export const GetCPIApiEndpoints = () => {
   return http.get('/api/v1/destinations') as Promise<ApiEndpoint[]>
 }
 
@@ -151,8 +234,14 @@ export interface TransportNode {
   description: string
   name: string
 }
-
 export interface TransportRequest {
+  ID: number
+  Description: string
+  Status: string
+}
+
+// transport request options with a node
+export interface NodeTransportRequest {
   id: number
   description: string
   status: string
@@ -161,12 +250,12 @@ export interface TransportRequest {
   createdBy: string
 }
 export const GetTransportNodes = () => {
-  return http.get('/api/v1/tms/nodes')
+  return http.get('/api/v1/tms/nodes') as Promise<TransportNode[]>
 }
 export const GetTransportRequests = (node_id: number | string) => {
   return http.get('/api/v1/tms/trs', {
     params: { transportNode: node_id }
-  })
+  }) as Promise<NodeTransportRequest[]>
 }
 // CPI
 export interface Package {
@@ -183,8 +272,10 @@ export interface Package {
 export interface Artifact {
   Id: string
   Version: string
-  Name: string
+  Package: string
   Type: string
+  TaskId: string
+  Status: string
 }
 
 export interface RuntimeArtifact {
@@ -200,13 +291,13 @@ export interface RuntimeArtifact {
 export const GetPackages = (tenantId: number | string) => {
   return http.get('/api/v1/tanant/packages', {
     params: { tenant: tenantId }
-  })
+  }) as Promise<Package[]>
 }
 
 export const GetArtifacts = (tenantId: string, packageId: string) => {
   return http.get('/api/v1/tenant/packages/artifacts', {
     params: { tenant: tenantId, package: packageId }
-  })
+  }) as Promise<Artifact[]>
 }
 
 export const GetRuntimeArtifacts = (tenantId: string) => {

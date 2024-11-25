@@ -109,7 +109,7 @@
       </n-flex>
     </div>
 
-    <!-- step list with config view -->
+    <!-- step list view and config view -->
     <n-card class="card-shadow-class">
       <div style="margin-bottom: 15px; font-size: 15px; font-weight: bold">
         {{ jobInstance.Type }} Job <n-gradient-text type="success">#{{ jobInstance.ID }}</n-gradient-text> Detail
@@ -117,7 +117,7 @@
       <n-grid x-gap="40" :cols="5">
         <!-- step lists -->
         <n-gi span="2">
-          <n-steps vertical :current="current" @update:current="handleCurrent">
+          <n-steps vertical :current="current" @update:current="handleCurrent" class="step-list">
             <n-step
               v-for="(step, index) in jobInstance.Steps"
               :key="index"
@@ -401,5 +401,10 @@ export default defineComponent({
 
 .config-class {
   margin: 20px 0;
+}
+
+.step-list {
+  position: sticky;
+  top: 220px;
 }
 </style>

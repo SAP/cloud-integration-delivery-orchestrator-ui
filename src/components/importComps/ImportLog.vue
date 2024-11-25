@@ -12,8 +12,8 @@
       </n-text>
     </template>
     TRs:
-    <n-tag type="info" v-for="(tr, index) in step.TransportRequests" :key="index">
-      {{ tr }}
+    <n-tag type="info" v-for="(tr, index) in step.TransportRequests_V2" :key="index">
+      {{ tr.ID }}
     </n-tag>
     - Action Id: <n-text code> {{ step.ActionId }}</n-text>
     -

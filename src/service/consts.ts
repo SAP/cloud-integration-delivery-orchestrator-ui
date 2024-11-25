@@ -1,5 +1,5 @@
-import { type DataTableColumns } from 'naive-ui'
-import type { ApiEndpoint, Artifact, Job, Package, TransportNode, TransportRequest } from './api'
+import { NTag, type DataTableColumns } from 'naive-ui'
+import type { ApiEndpoint, Artifact, Job, Package, TransportGroup, TransportNode, TransportPlan, NodeTransportRequest } from './api'
 import { h } from 'vue'
 import type { Router } from 'vue-router'
 import { IosArrowForward } from '@vicons/ionicons4'
@@ -106,7 +106,7 @@ export function createJobColums(router: Router, statusTag: any): DataTableColumn
       resizable: true,
       render(row: Job) {
         return h(
-          statusTag,
+          NTag,
           {
             type: toJobStatusTag(row.Status),
             onClick: () => {handleRouter(row)}
@@ -193,6 +193,153 @@ export function createJobColums(router: Router, statusTag: any): DataTableColumn
   return colums
 }
 
+export const transportGroupColums: DataTableColumns<TransportGroup> = [
+  {
+    type: 'selection',
+    multiple: false,
+    disabled(row: Object) {
+      return false
+    }
+  },
+  {
+    title: 'ID',
+    key: 'ID',
+    resizable: true
+  },
+  {
+    title: 'Name',
+    key: 'Name',
+    resizable: true,
+  },
+  {
+    title: 'Description',
+    key: 'Description',
+    resizable: true,
+  },
+  {
+    title: 'Import Nodes',
+    key: 'TransportNodes',
+    render(row: TransportGroup){
+      const importNodes = row.TransportNodes.map(node => node.name)
+      return h(
+        'div',
+        importNodes.map(node => h(
+          NTag, 
+          { style: { marginRight: '8px' }, type: 'info' }, 
+          node
+        ))
+      )
+    },
+    resizable: true
+  },
+  {
+    title: 'Deploy Nodes',
+    key: 'DeployEndpoints',
+    resizable: true,
+    render(row: TransportGroup){
+      const deployNodes = row.DeployEndpoints
+      return h(
+        'div',
+        deployNodes.map(node => h(
+          NTag, 
+          { style: { marginRight: '8px' }, type: 'success' }, 
+          node
+        ))
+      )
+    }
+  },
+  {
+    title: 'Created By',
+    key: 'CreatedBy',
+    resizable: true
+  },
+  {
+    title: 'Created At',
+    key: 'CreatedAt',
+    resizable: true
+  }
+]
+
+export const transportPlanColumns = (router: Router) =>{
+  return [
+    {
+      type: 'selection',
+      multiple: false,
+      disabled(row: Object) {
+        return false
+      }
+    },
+    {
+      title: 'ID',
+      key: 'ID',
+      resizable: true
+    },
+    {
+      title: 'Name',
+      key: 'Name',
+    },
+    {
+      title: 'Description',
+      key: 'Description',
+      resizable: true
+    },
+    {
+      title: 'Transport Group',
+      key: 'TransportGroup',
+      render(row: TransportPlan){
+        return h(
+          'div',
+          h(
+            NTag, 
+            { type: 'info' }, 
+            row.TransportGroupName
+          )
+        )
+      },
+      resizable: true
+    },
+    {
+      title: 'Created At',
+      key: 'CreatedAt',
+      resizable: true
+    },
+    {
+      title: 'Updated At',
+      key: 'UpdatedAt',
+      resizable: true
+    },
+    {
+      title: 'Created By',
+      key: 'CreatedBy',
+      resizable: true
+    },
+    {
+      title: 'Updated By',
+      key: 'UpdatedBy',
+      resizable: true,
+    },
+    {
+      title: '',
+      key: 'arrow',
+      render(row: TransportPlan) {
+        return h(
+          'div',
+          {
+            style: { width: '18px', height: '18px' },
+            onClick: () => {
+              router.push({
+                path: `/transportplan/${row.ID}`
+              })
+            }
+          },
+          [h(IosArrowForward)]
+        )
+      }
+    }
+  
+  ] as DataTableColumns<TransportPlan>
+} 
+
 export const transportNodesColums: DataTableColumns<TransportNode> = [
   {
     type: 'selection',
@@ -219,7 +366,7 @@ export const transportNodesColums: DataTableColumns<TransportNode> = [
   }
 ]
 
-export const transportRequestColums: DataTableColumns<TransportRequest> = [
+export const transportRequestColums: DataTableColumns<NodeTransportRequest> = [
   {
     type: 'selection',
     disabled(row: Object) {
@@ -376,7 +523,7 @@ export const runtimeArtifactColumns: DataTableColumns<Artifact> = [
   }
 ]
 
-export const stepTypeOptions = {
+export const stepTypeOptions: { [key: string]: string } = {
   Import: 'Import Transport Requests',
   Deploy: 'Deploy Artifacts(Iflow, Package, ScriptCollection)',
   Undeploy: 'Undeploy Runtime Artifacts'

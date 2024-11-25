@@ -1,21 +1,21 @@
 <template>
   <data-table
     title="Transport Nodes"
-    :data="transportNodes"
+    :data="transportNodeOptions"
     :columns="transportNodesColums"
     :row-key="(row: TransportNode) => row.id"
     @update:check-rows="handleTransportNodes"
     :default-checked-row-keys="[step.TransportNodeId]"
-    :loading="!transportNodes || transportNodes.length === 0"
+    :loading="!transportNodeOptions || !transportNodeOptions.length"
   />
   <data-table
     :title="'Transport Requests of ' + step.TransportNodeName"
-    :data="transportRequests"
+    :data="transportRequestOptions"
     :columns="transportRequestColums"
-    :row-key="(row: TransportRequest) => row.id"
+    :row-key="(row: NodeTransportRequest) => row.id"
     @update:check-rows="handleTransportRequests"
-    :default-checked-row-keys="step.TransportRequests"
-    :loading="!transportRequests || transportRequests.length === 0"
+    :default-checked-row-keys="step.TransportRequests_V2.map((tr) => tr.ID)"
+    :loading="!transportRequestOptions || !transportRequestOptions.length"
     :key="step.TransportNodeId"
   />
 </template>
@@ -30,7 +30,7 @@ import {
   type ImportStep,
   type Step,
   type TransportNode,
-  type TransportRequest
+  type NodeTransportRequest
 } from '@/service/api'
 import { transportNodesColums, transportRequestColums } from '@/service/consts'
 import { defineComponent, type PropType } from 'vue'
@@ -43,9 +43,10 @@ export default defineComponent({
     DataTable
   },
   created() {
-    GetTransportNodes().then((nodes) => {this.transportNodes = nodes})
+    if (!this.step.TransportRequests_V2) this.step.TransportRequests_V2 = []
+    GetTransportNodes().then((nodes) => {this.transportNodeOptions = nodes})
     if (!this.step.TransportNodeId) return
-    GetTransportRequests(this.step.TransportNodeId).then((trs) => {this.transportRequests = trs})
+    GetTransportRequests(this.step.TransportNodeId).then((trs) => {this.transportRequestOptions = trs})
   },
   computed: {
     apiEndpointTitle() {
@@ -53,13 +54,9 @@ export default defineComponent({
     }
   },
   data() {
-    const tmsList: ApiEndpoint[] = []
-    const transportNodes: TransportNode[] = []
-    const transportRequests: TransportRequest[] = []
     return {
-      tmsList,
-      transportNodes,
-      transportRequests,
+      transportNodeOptions: [] as TransportNode[],
+      transportRequestOptions: [] as NodeTransportRequest[],
       transportNodesColums,
       transportRequestColums
     }
@@ -67,19 +64,19 @@ export default defineComponent({
   methods: {
     handleTransportNodes(rows: TransportNode[]) {
       if(!validate(this.step)) return
+      this.step.Status = 'Draft'
+
       const transportNode = rows[0]
       this.step.TransportNodeName = transportNode.name
       this.step.TransportNodeId = transportNode.id
       // get transport requests
-      this.step.TransportRequests = []
-      this.transportRequests = []
-      this.step.Status = 'Draft'
-      GetTransportRequests(this.step.TransportNodeId).then((trs) => (this.transportRequests = trs))
+      this.step.TransportRequests_V2 = []
+      this.transportRequestOptions = []
+      GetTransportRequests(this.step.TransportNodeId).then((trs) => (this.transportRequestOptions = trs))
     },
-    handleTransportRequests(rows: TransportRequest[]) {
+    handleTransportRequests(rows: NodeTransportRequest[]) {
       if(!validate(this.step)) return
-      this.step.TransportRequests = rows.map((v, i) => v.id)
-      this.step.TransportRequestDesctritions = rows.map((v, i) => v.description)
+      this.step.TransportRequests_V2 = rows.map((nodeTr) => ({ ID: nodeTr.id, Description: nodeTr.description, Status: nodeTr.status }))
       this.step.Status = 'Draft'
     }
   }

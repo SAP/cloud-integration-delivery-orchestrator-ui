@@ -5,28 +5,24 @@
       <n-text v-else type="warning">Choose a CPI Tenant</n-text>
     </template>
     <template #header-extra>
-      <n-text depth="3" strong>{{step.Type}}</n-text>
+      <n-text depth="3" strong>{{ step.Type }}</n-text>
     </template>
-    <!-- package id -->
-    <n-text v-if="step.PackageId" style="font-size: medium"> 
-      <n-text depth=3>Package ID:</n-text> {{ step.PackageId }}
-    </n-text>
-    <n-text v-else type="warning"> Choose Package </n-text>
-    <n-space>
-      <n-text depth=3  style="font-size: medium">Artifacts:</n-text>
-    </n-space>
-    <!-- artifacts list -->
-    <n-space>
-      <n-tag v-for="(artifact, index) in step.ArtifactIds" :key="index" type="info" :bordered="false">
-        {{ artifact }}:{{ step.ArtifactVersions[index] }}
-      </n-tag>
-    </n-space>
+    <!-- list artifacts group by package -->
+    <n-text v-if="!step.Artifacts" type="warning">Choose Artifacts</n-text>
+    <div v-else v-for="(artifacts, packageName) in artifactsGroup" :key="packageName">
+      <n-text depth="3" style="font-size: medium">{{ packageName }}:</n-text>
+      <n-space>
+        <n-tag v-for="(artifact, index) in artifacts" :key="index" type="info" :bordered="false">
+          {{ artifact.Id }}:{{ artifact.Version }}
+        </n-tag>
+      </n-space>
+    </div>
   </n-card>
 </template>
 
 <script lang="ts">
 import { defineComponent, type PropType } from 'vue'
-import { type DeployStep } from '../../service/api'
+import { type Artifact, type DeployStep } from '../../service/api'
 export default defineComponent({
   data() {
     return {
@@ -38,6 +34,17 @@ export default defineComponent({
   },
   props: {
     step: { type: Object as PropType<DeployStep>, required: true }
+  },
+  computed: {
+    artifactsGroup() {
+      // group artifacts by package
+      const pkgsMap: { [key: string]: Artifact[] } = {}
+      for (const artifact of this.step.Artifacts) {
+        if (!pkgsMap[artifact.Package]) pkgsMap[artifact.Package] = []
+        pkgsMap[artifact.Package].push(artifact)
+      }
+      return pkgsMap
+    }
   }
 })
 </script>

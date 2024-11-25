@@ -12,8 +12,8 @@
       <n-text depth=3  style="font-size: medium">Runtime Artifacts:</n-text>
     </n-space>
     <n-space>
-      <n-tag v-for="(artifact, index) in step.ArtifactIds" :key="index" type="info" :bordered="false">
-        {{ artifact }}:{{ step.ArtifactVersions[index] }}
+      <n-tag v-for="(artifact, index) in step.Artifacts" :key="index" type="info" :bordered="false">
+        {{ artifact.Id }}:{{ artifact.Version }}
       </n-tag>
     </n-space>
   </n-card>

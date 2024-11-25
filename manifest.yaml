@@ -1,5 +1,5 @@
 applications:
-- name: mmt-ui-app-iflow-deploy
+- name: mmt-ui-app-iflow-deploy-v2
   memory: 1G
   disk_quota: 2G
   command: npm run preview
