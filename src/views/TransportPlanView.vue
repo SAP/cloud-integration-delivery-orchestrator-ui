@@ -183,7 +183,9 @@
                   </div>
                 </n-flex>
 
-                <n-button @click="handleGenImportJob" secondary round strong type="primary">Generate</n-button>
+                <n-button @click="handleGenImportJob" secondary round strong type="primary">
+                  Generate
+                </n-button>
                 <!-- import job id -->
                 <n-text depth="3" style="font-size: medium"> Import Job: </n-text>
                 <router-link
@@ -215,8 +217,10 @@
                     </n-tag>
                   </div>
                 </n-flex>
-                <p/>
-                <n-button @click="handleGenDeployJob" secondary round strong type="primary">Generate</n-button>
+                <p />
+                <n-button @click="handleGenDeployJob" secondary round strong type="primary">
+                  Generate
+                </n-button>
                 <n-text depth="3" style="font-size: medium">Deploy Job:</n-text>
                 <router-link
                   :to="`/flow/${transportPlan.DeployJobId}`"
@@ -262,7 +266,7 @@ export default {
     SaveAltRound,
     StartTwotone,
     CancelOutlined,
-    IconBtn,
+    IconBtn
   },
   props: { planId: { required: true, type: Number } },
   data() {
@@ -315,7 +319,8 @@ export default {
       ParseTransportPlan(
         this.yamlContent,
         this.transportPlan.TransportGroupID,
-        this.transportPlan.ID
+        this.transportPlan.ID,
+        this.transportPlan.TransportGroupName
       ).then(() => {
         this.refresh()
       })
@@ -327,7 +332,7 @@ export default {
       })
     },
     handleGenDeployJob() {
-      if(!this.transportPlan.ImportJobId) {
+      if (!this.transportPlan.ImportJobId) {
         window.$message.warning('Please generate import job first')
         return
       }

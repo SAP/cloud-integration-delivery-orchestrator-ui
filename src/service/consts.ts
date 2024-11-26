@@ -289,11 +289,7 @@ export const transportPlanColumns = (router: Router) =>{
       render(row: TransportPlan){
         return h(
           'div',
-          h(
-            NTag, 
-            { type: 'info' }, 
-            row.TransportGroupName
-          )
+          `#${row.TransportGroupID} - ${row.TransportGroupName}`
         )
       },
       resizable: true

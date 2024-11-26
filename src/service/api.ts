@@ -104,12 +104,13 @@ export const DeleteTransportPlan = (planId: number) => {
   return http.delete(`/api/v1/transportplan/${planId}`)
 }
 
-export const ParseTransportPlan = (yaml: string, transportGroupId: number, transportPlanId: number) => {
+export const ParseTransportPlan = (yaml: string, transportGroupId: number, transportPlanId: number, transportGroupName: string) => {
   return http.post('/api/v1/parse', 
     {
       transportGroupId: transportGroupId,
       transportPlanId: transportPlanId,
-      yamlContent: yaml
+      yamlContent: yaml,
+      transportGroupName: transportGroupName
     }
   ) as Promise<TransportPlan>
 }
