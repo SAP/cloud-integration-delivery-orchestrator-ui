@@ -89,9 +89,7 @@
           </n-flex>
         </n-gi>
         <!-- transport plan status tag -->
-        <n-gi>
-          <n-tag type="info"> Status? </n-tag>
-        </n-gi>
+        <n-gi> </n-gi>
         <!-- action buttions -->
         <n-gi>
           <!-- Edit button -->
@@ -133,10 +131,10 @@
                 <n-text strong>
                   {{ transportGroupInfo.Name }} - {{ transportGroupInfo.Description }}
                 </n-text>
-
                 <n-gradient-text type="success" :size="18">
                   #{{ transportGroupInfo.ID }}
                 </n-gradient-text>
+
                 <p />
                 <n-text depth="3" style="font-size: medium">Transport Requests:</n-text>
                 <div />
@@ -185,12 +183,17 @@
                   </div>
                 </n-flex>
 
-                <n-button @click="handleGenImportJob">Generate</n-button>
+                <n-button @click="handleGenImportJob" secondary round strong type="primary">Generate</n-button>
                 <!-- import job id -->
                 <n-text depth="3" style="font-size: medium"> Import Job: </n-text>
-                <n-gradient-text v-if="transportPlan.ImportJobId" type="success" :size="15">
-                  #{{ transportPlan.ImportJobId }}
-                </n-gradient-text>
+                <router-link
+                  :to="`/flow/${transportPlan.ImportJobId}`"
+                  v-if="transportPlan.ImportJobId"
+                >
+                  <n-gradient-text type="success" :size="15">
+                    #{{ transportPlan.ImportJobId }}
+                  </n-gradient-text>
+                </router-link>
                 <n-text v-else> - </n-text>
               </n-card>
             </n-step>
@@ -212,16 +215,21 @@
                     </n-tag>
                   </div>
                 </n-flex>
-                
-                <n-button @click="handleGenDeployJob">Generate</n-button>
+                <p/>
+                <n-button @click="handleGenDeployJob" secondary round strong type="primary">Generate</n-button>
                 <n-text depth="3" style="font-size: medium">Deploy Job:</n-text>
-                <n-gradient-text v-if="transportPlan.DeployJobId" type="success" :size="15">
-                  #{{ transportPlan.DeployJobId }}
-                </n-gradient-text>
+                <router-link
+                  :to="`/flow/${transportPlan.DeployJobId}`"
+                  v-if="transportPlan.DeployJobId"
+                >
+                  <n-gradient-text type="success" :size="15">
+                    #{{ transportPlan.DeployJobId }}
+                  </n-gradient-text>
+                </router-link>
+
                 <n-text v-else> - </n-text>
               </n-card>
             </n-step>
-            
           </n-steps>
         </n-gi>
         <n-gi span="2"> Log </n-gi>
@@ -246,7 +254,6 @@ import { toJobStatusTag, toLocalTime } from '@/service/consts'
 import { Edit16Regular, Delete28Regular } from '@vicons/fluent'
 import { SaveAltRound, StartTwotone, CancelOutlined } from '@vicons/material'
 import IconBtn from '@/components/IconBtn.vue'
-
 export default {
   name: 'TransportPlanView',
   components: {
@@ -255,7 +262,7 @@ export default {
     SaveAltRound,
     StartTwotone,
     CancelOutlined,
-    IconBtn
+    IconBtn,
   },
   props: { planId: { required: true, type: Number } },
   data() {
@@ -309,7 +316,9 @@ export default {
         this.yamlContent,
         this.transportPlan.TransportGroupID,
         this.transportPlan.ID
-      ).then(() => {this.refresh()})
+      ).then(() => {
+        this.refresh()
+      })
     },
     handleGenImportJob() {
       // generate import job
@@ -318,6 +327,10 @@ export default {
       })
     },
     handleGenDeployJob() {
+      if(!this.transportPlan.ImportJobId) {
+        window.$message.warning('Please generate import job first')
+        return
+      }
       GenDeployJob(this.transportPlan.ID).then(() => {
         this.refresh()
       })
