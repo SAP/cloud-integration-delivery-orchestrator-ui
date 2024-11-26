@@ -1,25 +1,34 @@
 <template>
   <n-modal v-model:show="showModal" preset="dialog">
-    <template #header>
-      <n-gradient-text type="success">#{{ current }}</n-gradient-text> Transport Plan
-    </template>
+    <template #header> Create Transport Plan </template>
     <n-flex class="table-class" vertical align="start" v-if="current > 0">
-      Choose Transport Group:
+      <n-text depth="3" strong>Choose Transport Group:</n-text>
+
       <n-select @update:value="handleSelectTransportGroup" :options="transportGroupOptions" />
       <div v-if="selectedTransportGroup && Object.keys(selectedTransportGroup).length">
         <n-flex vertical>
-          Import Nodes:
-          <n-tag v-for="(transportNode, i) in selectedTransportGroup.TransportNodes" :key="i">
+          <n-text depth="3" strong>Import Nodes:</n-text>
+
+          <n-tag
+            v-for="(transportNode, i) in selectedTransportGroup.TransportNodes"
+            :key="i"
+            type="info"
+          >
             {{ transportNode.name }}
           </n-tag>
-          Deploy Nodes(CPI Tenants):
-          <n-tag v-for="(cpiEndpoint, i) in selectedTransportGroup.DeployEndpoints" :key="i">
+          <n-text depth="3" strong>Deploy Nodes(CPI Tenants):</n-text>
+
+          <n-tag
+            v-for="(cpiEndpoint, i) in selectedTransportGroup.DeployEndpoints"
+            :key="i"
+            type="info"
+          >
             {{ cpiEndpoint }}
           </n-tag>
         </n-flex>
       </div>
+      <n-text depth="3" strong>Yaml Content:</n-text>
 
-      Yaml Content:
       <n-input
         v-model:value="yamlContent"
         placeholder="yaml content"
@@ -66,11 +75,12 @@
           </n-flex>
         </n-gi>
 
-        <!-- plan basic information -->
+        <!-- transport plan basic information -->
         <n-gi span="2">
           <n-flex vertical>
             <n-text depth="3" style="font-size: 12px" strong>
-              Created By: {{ transportPlan.CreatedBy }} at{{ toLocalTime(transportPlan.CreatedAt) }}
+              Created By: {{ transportPlan.CreatedBy }} at
+              {{ toLocalTime(transportPlan.CreatedAt) }}
             </n-text>
             <n-text depth="3" style="font-size: 12px" strong>
               Updated By: {{ transportPlan.UpdatedBy }} at
@@ -130,7 +140,13 @@
                 <p />
                 <n-text depth="3" style="font-size: medium">Transport Requests:</n-text>
                 <div />
-                <n-tag v-for="(tr, i) in transportPlan.TransportRequests" :key="i" type="info" :bordered="false" style="margin-right: 5px">
+                <n-tag
+                  v-for="(tr, i) in transportPlan.TransportRequests"
+                  :key="i"
+                  type="info"
+                  :bordered="false"
+                  style="margin-right: 5px"
+                >
                   {{ tr.ID }}
                 </n-tag>
                 <div />
@@ -152,71 +168,63 @@
             <n-step>
               <template #title> Generate Import Job </template>
               <n-card hoverable size="medium">
-                <n-text depth="3" style="font-size: medium"> Target Tms Nodes: </n-text>
-                <div />
+                <n-flex vertical>
+                  <n-text depth="3" style="font-size: medium"> Target Tms Nodes: </n-text>
+                  <!-- tms nodes list -->
+                  <div v-for="(node, i) in tmsNodes" :key="i">
+                    <n-tag style="margin-bottom: 5px" type="info" :bordered="false">
+                      #{{ node.id }} {{ node.name }} - {{ node.description }}
+                    </n-tag>
+                  </div>
+                  <!-- transport request list -->
+                  <n-text depth="3" style="font-size: medium"> Transport Requests: </n-text>
+                  <div v-for="(tr, i) in transportPlan.TransportRequests" :key="i">
+                    <n-tag style="margin-bottom: 5px" type="info" :bordered="false">
+                      {{ tr.ID }} - {{ tr.Description }}
+                    </n-tag>
+                  </div>
+                </n-flex>
 
-                <n-tag
-                  v-for="(node, i) in tmsNodes"
-                  :key="i"
-                  style="margin-bottom: 5px"
-                  type="info"
-                  :bordered="false"
-                >
-                  #{{ node.id }} {{ node.name }} - {{ node.description }}
-                </n-tag>
-                <div />
-
-                <n-text depth="3" style="font-size: medium"> Transport Requests: </n-text>
-                <div />
-                <n-tag
-                  v-for="(tr, i) in transportPlan.TransportRequests"
-                  :key="i"
-                  style="margin-bottom: 5px"
-                  type="info"
-                  :bordered="false"
-                >
-                  {{ tr.ID }} - {{ tr.Description }}
-                </n-tag>
-
-                <div />
                 <n-button @click="handleGenImportJob">Generate</n-button>
-                <div />
-
+                <!-- import job id -->
                 <n-text depth="3" style="font-size: medium"> Import Job: </n-text>
-                <n-gradient-text type="success" :size="15">
+                <n-gradient-text v-if="transportPlan.ImportJobId" type="success" :size="15">
                   #{{ transportPlan.ImportJobId }}
                 </n-gradient-text>
+                <n-text v-else> - </n-text>
               </n-card>
             </n-step>
             <!-- generate deploy step -->
             <n-step>
               <template #title> Generate Deploy Job </template>
               <n-card hoverable size="medium">
-                <n-text depth="3" style="font-size: medium"> Target CPI Tenants: </n-text>
-                <div/>
-                <n-tag v-for="(cpiEndpoint, i) in cpiTenants" :key="i" type="info" :bordered="false">{{ cpiEndpoint }}</n-tag>
+                <n-flex vertical>
+                  <!-- cpi tenant list -->
+                  <n-text depth="3" style="font-size: medium"> Target CPI Tenants: </n-text>
+                  <div v-for="(cpiEndpoint, i) in cpiTenants" :key="i">
+                    <n-tag type="info" :bordered="false">{{ cpiEndpoint }}</n-tag>
+                  </div>
+                  <!-- artifacts list -->
+                  <n-text depth="3" style="font-size: medium">Artifacts:</n-text>
+                  <div v-for="(artifact, i) in transportPlan.Artifacts" :key="i">
+                    <n-tag type="info" :bordered="false" style="margin-right: 5px">
+                      {{ artifact.Id }}:{{ artifact.Version }}
+                    </n-tag>
+                  </div>
+                </n-flex>
                 
-                <div/>
-                <n-text depth="3" style="font-size: medium">Artifacts:</n-text>
-                <div/>
-                <n-tag v-for="(artifact, i) in transportPlan.Artifacts" :key="i" type="info" :bordered="false" style="margin-right: 5px">
-                  {{ artifact.Id }}:{{ artifact.Version }}
-                </n-tag>
-
-                <div/>
                 <n-button @click="handleGenDeployJob">Generate</n-button>
-                <div/>
                 <n-text depth="3" style="font-size: medium">Deploy Job:</n-text>
-                <n-gradient-text type="success" :size="15">
+                <n-gradient-text v-if="transportPlan.DeployJobId" type="success" :size="15">
                   #{{ transportPlan.DeployJobId }}
                 </n-gradient-text>
+                <n-text v-else> - </n-text>
               </n-card>
             </n-step>
+            
           </n-steps>
         </n-gi>
-        <n-gi span="2">
-          Log
-        </n-gi>
+        <n-gi span="2"> Log </n-gi>
       </n-grid>
     </n-card>
   </div>
@@ -268,6 +276,7 @@ export default {
     },
     refresh() {
       this.editing = false
+      this.showModal = false
       GetTransportPlan(this.planId).then((res) => {
         this.transportPlan = res
       })
@@ -300,7 +309,7 @@ export default {
         this.yamlContent,
         this.transportPlan.TransportGroupID,
         this.transportPlan.ID
-      ).then(() => {})
+      ).then(() => {this.refresh()})
     },
     handleGenImportJob() {
       // generate import job
