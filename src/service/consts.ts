@@ -169,7 +169,10 @@ export function createJobColums(router: Router, statusTag: any): DataTableColumn
           },
           toLocalTime(row.UpdatedAt)
         )
-      }
+      },
+      sorter(a: Job, b: Job) {
+        return new Date(a.UpdatedAt).getTime() - new Date(b.UpdatedAt).getTime()
+      },
     },
     {
       title: '',
