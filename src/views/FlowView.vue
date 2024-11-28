@@ -1,32 +1,26 @@
 <template>
-  <div style="margin: 0 42px">
-    <!-- execution log modal -->
-    <n-modal v-model:show="showModal">
-      <n-card
-        style="width: 70%"
-        :title="`Execution Log of Job #${jobInstance.ID}: ${jobInstance.Name}`"
-        :bordered="false"
-        size="small"
-        role="dialog"
-        aria-modal="true"
-      >
-        <!-- step execution log -->
-         <div v-for="(step, i) in jobInstance.Steps">
-          <component :is="comps(step).log" :step="step" :key="i" :index="i"/>
-         </div>
-        <!-- job log -->
-        <h4>Job Execution Logs</h4>
-        <n-alert
-          :title="`Step ${log.Sequence} at ${log.CreatedAt}`"
-          type="warning"
-          v-for="(log, i) in jobInstance.ExecutionLogs"
-          :key="i"
-        >
-          {{ log.Log }}
-        </n-alert>
-      </n-card>
-    </n-modal>
+  <!-- choose config modal -->
+  <n-modal v-model:show="showModal" style="width: 50%; position: sticky; left: 50%;" preset="card">
+    <template #header>
+      Details of Step <n-gradient-text type="success">#{{ current }}</n-gradient-text>
+    </template>
+    <n-flex vertical align="start" v-if="current > 0">
+      <!-- step create & update info -->
+      <n-text depth="3">
+        Updated By: {{ jobInstance.Steps[current - 1].UpdatedBy }} - Created At:
+        {{ toLocalTime(jobInstance.Steps[current - 1].CreatedAt) }} - Updated at
+        {{ toLocalTime(jobInstance.Steps[current - 1].UpdatedAt) }}
+      </n-text>
+      <component
+        :is="comps(jobInstance.Steps[current - 1]).config"
+        :key="current - 1"
+        :step="jobInstance.Steps[current - 1]"
+        v-if="checkStatus(jobInstance.Steps[current - 1])"
+      />
+    </n-flex>
+  </n-modal>
 
+  <div style="margin: 0 42px">
     <!-- head -->
     <n-card class="header-card-shadow-class">
       <n-grid x-gap="10" :cols="5">
@@ -34,13 +28,26 @@
         <n-gi>
           <n-flex vertical>
             <!-- Job name -->
-            <n-input class="ui5-title-root" v-model:value="jobInstance.Name" placeholder="Job Name" clearable autofocus v-if="editing"/>
+            <n-input
+              class="ui5-title-root"
+              v-model:value="jobInstance.Name"
+              placeholder="Job Name"
+              clearable
+              autofocus
+              v-if="editing"
+            />
             <span class="ui5-title-root" v-else-if="jobInstance.Name">
               <n-text depth="3"> Job Name: </n-text>
               {{ jobInstance.Name }}
             </span>
             <!-- job description -->
-            <n-input v-model:value="jobInstance.Description" placeholder="Deploy Reason" size="large" clearable v-if="editing" />
+            <n-input
+              v-model:value="jobInstance.Description"
+              placeholder="Deploy Reason"
+              size="large"
+              clearable
+              v-if="editing"
+            />
             <n-text style="font-weight: bold" v-else-if="jobInstance.Description">
               <n-text depth="3">Deploy Reason:</n-text>
               {{ jobInstance.Description }}
@@ -51,14 +58,18 @@
         <!-- job basic information -->
         <n-gi span="2">
           <n-flex vertical>
-            <n-text depth=3 style="font-size: 12px" strong>Created By: {{ jobInstance.CreatedBy }} at {{ toLocalTime(jobInstance.CreatedAt) }}</n-text>
-            <n-text depth=3 style="font-size: 12px" strong>Updated By: {{ jobInstance.UpdatedBy }} at {{ toLocalTime(jobInstance.UpdatedAt) }}</n-text>
-            <n-text depth=3 style="font-size: 12px" strong>{{triggerInfo}} </n-text>
+            <n-text depth="3" style="font-size: 12px" strong>
+              Created By: {{ jobInstance.CreatedBy }} at {{ toLocalTime(jobInstance.CreatedAt) }}
+            </n-text>
+            <n-text depth="3" style="font-size: 12px" strong>
+              Updated By: {{ jobInstance.UpdatedBy }} at {{ toLocalTime(jobInstance.UpdatedAt) }}
+            </n-text>
+            <n-text depth="3" style="font-size: 12px" strong>{{ triggerInfo }} </n-text>
           </n-flex>
         </n-gi>
         <!-- job status tag -->
         <n-gi>
-          <n-tag :type=toJobStatusTag(status)>{{ status }}</n-tag>
+          <n-tag :type="toJobStatusTag(status)">{{ status }}</n-tag>
         </n-gi>
         <!-- action buttions -->
         <n-gi>
@@ -83,8 +94,6 @@
           <IconBtn tip="Execute" :handler="onExecute" v-if="!editing">
             <StartTwotone />
           </IconBtn>
-          <n-divider vertical />
-          <n-button @click="showModal = true" quaternary type="primary">Execution Log</n-button>
         </n-gi>
       </n-grid>
     </n-card>
@@ -102,7 +111,11 @@
         <!-- choose step type -->
         <n-flex vertical>
           <n-text strong depth="3">Create Steps Mannually:</n-text>
-          <n-button v-for="(context, type) in filterStepType" :key="type" @click="handleCreateStep(type)">
+          <n-button
+            v-for="(context, type) in filterStepType"
+            :key="type"
+            @click="handleCreateStep(type)"
+          >
             <n-text strong>{{ context }}</n-text>
           </n-button>
         </n-flex>
@@ -112,12 +125,13 @@
     <!-- step list view and config view -->
     <n-card class="card-shadow-class">
       <div style="margin-bottom: 15px; font-size: 15px; font-weight: bold">
-        {{ jobInstance.Type }} Job <n-gradient-text type="success">#{{ jobInstance.ID }}</n-gradient-text> Detail
+        {{ jobInstance.Type }} Job
+        <n-gradient-text type="success">#{{ jobInstance.ID }}</n-gradient-text> Detail
       </div>
       <n-grid x-gap="40" :cols="5">
         <!-- step lists -->
-        <n-gi span="2">
-          <n-steps vertical :current="current" @update:current="handleCurrent" class="step-list">
+        <n-gi span="3">
+          <n-steps vertical :current="current" @update:current="handleCurrent">
             <n-step
               v-for="(step, index) in jobInstance.Steps"
               :key="index"
@@ -127,28 +141,32 @@
                 {{ step.Status }}
               </template>
 
-              <component :is="comps(step).stepCard" :step="step" @close="handleCloseStep(step, index)" />
+              <component
+                :is="comps(step).stepCard"
+                :step="step"
+                @close="handleCloseStep(step, index)"
+              />
             </n-step>
           </n-steps>
         </n-gi>
 
         <!-- choose config -->
-        <n-gi span="3">
-          <n-flex class="table-class" vertical align="start" v-if="current > 0">
-            <span style="font-size: 15px; font-weight: bold"> Details of Step <n-gradient-text type="success">#{{ current }}</n-gradient-text>: </span>
-            <!-- step create & update info -->
-             <n-text depth="3">
-              Updated By: {{ jobInstance.Steps[current-1].UpdatedBy }} -
-              Created At: {{ toLocalTime(jobInstance.Steps[current-1].CreatedAt) }} -
-              Updated at {{ toLocalTime(jobInstance.Steps[current-1].UpdatedAt) }}
-             </n-text>
-            <component
-              :is="comps(jobInstance.Steps[current-1]).config"
-              :key="current - 1"
-              :step="jobInstance.Steps[current - 1]"
-              v-if="checkStatus(jobInstance.Steps[current - 1])"
-            />
-          </n-flex>
+        <n-gi span="2">
+          <!-- step execution log -->
+          <h4>Execution Log of Job #{{ jobInstance.ID }}: {{ jobInstance.Name }}</h4>
+          <div v-for="(step, i) in jobInstance.Steps">
+            <component :is="comps(step).log" :step="step" :key="i" :index="i" />
+          </div>
+          <!-- job log -->
+          <h4>Job Execution Logs</h4>
+          <n-alert
+            :title="`Step ${log.Sequence} at ${log.CreatedAt}`"
+            type="warning"
+            v-for="(log, i) in jobInstance.ExecutionLogs"
+            :key="i"
+          >
+            {{ log.Log }}
+          </n-alert>
         </n-gi>
       </n-grid>
     </n-card>
@@ -170,7 +188,13 @@ import {
   DeleteStep,
   ExecuteJob
 } from '../service/api'
-import { stepTypeOptions, transportRequestColums, toStepCardStatus, toLocalTime, toJobStatusTag } from '@/service/consts'
+import {
+  stepTypeOptions,
+  transportRequestColums,
+  toStepCardStatus,
+  toLocalTime,
+  toJobStatusTag
+} from '@/service/consts'
 import { Edit16Regular, Delete28Regular } from '@vicons/fluent'
 import ImportConfig from '@/components/importComps/ImportConfig.vue'
 import DeployConfig from '@/components/deployComps/DeployConfig.vue'
@@ -240,7 +264,7 @@ export default defineComponent({
   computed: {
     triggerInfo() {
       // print the trigger info of the first step
-      if (!this.jobInstance.Steps||this.jobInstance.Steps.length === 0) {
+      if (!this.jobInstance.Steps || this.jobInstance.Steps.length === 0) {
         return 'Job Not Triggered'
       }
       return `Triggred by: ${this.jobInstance.Steps[0].TriggeredBy} at ${this.toLocalTime(this.jobInstance.Steps[0].TriggeredAt)}`
@@ -261,7 +285,7 @@ export default defineComponent({
         default:
           return {}
       }
-    },
+    }
   },
   methods: {
     handleCreateStep(stepType: string) {
@@ -272,7 +296,7 @@ export default defineComponent({
       const newStep: Step = {
         ID: 0,
         Status: 'Draft',
-        Type: stepType,
+        Type: stepType
       }
       this.jobInstance.Steps.push(newStep)
       this.current = this.jobInstance.Steps.length
@@ -296,6 +320,7 @@ export default defineComponent({
     },
     handleCurrent(current: number) {
       this.current = Math.min(current, this.jobInstance.Steps.length)
+      this.showModal = true
     },
     handleCloseStep(step: Step, index: number) {
       if (!this.editing) {
@@ -370,7 +395,7 @@ export default defineComponent({
             log: ImportLog
           }
       }
-    },
+    }
   }
 })
 </script>
@@ -401,10 +426,5 @@ export default defineComponent({
 
 .config-class {
   margin: 20px 0;
-}
-
-.step-list {
-  position: sticky;
-  top: 220px;
 }
 </style>

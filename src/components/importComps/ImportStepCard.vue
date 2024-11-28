@@ -31,7 +31,6 @@ export default defineComponent({
 </script>
 <style scoped>
 .n-card {
-  width: 300px;
-  min-width: 400px;
+  width: 80%;
 }
 </style>
