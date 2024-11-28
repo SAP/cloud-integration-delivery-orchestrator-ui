@@ -150,11 +150,13 @@
           </n-steps>
         </n-gi>
 
-        <!-- choose config -->
+        <!-- execution log -->
         <n-gi span="2">
           <!-- step execution log -->
-          <h4>Execution Log of Job #{{ jobInstance.ID }}: {{ jobInstance.Name }}</h4>
-          <div v-for="(step, i) in jobInstance.Steps">
+          <h4>
+            Execution Log of Job <n-text type="success">#{{ jobInstance.ID }}</n-text> - {{ jobInstance.Name }}
+          </h4>
+          <div v-for="(step, i) in jobInstance.Steps" style="margin-bottom: 10px">
             <component :is="comps(step).log" :step="step" :key="i" :index="i" />
           </div>
           <!-- job log -->
@@ -164,6 +166,7 @@
             type="warning"
             v-for="(log, i) in jobInstance.ExecutionLogs"
             :key="i"
+            style="margin-bottom: 10px"
           >
             {{ log.Log }}
           </n-alert>
