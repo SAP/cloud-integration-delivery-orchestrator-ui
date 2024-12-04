@@ -109,8 +109,9 @@ export default defineComponent({
     return { columns, jobList: jobList, customToolBars, showModal: false, jobName: '', jobDesc: '' }
   },
   created() {
-    GetJobs(this.type).then((resp) => {
-      this.jobList = resp
+    GetJobs(this.type).then((jobList) => {
+      jobList.sort((a, b) => new Date(b.UpdatedAt).getTime() - new Date(a.UpdatedAt).getTime())
+      this.jobList = jobList
     })
   }
 })

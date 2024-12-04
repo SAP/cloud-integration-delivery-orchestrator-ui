@@ -264,6 +264,9 @@ export const transportGroupColums: DataTableColumns<TransportGroup> = [
 ]
 
 export const transportPlanColumns = (router: Router) =>{
+  const handleRouter = (row: TransportPlan) => {
+    router.push({path: `/transportplan/${row.ID}`})
+  }
   return [
     {
       type: 'selection',
@@ -275,16 +278,44 @@ export const transportPlanColumns = (router: Router) =>{
     {
       title: 'ID',
       key: 'ID',
-      resizable: true
+      resizable: true,
+      render(row: TransportPlan) {
+        return h(
+          'div',
+          {
+            onClick: () => {handleRouter(row)},
+            style: { fontWeight: 'bold' }
+          },
+          row.ID
+        )
+      }
     },
     {
       title: 'Name',
       key: 'Name',
+      render(row: TransportPlan) {
+        return h(
+          'div',
+          {
+            onClick: () => {handleRouter(row)},
+          },
+          row.Name
+        )
+      }
     },
     {
       title: 'Description',
       key: 'Description',
-      resizable: true
+      resizable: true,
+      render(row: TransportPlan) {
+        return h(
+          'div',
+          {
+            onClick: () => {handleRouter(row)},
+          },
+          row.Description
+        )
+      }
     },
     {
       title: 'Transport Group',
@@ -292,6 +323,9 @@ export const transportPlanColumns = (router: Router) =>{
       render(row: TransportPlan){
         return h(
           'div',
+          {
+            onClick: () => {handleRouter(row)},
+          },
           `#${row.TransportGroupID} - ${row.TransportGroupName}`
         )
       },
@@ -300,22 +334,58 @@ export const transportPlanColumns = (router: Router) =>{
     {
       title: 'Created At',
       key: 'CreatedAt',
-      resizable: true
+      resizable: true,
+      render(row: TransportPlan) {
+        return h(
+          'div',
+          {
+            onClick: () => {handleRouter(row)},
+          },
+          toLocalTime(row.CreatedAt)
+        )
+      }
     },
     {
       title: 'Updated At',
       key: 'UpdatedAt',
-      resizable: true
+      resizable: true,
+      render(row: TransportPlan) {
+        return h(
+          'div',
+          {
+            onClick: () => {handleRouter(row)},
+          },
+          toLocalTime(row.UpdatedAt)
+        )
+      }
     },
     {
       title: 'Created By',
       key: 'CreatedBy',
-      resizable: true
+      resizable: true,
+      render(row: TransportPlan) {
+        return h(
+          'div',
+          {
+            onClick: () => {handleRouter(row)},
+          },
+          row.CreatedBy
+        )
+      }
     },
     {
       title: 'Updated By',
       key: 'UpdatedBy',
       resizable: true,
+      render(row: TransportPlan) {
+        return h(
+          'div',
+          {
+            onClick: () => {handleRouter(row)},
+          },
+          row.UpdatedBy
+        )
+      }
     },
     {
       title: '',
