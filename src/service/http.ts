@@ -11,7 +11,12 @@ service.interceptors.request.use(
       return config
     },
     error => {
-      window.$message.error(`request failed: ${error}`)
+      window.$message.error(`request failed: ${error}`,
+        {
+          closable: true,
+          duration: 1000*30
+        }
+      )
       Promise.reject(error)
     }
 )
@@ -23,7 +28,13 @@ service.interceptors.response.use(
     return res.result
   },
   (error) => {
-    window.$message.error(error.response.data.msg)
+    window.$message.error(
+      error.response.data.msg,
+      {
+        closable: true,
+        duration: 1000*30
+      }
+    )
     return Promise.reject(error.response.data.msg)
   }
 )
