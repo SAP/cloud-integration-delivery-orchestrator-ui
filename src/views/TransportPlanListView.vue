@@ -65,8 +65,9 @@ export default defineComponent({
     }
   },
   created() {
-    GetTransportPlans().then((res) => {
-      this.transportPlans = res
+    GetTransportPlans().then((transportPlan) => {
+      transportPlan.sort((a, b) => new Date(b.UpdatedAt).getTime() - new Date(a.UpdatedAt).getTime())
+      this.transportPlans = transportPlan
     })
   },
 })
