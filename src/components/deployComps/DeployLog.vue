@@ -11,25 +11,26 @@
     <template #header>
       Step <n-gradient-text type="success">#{{ index + 1 }}</n-gradient-text>
       -
+      {{ step.Endpoint }}
+      -
       <!-- step type -->
       <n-text depth="3" style="font-size: 80%" type="warning">
-        {{stepTypeOptions[step.Type]}}
-      </n-text>
-      -
-      <n-text depth="3" italic style="font-size: 80%">
-        trigger by {{ step.TriggeredBy }} at {{ toLocalTime(step.TriggeredAt) }}
+        {{ stepTypeOptions[step.Type] }}
       </n-text>
     </template>
     <p v-for="(artifact, index) in step.Artifacts" :key="index">
-      <n-tag :bordered="false" type="info">
-        {{ artifact.Id }}:{{ artifact.Version }}
-      </n-tag>
+      <n-tag :bordered="false" type="info"> {{ artifact.Id }}:{{ artifact.Version }} </n-tag>
       - <n-text code>{{ artifact.TaskId }}</n-text> -
       <n-tag :type="toStatusTag(artifact.Status)">
         {{ artifact.Status }}
       </n-tag>
     </p>
-    <n-text depth="3" strong>Finished at: {{ toLocalTime(step.EndedAt) }}</n-text>
+    <n-flex justify="space-between">
+      <n-text depth="3" italic>
+        Triggered by {{ step.TriggeredBy }} at {{ toLocalTime(step.TriggeredAt) }}
+      </n-text>
+      <n-text depth="3" italic>Finished at: {{ toLocalTime(step.EndedAt) }}</n-text>
+    </n-flex>
   </n-alert>
 </template>
 
