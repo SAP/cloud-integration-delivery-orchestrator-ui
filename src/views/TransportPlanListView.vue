@@ -47,8 +47,9 @@ export default defineComponent({
     onSave() {
       SaveTransportPlan(this.selectedTransportPlan).then(() => {
         this.showModal = false
-        GetTransportPlans().then((res) => {
-          this.transportPlans = res
+        GetTransportPlans().then((transportPlans) => {
+          transportPlans.sort((a, b) => new Date(b.UpdatedAt).getTime() - new Date(a.UpdatedAt).getTime())
+          this.transportPlans = transportPlans
         })
       })
     },
@@ -58,8 +59,9 @@ export default defineComponent({
         return
       }
       DeleteTransportPlan(rows[0].ID).then(() => {
-        GetTransportPlans().then((res) => {
-          this.transportPlans = res
+        GetTransportPlans().then((transportPlans) => {
+          transportPlans.sort((a, b) => new Date(b.UpdatedAt).getTime() - new Date(a.UpdatedAt).getTime())
+          this.transportPlans = transportPlans
         })
       })
     }
