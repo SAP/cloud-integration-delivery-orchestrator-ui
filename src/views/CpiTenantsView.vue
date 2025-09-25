@@ -36,10 +36,12 @@ import { DeleteCpiTenant, GetCPIApiEndpoints, GetCpiTenants, GetTransportNodes, 
 export default defineComponent({
     components: { DataTable },
     data() {
-        const toolBars: ToolBar[] = [
+        const toolBars: ToolBar<CpiTenant>[] = [
             {
-                text: 'Delete',
-                func: this.handleDelete
+            text: 'Delete',
+            // 这里用箭头函数包装是为了保留外层 this（组件实例）；
+            // 如果直接写 func: this.handleDelete ，在 DataTable 调用时 this 会丢失。
+            func: (rows: CpiTenant[]) => this.handleDelete(rows)
             }
         ]
         return {

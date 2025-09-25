@@ -3,10 +3,7 @@ import AppCard from '@/components/AppCard.vue'
 import { GetJobCounts } from '@/service/api';
 import { defineComponent } from 'vue'
 
-interface count {
-  count: Number
-  type:  String
-}
+
 export default defineComponent({
   components: {
     AppCard
@@ -14,7 +11,7 @@ export default defineComponent({
   data() {
     const routers = this.$router.getRoutes()
     const apps = []
-    const counts: count[] = []
+    const counts: {[key: string]: number}[] = []
     for (const item of routers) {
       if (item.children.length) apps.push(item)
     }
@@ -23,6 +20,8 @@ export default defineComponent({
       Import: 'Import TRs to CPI Tenant',
       "Transport Group": 'Manage Transport Groups',
       "Transport Plan": 'Generate Transport Plan by parsing YAML content',
+      "CPI Tenants": 'Bind Cpi Endpoints to Transport Nodes',
+      'Delivery Rule': 'Define rules to select Artifacts for Delivery',
     }
 
     return {
@@ -31,10 +30,9 @@ export default defineComponent({
       counts
     }
   },
-  created() {
-    GetJobCounts().then((res) => {
-      this.counts = res
-    })
+  async created() {
+    this.counts = await GetJobCounts()
+    console.log(this.counts)
   }
 })
 </script>

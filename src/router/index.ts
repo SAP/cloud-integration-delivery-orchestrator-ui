@@ -28,7 +28,7 @@ const router = createRouter({
     },
     {
       path: '/tools',
-      name: 'Tools and Configurations',
+      name: 'Delivery Configurations',
       children: [
         {
           path: 'parse',
@@ -44,6 +44,11 @@ const router = createRouter({
           path: 'cpiTenants',
           name: 'CPI Tenants',
           component: () => import('@/views/CpiTenantsView.vue')
+        },
+        {
+          path: 'deliveryRule',
+          name: 'Delivery Rule',
+          component: () => import('@/views/DeliveryRuleView.vue')
         }
       ]
     },

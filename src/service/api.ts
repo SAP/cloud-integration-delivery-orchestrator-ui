@@ -52,7 +52,7 @@ export const GetJobs = (type: string) => {
 }
 
 export const GetJobCounts = () => {
-  return http.get('/api/v1/count') as Promise<{ [key: string]: number }>
+  return http.get('/api/v1/count') as Promise<{ [key: string]: number }[]>
 }
 export const SaveJob = (job: Job) => http.put(`/api/v1/job`, job)
 

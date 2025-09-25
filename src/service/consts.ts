@@ -1,5 +1,5 @@
 import { NTag, type DataTableColumns } from 'naive-ui'
-import type { ApiEndpoint, Artifact, Job, Package, TransportGroup, TransportNode, TransportPlan, NodeTransportRequest, CpiTenant } from './api'
+import type { ApiEndpoint, Artifact, Job, Package, TransportGroup, TransportNode, TransportPlan, NodeTransportRequest, CpiTenant, DeliveryRule } from './api'
 import { h } from 'vue'
 import type { Router } from 'vue-router'
 import { IosArrowForward } from '@vicons/ionicons4'
@@ -50,7 +50,7 @@ export function createJobColums(router: Router, statusTag: any): DataTableColumn
       path: `/flow/${row.ID}`
     })
   }
-  const colums: DataTableColumns<Job> =  [
+  const colums: DataTableColumns<Job> = [
     {
       type: 'selection',
       // disabled(row: Job) {
@@ -65,7 +65,7 @@ export function createJobColums(router: Router, statusTag: any): DataTableColumn
         return h(
           'div',
           {
-            onClick: () => {handleRouter(row)},
+            onClick: () => { handleRouter(row) },
             style: { fontWeight: 'bold' }
           },
           row.ID
@@ -80,7 +80,7 @@ export function createJobColums(router: Router, statusTag: any): DataTableColumn
         return h(
           'div',
           {
-            onClick: () => {handleRouter(row)}
+            onClick: () => { handleRouter(row) }
           },
           row.Name
         )
@@ -94,7 +94,7 @@ export function createJobColums(router: Router, statusTag: any): DataTableColumn
         return h(
           'div',
           {
-            onClick: () => {handleRouter(row)}
+            onClick: () => { handleRouter(row) }
           },
           row.Description
         )
@@ -109,7 +109,7 @@ export function createJobColums(router: Router, statusTag: any): DataTableColumn
           NTag,
           {
             type: toJobStatusTag(row.Status),
-            onClick: () => {handleRouter(row)}
+            onClick: () => { handleRouter(row) }
           },
           row.Status
         )
@@ -123,7 +123,7 @@ export function createJobColums(router: Router, statusTag: any): DataTableColumn
         return h(
           'div',
           {
-            onClick: () => {handleRouter(row)}
+            onClick: () => { handleRouter(row) }
           },
           row.CreatedBy
         )
@@ -137,7 +137,7 @@ export function createJobColums(router: Router, statusTag: any): DataTableColumn
         return h(
           'div',
           {
-            onClick: () => {handleRouter(row)}
+            onClick: () => { handleRouter(row) }
           },
           toLocalTime(row.CreatedAt)
         )
@@ -151,7 +151,7 @@ export function createJobColums(router: Router, statusTag: any): DataTableColumn
         return h(
           'div',
           {
-            onClick: () => {handleRouter(row)}
+            onClick: () => { handleRouter(row) }
           },
           row.UpdatedBy
         )
@@ -165,7 +165,7 @@ export function createJobColums(router: Router, statusTag: any): DataTableColumn
         return h(
           'div',
           {
-            onClick: () => {handleRouter(row)}
+            onClick: () => { handleRouter(row) }
           },
           toLocalTime(row.UpdatedAt)
         )
@@ -219,11 +219,11 @@ export const cpiTenantColums: DataTableColumns<CpiTenant> = [
     key: 'TmsNode',
     resizable: true,
     render(row: CpiTenant) {
-        return h(
-          'div',
-          `${row.TransportNode.name}#${row.TransportNode.id}`
-        )
-      }
+      return h(
+        'div',
+        `${row.TransportNode.name}#${row.TransportNode.id}`
+      )
+    }
   },
   {
     title: 'CPI Api Endpoint',
@@ -264,13 +264,13 @@ export const transportGroupColums: DataTableColumns<TransportGroup> = [
   {
     title: 'Import Nodes',
     key: 'TransportNodes',
-    render(row: TransportGroup){
+    render(row: TransportGroup) {
       const importNodes = row.TransportNodes.map(node => node.name)
       return h(
         'div',
         importNodes.map(node => h(
-          NTag, 
-          { style: { marginRight: '8px' }, type: 'info' }, 
+          NTag,
+          { style: { marginRight: '8px' }, type: 'info' },
           node
         ))
       )
@@ -281,13 +281,13 @@ export const transportGroupColums: DataTableColumns<TransportGroup> = [
     title: 'Deploy Nodes',
     key: 'DeployEndpoints',
     resizable: true,
-    render(row: TransportGroup){
+    render(row: TransportGroup) {
       const deployNodes = row.DeployEndpoints
       return h(
         'div',
         deployNodes.map(node => h(
-          NTag, 
-          { style: { marginRight: '8px' }, type: 'success' }, 
+          NTag,
+          { style: { marginRight: '8px' }, type: 'success' },
           node
         ))
       )
@@ -305,9 +305,9 @@ export const transportGroupColums: DataTableColumns<TransportGroup> = [
   }
 ]
 
-export const transportPlanColumns = (router: Router) =>{
+export const transportPlanColumns = (router: Router) => {
   const handleRouter = (row: TransportPlan) => {
-    router.push({path: `/transportplan/${row.ID}`})
+    router.push({ path: `/transportplan/${row.ID}` })
   }
   return [
     {
@@ -325,7 +325,7 @@ export const transportPlanColumns = (router: Router) =>{
         return h(
           'div',
           {
-            onClick: () => {handleRouter(row)},
+            onClick: () => { handleRouter(row) },
             style: { fontWeight: 'bold' }
           },
           row.ID
@@ -339,7 +339,7 @@ export const transportPlanColumns = (router: Router) =>{
         return h(
           'div',
           {
-            onClick: () => {handleRouter(row)},
+            onClick: () => { handleRouter(row) },
           },
           row.Name
         )
@@ -353,7 +353,7 @@ export const transportPlanColumns = (router: Router) =>{
         return h(
           'div',
           {
-            onClick: () => {handleRouter(row)},
+            onClick: () => { handleRouter(row) },
           },
           row.Description
         )
@@ -362,11 +362,11 @@ export const transportPlanColumns = (router: Router) =>{
     {
       title: 'Transport Group',
       key: 'TransportGroup',
-      render(row: TransportPlan){
+      render(row: TransportPlan) {
         return h(
           'div',
           {
-            onClick: () => {handleRouter(row)},
+            onClick: () => { handleRouter(row) },
           },
           `#${row.TransportGroupID} - ${row.TransportGroupName}`
         )
@@ -381,7 +381,7 @@ export const transportPlanColumns = (router: Router) =>{
         return h(
           'div',
           {
-            onClick: () => {handleRouter(row)},
+            onClick: () => { handleRouter(row) },
           },
           toLocalTime(row.CreatedAt)
         )
@@ -395,7 +395,7 @@ export const transportPlanColumns = (router: Router) =>{
         return h(
           'div',
           {
-            onClick: () => {handleRouter(row)},
+            onClick: () => { handleRouter(row) },
           },
           toLocalTime(row.UpdatedAt)
         )
@@ -409,7 +409,7 @@ export const transportPlanColumns = (router: Router) =>{
         return h(
           'div',
           {
-            onClick: () => {handleRouter(row)},
+            onClick: () => { handleRouter(row) },
           },
           row.CreatedBy
         )
@@ -423,7 +423,7 @@ export const transportPlanColumns = (router: Router) =>{
         return h(
           'div',
           {
-            onClick: () => {handleRouter(row)},
+            onClick: () => { handleRouter(row) },
           },
           row.UpdatedBy
         )
@@ -447,9 +447,9 @@ export const transportPlanColumns = (router: Router) =>{
         )
       }
     }
-  
+
   ] as DataTableColumns<TransportPlan>
-} 
+}
 
 export const transportNodesColums: DataTableColumns<TransportNode> = [
   {
@@ -634,15 +634,92 @@ export const runtimeArtifactColumns: DataTableColumns<Artifact> = [
   }
 ]
 
+export const deliveryRuleColumns: DataTableColumns<DeliveryRule> = [
+  { type: 'selection', multiple: false },
+  {
+    title: 'ID',
+    key: 'ID',
+    resizable: true
+  },
+  {
+    title: 'Name',
+    key: 'Name',
+    resizable: true,
+    sortOrder: 'descend'
+  },
+  {
+    title: 'Version Pattern',
+    key: 'VersionPattern',
+    resizable: true
+  },
+  {
+    title: 'Included Tenants',
+    key: 'IncludedTenants',
+    resizable: true,
+    render(row: DeliveryRule) {
+      return h(
+        'div',
+        row.IncludedTenants?.map(t =>
+          h(
+            NTag,
+            { style: { marginRight: '4px', marginBottom: '4px' }, type: 'info' },
+            { default: () => t.Name }
+          )
+        )
+      )
+    }
+  },
+  {
+    title: 'Excluded Tenants',
+    key: 'ExcludedTenants',
+    resizable: true,
+    render(row: DeliveryRule) {
+      return h(
+        'div',
+        row.ExcludedTenants?.map(t =>
+          h(
+            NTag,
+            { style: { marginRight: '4px', marginBottom: '4px' }, type: 'warning' },
+            { default: () => t.Name }
+          )
+        )
+      )
+    }
+  },
+  {
+    title: 'Active',
+    key: 'Active',
+    render(row: DeliveryRule) {
+      return row.Active ? 'Yes' : 'No'
+    }
+  },
+  {
+    title: 'Updated At',
+    key: 'UpdatedAt',
+    resizable: true,
+    render(row: DeliveryRule) {
+      return toLocalTime(row.UpdatedAt)
+    }
+  },
+  {
+    title: 'Created At',
+    key: 'CreatedAt',
+    resizable: true,
+    render(row: DeliveryRule) {
+      return toLocalTime(row.CreatedAt)
+    }
+  }
+]
+
 export const stepTypeOptions: { [key: string]: string } = {
   Import: 'Import Transport Requests',
   Deploy: 'Deploy Artifacts(Iflow, Package, ScriptCollection)',
   Undeploy: 'Undeploy Runtime Artifacts'
 }
 
-export interface ToolBar {
+export interface ToolBar<T = any> {
   text: String
-  func(rows: DataTableColumns): void
+  func(rows: T[]): void | Promise<void>
 }
 
 // maps Step status to naive-ui status: wait, process, finish, error

@@ -66,7 +66,7 @@ import type { TableBaseColumn, TableColumn } from 'naive-ui/es/data-table/src/in
 export default defineComponent({
   props: {
     title: { type: String, required: true },
-    columns: { type: Object as PropType<DataTableColumns>, required: true },
+    columns: { type: Array as PropType<DataTableColumns<any>>, required: true },
     data: { type: Array, required: true },
     rowKey: { required: true },
     defaultCheckedRowKeys: { type: Array<string | number> },
