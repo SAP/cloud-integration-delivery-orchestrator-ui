@@ -34,7 +34,7 @@ import { defineComponent, type PropType } from 'vue'
 import DataTable from '@/components/DataTable.vue'
 import {
   GetCPIApiEndpoints,
-  GetArtifacts,
+  GetPackageArtifacts,
   GetPackages,
   validate,
   type ApiEndpoint,
@@ -68,7 +68,7 @@ export default defineComponent({
     if (!this.step.Endpoint) return
     GetPackages(this.step.Endpoint).then((pkgs) => (this.packageOptions = pkgs))
     if (!this.step.PackageId) return
-    GetArtifacts(this.step.Endpoint, this.step.PackageId).then(
+    GetPackageArtifacts(this.step.Endpoint, this.step.PackageId).then(
       (atfs) => (this.artifactOptions = atfs)
     )
   },
@@ -92,7 +92,7 @@ export default defineComponent({
       // clear artifact options
       this.artifactOptions = []
 
-      GetArtifacts(this.step.Endpoint, this.selectedPackage.Id).then((artifacts) => {this.artifactOptions = artifacts})
+      GetPackageArtifacts(this.step.Endpoint, this.selectedPackage.Id).then((artifacts) => {this.artifactOptions = artifacts})
     },
     handleArtifacts(selectedArtifacts: Artifact[]) {
       if (!validate(this.step)) return

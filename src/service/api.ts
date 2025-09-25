@@ -88,7 +88,7 @@ export const DeleteTransportGroup = (groupId: number) => {
 }
 
 // transport plan API
-export const GetTransportPlan = (planId: number) => {
+export const GetTransportPlan = async (planId: number) => {
   return http.get(`/api/v1/transportplan/${planId}`) as Promise<TransportPlan>
 }
 
@@ -99,7 +99,7 @@ export const GetTransportPlans = () => {
 export const SaveTransportPlan = (plan: TransportPlan) => {
   return http.post(`/api/v1/transportplan`, plan)
 }
-
+// no need to use async here. This function directly returns a premise, and the promise result is not used inner function.
 export const DeleteTransportPlan = (planId: number) => {
   return http.delete(`/api/v1/transportplan/${planId}`)
 }
@@ -250,6 +250,15 @@ export interface NodeTransportRequest {
   createdAt: string
   createdBy: string
 }
+
+export interface TMSRoute {
+  id: number
+  description: string
+  name: string
+  sourceNodeId: number
+  targetNodeId: number
+}
+
 export const GetTransportNodes = () => {
   return http.get('/api/v1/tms/nodes') as Promise<TransportNode[]>
 }
@@ -258,6 +267,11 @@ export const GetTransportRequests = (node_id: number | string) => {
     params: { transportNode: node_id }
   }) as Promise<NodeTransportRequest[]>
 }
+
+export const GetTransportRoutes = () => {
+  return http.get('/api/v1/tms/routes') as Promise<TMSRoute[]>
+}
+
 // CPI
 export interface Package {
   Id: string
@@ -295,7 +309,7 @@ export const GetPackages = (tenantId: number | string) => {
   }) as Promise<Package[]>
 }
 
-export const GetArtifacts = (tenantId: string, packageId: string) => {
+export const GetPackageArtifacts = (tenantId: string, packageId: string) => {
   return http.get('/api/v1/tenant/packages/artifacts', {
     params: { tenant: tenantId, package: packageId }
   }) as Promise<Artifact[]>
@@ -368,3 +382,63 @@ export interface UserInfo {
   updated_at: string
   url: string
 }
+
+export interface CpiTenant {
+  ID: number
+  Name: string
+  TransportNode: TransportNode
+  CpiEndpoint: ApiEndpoint
+
+  CreatedAt: string
+  UpdatedAt: string
+  CreatedBy: string
+  UpdatedBy: string
+}
+
+export const GetCpiTenants = () => {
+  return http.get('/api/v1/cpiTenant') as Promise<CpiTenant[]>
+}
+
+export const GetCpiTenant = (id: number) => {
+  return http.get(`/api/v1/cpiTenant/${id}`) as Promise<CpiTenant>
+}
+
+
+export const UpsertCpiTenant = (tenant: CpiTenant) => {
+  // if backend treats ID=0 (or absence) as create
+  return http.post('/api/v1/cpiTenant', tenant) as Promise<CpiTenant>
+}
+
+export const DeleteCpiTenant = (id: number) => {
+  return http.delete(`/api/v1/cpiTenant/${id}`)
+}
+
+export interface DeliveryRule {
+  ID: number
+  CreatedAt: string
+  UpdatedAt: string
+  DeletedAt?: string | null
+  Name: string
+  VersionPattern: string
+  IncludedTenants: CpiTenant[]
+  ExcludedTenants: CpiTenant[]
+  Active: boolean
+  CreatedBy: string
+  UpdatedBy: string
+}
+
+export const GetDeliveryRules = () => {
+  return http.get('/api/v1/deliveryRule') as Promise<DeliveryRule[]>
+}
+export const GetDeliveryRule = (id: number) => {
+  return http.get(`/api/v1/deliveryRule/${id}`) as Promise<DeliveryRule>
+}
+export const UpsertDeliveryRule = (rule: DeliveryRule) => {
+  // will create a new rule if ID is 0
+  return http.post('/api/v1/deliveryRule', rule) as Promise<DeliveryRule>
+}
+
+export const DeleteDeliveryRule = (id: number) => {
+  return http.delete(`/api/v1/deliveryRule/${id}`)
+}
+

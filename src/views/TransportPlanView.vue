@@ -1,6 +1,6 @@
 <template>
   <n-modal v-model:show="showModal" preset="dialog">
-    <template #header> Create Transport Plan </template>
+    <template #header> Create Delivery Plan </template>
     <n-flex class="table-class" vertical align="start" v-if="current > 0">
       <n-text depth="3" strong>Choose Transport Group:</n-text>
 
@@ -27,6 +27,10 @@
           </n-tag>
         </n-flex>
       </div>
+      <!-- artifacts within this cpi tenant -->
+
+
+
       <n-text depth="3" strong>Yaml Content:</n-text>
 
       <n-input
@@ -36,6 +40,7 @@
         size="large"
         :autosize="{ minRows: 3 }"
       />
+      
     </n-flex>
     <template #action>
       <n-button @click="handleParse">Parse</n-button>
@@ -125,9 +130,9 @@
           <n-steps vertical :current="current" @update:current="handleCurrent">
             <!-- parse yaml step -->
             <n-step @click="showModal = true">
-              <template #title> Create Transport Plan </template>
+              <template #title> Create Delivery Plan </template>
               <n-card hoverable size="medium">
-                <n-text depth="3" style="font-size: medium">Transport Group: </n-text>
+                <n-text depth="3" style="font-size: medium">Source CPI Tenant: </n-text>
                 <n-text strong>
                   {{ transportGroupInfo.Name }} - {{ transportGroupInfo.Description }}
                 </n-text>
@@ -248,7 +253,9 @@ import {
   GenDeployJob,
   GenImportJob,
   GetTransportGroups,
+  GetTransportNodes,
   GetTransportPlan,
+  GetTransportPlans,
   ParseTransportPlan,
   SaveTransportPlan,
   type TransportGroup,
@@ -278,30 +285,27 @@ export default {
       toLocalTime,
       yamlContent: '',
       transportGroupOptions: [] as { label: string; value: TransportGroup }[],
-      selectedTransportGroup: {} as TransportGroup
+      selectedTransportGroup: {} as TransportGroup,
+      transportNodes: []
     }
   },
   methods: {
     onEdit() {
       this.editing = true
     },
-    refresh() {
+    async refresh() {
       this.editing = false
       this.showModal = false
-      GetTransportPlan(this.planId).then((res) => {
-        this.transportPlan = res
-      })
+      this.transportPlan = await GetTransportPlan(this.planId)
     },
-    handleDelete() {
-      DeleteTransportPlan(this.planId).then(() => {
-        this.$router.go(-1)
-      })
+    async handleDelete() {
+      await DeleteTransportPlan(this.planId)
+      this.$router.go(-1)
     },
-    handleSave() {
+    async handleSave() {
       this.editing = false
-      SaveTransportPlan(this.transportPlan).then(() => {
-        this.refresh()
-      })
+      await SaveTransportPlan(this.transportPlan)
+      await this.refresh()
     },
     handleCurrent(current: number) {
       this.current = current
@@ -310,35 +314,33 @@ export default {
       this.transportPlan.TransportGroupID = val.ID
       this.transportPlan.TransportGroupName = val.Name
       this.selectedTransportGroup = val
+      
     },
-    handleParse() {
+    async handleParse() {
       if (!this.yamlContent || this.transportPlan.TransportGroupID === 0) {
         window.$message.warning('empty yaml content or transport group')
         return
       }
-      ParseTransportPlan(
+      await ParseTransportPlan(
         this.yamlContent,
         this.transportPlan.TransportGroupID,
         this.transportPlan.ID,
         this.transportPlan.TransportGroupName
-      ).then(() => {
-        this.refresh()
-      })
+      )
+      await this.refresh()
     },
-    handleGenImportJob() {
+    async handleGenImportJob() {
       // generate import job
-      GenImportJob(this.transportPlan.ID).then(() => {
-        this.refresh()
-      })
+      await GenImportJob(this.transportPlan.ID)
+      await this.refresh()
     },
-    handleGenDeployJob() {
+    async handleGenDeployJob() {
       if (!this.transportPlan.ImportJobId) {
         window.$message.warning('Please generate import job first')
         return
       }
-      GenDeployJob(this.transportPlan.ID).then(() => {
-        this.refresh()
-      })
+      await GenDeployJob(this.transportPlan.ID)
+      await this.refresh()
     }
   },
   computed: {
@@ -364,15 +366,15 @@ export default {
       )[0].value.DeployEndpoints
     }
   },
-  created() {
-    this.refresh()
-    GetTransportGroups().then((res) => {
-      this.transportGroupOptions = res.map((transportGroup: TransportGroup) => {
-        return {
-          label: `${transportGroup.Name} - ${transportGroup.Description}`,
-          value: transportGroup
-        }
-      })
+  async created() {
+    await this.refresh()
+    const transportNodes = await GetTransportNodes()
+    const transportGroup = await GetTransportGroups()
+    this.transportGroupOptions = transportGroup.map((transportGroup: TransportGroup) => {
+      return {
+        label: `${transportGroup.Name} - ${transportGroup.Description}`,
+        value: transportGroup
+      }
     })
   }
 }

@@ -1,5 +1,5 @@
 import { NTag, type DataTableColumns } from 'naive-ui'
-import type { ApiEndpoint, Artifact, Job, Package, TransportGroup, TransportNode, TransportPlan, NodeTransportRequest } from './api'
+import type { ApiEndpoint, Artifact, Job, Package, TransportGroup, TransportNode, TransportPlan, NodeTransportRequest, CpiTenant } from './api'
 import { h } from 'vue'
 import type { Router } from 'vue-router'
 import { IosArrowForward } from '@vicons/ionicons4'
@@ -195,7 +195,49 @@ export function createJobColums(router: Router, statusTag: any): DataTableColumn
   ]
   return colums
 }
+export const cpiTenantColums: DataTableColumns<CpiTenant> = [
+  {
+    type: 'selection',
+    multiple: false,
+    disabled(row: Object) {
+      return false
+    }
+  },
+  {
+    title: 'ID',
+    key: 'ID',
+    resizable: true
+  },
+  {
+    title: 'Name',
+    key: 'Name',
+    resizable: true,
+    sortOrder: 'descend'
+  },
+  {
+    title: 'Transport Node',
+    key: 'TmsNode',
+    resizable: true,
+    render(row: CpiTenant) {
+        return h(
+          'div',
+          `${row.TransportNode.name}#${row.TransportNode.id}`
+        )
+      }
+  },
+  {
+    title: 'CPI Api Endpoint',
+    key: 'CpiEndpoint',
+    render(row: CpiTenant) {
+      return h(
+        'div',
+        `${row.CpiEndpoint.name}(${row.CpiEndpoint.url})`
+      )
+    },
+    resizable: true
+  }
 
+]
 export const transportGroupColums: DataTableColumns<TransportGroup> = [
   {
     type: 'selection',
