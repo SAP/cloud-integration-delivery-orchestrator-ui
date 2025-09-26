@@ -1,104 +1,43 @@
 <template>
-  <n-modal v-model:show="showModal" preset="dialog" >
-    <template #header> Create Delivery Plan </template>
-    <n-flex class="table-class" vertical align="start" v-if="current > 0">
-      <!-- List Cpi Tenants -->
-      <n-text depth="3" strong>Choose Source Cpi Tenant:</n-text>
-      <n-select @update:value="handleSelectSourceCpiTenant" :options="cpiTenantsOptions" filterable/>
+  <div style="margin: 0 42px">
+    <!-- tenant details modal -->
+    <n-modal
+      v-model:show="showTenantDetails"
+      preset="card"
+      title="Tenant Details"
+      style="max-width:640px"
+      size="small"
+      :closable="false"
+      :close-on-esc="false"
+      :mask-closable="true"
+    >
       <div v-if="deliveryRequest.SourceTenant">
-        <n-flex vertical>
-          <n-flex vertical style="gap: 12px">
-            <div>
-              <n-text depth="3" strong>Tenant: </n-text>
-              <n-tag type="info" :bordered="false">
-                  #{{ deliveryRequest.SourceTenant.ID }} {{ deliveryRequest.SourceTenant.Name }}
-              </n-tag>
-            </div>
-
-            <div v-if="deliveryRequest.SourceTenant.TransportNode">
-              <n-text depth="3" strong>Transport Node</n-text>
-              <div style="margin-top: 4px">
-                <n-tag type="success" :bordered="false">
-                  #{{ deliveryRequest.SourceTenant.TransportNode.id }}
-                  {{ deliveryRequest.SourceTenant.TransportNode.name }} -
-                  {{ deliveryRequest.SourceTenant.TransportNode.description }}
-                </n-tag>
-              </div>
-            </div>
-
-            <div v-if="deliveryRequest.SourceTenant.CpiEndpoint">
-              <n-text depth="3" strong>CPI Endpoint</n-text>
-              <div style="margin-top: 4px">
-                <n-tag type="warning" :bordered="false">
-                  {{ deliveryRequest.SourceTenant.CpiEndpoint.name }}({{ deliveryRequest.SourceTenant.CpiEndpoint.url }})
-                </n-tag>
-              </div>
-            </div>
-          </n-flex>
-        </n-flex>
-      </div>
-      <!-- Packages in this cpi tenant -->
-
-      <div v-if="deliveryRequest.SourceTenant">
-        <n-text depth="3" strong>Packages:</n-text>
-        <n-select
-          v-model:value="selectedPackageIds"
-          :options="packagesOptions"
-          multiple
-          clearable
-          filterable
-          placeholder="Select packages from this tenant"
-          style="margin-top: 6px; width: 420px"
-        />
-        <div v-if="selectedPackageIds.length" style="margin-top:12px; width:100%">
-          <n-text depth="3" strong>Artifacts (select to include):</n-text>
-          <n-collapse v-model:expanded-names="expandedPackages" style="margin-top:6px">
-            <n-collapse-item
-              v-for="pkgId in selectedPackageIds"
-              :key="pkgId"
-              :name="pkgId"
-              :title="packageLabel(pkgId)"
-            >
-              <n-spin :show="loadingPackages[pkgId]">
-                <n-empty v-if="!loadingPackages[pkgId] && (packageArtifacts[pkgId] || []).length === 0" description="No artifacts" />
-                <n-checkbox-group
-                  v-model:value="artifactSelections[pkgId]"
-                  @update:value="updateArtifactsFromSelection"
-                  v-if="(packageArtifacts[pkgId] || []).length"
-                >
-                  <n-space item-style="display:flex" wrap>
-                    <n-checkbox
-                      v-for="a in packageArtifacts[pkgId] || []"
-                      :key="pkgId + '-' + a.Id + '@' + a.Version"
-                      :value="artifactKey(a)"
-                      :label="a.Id + '@' + a.Version"
-                    />
-                  </n-space>
-                </n-checkbox-group>
-              </n-spin>
-            </n-collapse-item>
-          </n-collapse>
-          <div v-if="selectedArtifacts.length" style="margin-top:10px">
-            <n-text depth="3" strong>Selected Artifacts:</n-text>
-            <div style="margin-top:4px; display:flex; flex-wrap:wrap; gap:6px">
-              <n-tag
-                v-for="(a, i) in selectedArtifacts"
-                :key="'sel-' + i + '-' + a.Id + '@' + a.Version"
-                type="info"
-                size="small"
-                :bordered="false"
-              >{{ a.Id }}@{{ a.Version }}</n-tag>
+        <n-flex vertical style="gap:12px">
+          <div>
+            <n-text depth="3" strong>Tenant</n-text>
+            <div style="margin-top:4px">
+              <n-tag type="info" :bordered="false">#{{ deliveryRequest.SourceTenant.ID }} {{ deliveryRequest.SourceTenant.Name }}</n-tag>
             </div>
           </div>
-        </div>
+          <div v-if="deliveryRequest.SourceTenant.TransportNode">
+            <n-text depth="3" strong>Transport Node</n-text>
+            <div style="margin-top:4px">
+              <n-tag type="success" :bordered="false">
+                #{{ deliveryRequest.SourceTenant.TransportNode.id }} {{ deliveryRequest.SourceTenant.TransportNode.name }} - {{ deliveryRequest.SourceTenant.TransportNode.description }}
+              </n-tag>
+            </div>
+          </div>
+          <div v-if="deliveryRequest.SourceTenant.CpiEndpoint">
+            <n-text depth="3" strong>CPI Endpoint</n-text>
+            <div style="margin-top:4px">
+              <n-tag type="warning" :bordered="false">
+                {{ deliveryRequest.SourceTenant.CpiEndpoint.name }} ({{ deliveryRequest.SourceTenant.CpiEndpoint.url }})
+              </n-tag>
+            </div>
+          </div>
+        </n-flex>
       </div>
-    </n-flex>
-    <template #action>
-      <n-button @click="handleGenerate">Generate</n-button>
-    </template>
-  </n-modal>
-
-  <div style="margin: 0 42px">
+    </n-modal>
     <!-- head -->
     <n-card class="header-card-shadow-class">
       <n-grid x-gap="10" :cols="5">
@@ -178,37 +117,116 @@
       </div>
       <n-grid x-gap="40" :cols="5">
         <!-- step lists -->
-        <n-gi span="3">
+        <n-gi span="4">
           <n-steps vertical :current="current" @update:current="handleCurrent">
             <!-- parse yaml step -->
-            <n-step @click="showModal = true">
+            <n-step>
               <template #title> Create Delivery Plan </template>
               <n-card hoverable size="medium">
-                <n-text depth="3" style="font-size: medium">Source CPI Tenant: </n-text>
-                <n-text strong>
-                  <!-- {{ deliveryRequest.SourceTenant.Name }} #{{ deliveryRequest.SourceTenant.ID }} -->
-                </n-text>
-                <n-gradient-text type="success" :size="18">
-                  <!-- #{{ deliveryRequest.SourceTenant.ID }} -->
-                </n-gradient-text>
-                <div />
-                <n-text depth="3" style="font-size: medium"> Artifacts: </n-text>
-
-                <div />
-                <n-tag
-                  v-for="(artifact, i) in deliveryRequest.Artifacts"
-                  :key="i"
-                  :bordered="false"
-                  type="info"
-                  style="margin-right: 5px"
-                >
-                  {{ artifact.Id }}:{{ artifact.Version }}
-                </n-tag>
+                <n-flex vertical style="gap:12px">
+                  <div>
+                    <n-text depth="3" strong>Choose Source Cpi Tenant:</n-text>
+                    <n-select style="margin-top:4px; max-width:420px" @update:value="handleSelectSourceCpiTenant" :options="cpiTenantsOptions" filterable/>
+                  </div>
+                  <div v-if="deliveryRequest.SourceTenant">
+                    <n-flex vertical style="gap:8px">
+                      <div>
+                        <n-text depth="3" strong>Tenant:</n-text>
+                        <n-tooltip placement="top" trigger="hover">
+                          <template #trigger>
+                            <n-tag type="info" :bordered="false" style="margin-left:6px; cursor:pointer" @click="openTenantDetails">#{{ deliveryRequest.SourceTenant.ID }} {{ deliveryRequest.SourceTenant.Name }}</n-tag>
+                          </template>
+                          View details
+                        </n-tooltip>
+                      </div>
+                      <!-- Transport Node & CPI Endpoint details moved into modal -->
+                    </n-flex>
+                  </div>
+                  <div v-if="deliveryRequest.SourceTenant"> 
+                    <n-text depth="3" strong>Packages:</n-text>
+                    <div style="margin-top:6px">
+                      <!-- Error State -->
+                      <n-alert v-if="packagesLoadError" type="error" closable @close="packagesLoadError=''" style="max-width:420px">
+                        {{ packagesLoadError }}
+                        <n-button size="tiny" text type="primary" @click.stop="retryFetchPackages" style="margin-left:8px">Retry</n-button>
+                      </n-alert>
+                      <!-- Loading Skeleton -->
+                      <div v-else-if="packagesLoading" style="max-width:420px">
+                        <n-skeleton text style="width: 60%" :repeat="1" />
+                        <n-skeleton text style="width: 80%; margin-top:8px" :repeat="1" />
+                        <n-skeleton text style="width: 40%; margin-top:8px" :repeat="1" />
+                      </div>
+                      <!-- Packages Select -->
+                      <div v-else>
+                        <n-select
+                          v-model:value="selectedPackages"
+                          :options="packagesOptions"
+                          multiple
+                          clearable
+                          filterable
+                          placeholder="Select packages from this tenant"
+                          style="width: 420px"
+                          :disabled="!packagesOptions.length"
+                        />
+                        <div v-if="!packagesOptions.length" style="margin-top:6px">
+                          <n-text depth="3" type="warning">No packages found for this tenant.</n-text>
+                        </div>
+                      </div>
+                    </div>
+                    <!-- Artifacts Section -->
+                    <div v-if="selectedPackages.length" style="margin-top:16px; width:100%">
+                      <n-text depth="3" strong>Artifacts (select to include):</n-text>
+                      <n-collapse v-model:expanded-names="expandedPackages" style="margin-top:6px">
+                        <n-collapse-item v-for="pkg in selectedPackages" :key="pkg.Id" :name="pkg.Id" :title="packageLabel(pkg)">
+                          <n-spin :show="loadingPackages[pkg.Id]">
+                            <template v-if="!loadingPackages[pkg.Id]">
+                              <div v-if="(packageArtifacts[pkg.Id] || []).length === 0">
+                                <n-empty description="No artifacts" />
+                              </div>
+                              <div v-else>
+                                <n-input v-model:value="artifactSearch[pkg.Id]" size="small" placeholder="Filter artifacts (id / version / type)" clearable style="max-width:320px; margin-bottom:8px"/>
+                                <div style="margin-bottom:6px; display:flex; gap:8px; flex-wrap:wrap">
+                                  <n-button tertiary size="tiny" @click="selectAllFiltered(pkg.Id)" :disabled="!filteredArtifacts(pkg.Id).length">Select All Filtered</n-button>
+                                  <n-button tertiary size="tiny" @click="clearSelections(pkg.Id)" :disabled="!(artifactSelections[pkg.Id]||[]).length">Clear Selected</n-button>
+                                </div>
+                                <n-scrollbar style="max-height:260px; border:1px solid var(--n-border-color); padding:6px; border-radius:4px">
+                                  <div style="display:flex; flex-wrap:wrap; gap:6px">
+                                    <n-tag
+                                      v-for="a in filteredArtifacts(pkg.Id)"
+                                      :key="pkg.Id + '-' + a.Id + '@' + a.Version"
+                                      :type="isArtifactSelected(pkg.Id, a) ? 'success' : 'default'"
+                                      :bordered="false"
+                                      size="small"
+                                      style="cursor:pointer"
+                                      @click="toggleArtifact(pkg.Id, a)"
+                                    >
+                                      {{ a.Id }}@{{ a.Version }}
+                                      <template v-if="isArtifactSelected(pkg.Id, a)"><span style="margin-left:4px">✔</span></template>
+                                    </n-tag>
+                                  </div>
+                                </n-scrollbar>
+                              </div>
+                            </template>
+                          </n-spin>
+                        </n-collapse-item>
+                      </n-collapse>
+                      <div v-if="selectedArtifacts.length" style="margin-top:10px">
+                        <n-text depth="3" strong>Selected Artifacts:</n-text>
+                        <div style="margin-top:4px; display:flex; flex-wrap:wrap; gap:6px">
+                          <n-tag v-for="(a, i) in selectedArtifacts" :key="'sel-' + i + '-' + a.Id + '@' + a.Version" type="info" size="small" :bordered="false">{{ a.Id }}@{{ a.Version }}</n-tag>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div>
+                    <n-button type="primary" secondary @click="handleGenerate">Generate</n-button>
+                  </div>
+                </n-flex>
               </n-card>
             </n-step>
           </n-steps>
         </n-gi>
-        <n-gi span="2"> Log </n-gi>
+        <!-- <n-gi span="2"> Log </n-gi> -->
       </n-grid>
     </n-card>
   </div>
@@ -245,7 +263,6 @@ export default {
   props: { planId: { required: true, type: Number } },
   data() {
     return {
-      showModal: false,
       deliveryRequest: {} as DeliveryRequest,
       editing: false,
       current: 0,
@@ -253,19 +270,26 @@ export default {
       cpiTenantsOptions: [] as { label: string; value: CpiTenant }[],
       transportNodes: [],
       packageOptions: [] as Package[],
-      selectedPackageIds: [] as string[],
-      packageArtifacts: {} as Record<string, Artifact[]>,
-      loadingPackages: {} as Record<string, boolean>,
+      selectedPackages: [] as Package[],
+      packageArtifacts: {} as { [key: string]: Artifact[] },
+      loadingPackages: {} as { [key: string]: boolean },
       expandedPackages: [] as string[],
-      artifactSelections: {} as Record<string, string[]>,
+      artifactSelections: {} as { [key: string]: string[] },
+      packagesLoading: false,
+      showTenantDetails: false,
+      packagesLoadError: '' as string,
+      artifactSearch: {} as { [key: string]: string },
     }
   },
   methods: {
     onEdit() {
       this.editing = true
     },
+    openTenantDetails() {
+      this.showTenantDetails = true
+    },
     async refresh() {
-      this.editing = this.showModal = false
+      this.editing = false
       this.deliveryRequest = await GetDeliveryRequest(this.planId)
     },
     async handleDelete() {
@@ -282,32 +306,43 @@ export default {
     },
     async handleSelectSourceCpiTenant(tenant: CpiTenant) {
       this.deliveryRequest.SourceTenant = tenant
-      this.selectedPackageIds = []
-      try {
-        this.packageOptions = await GetPackages(tenant.CpiEndpoint.name)
-      } catch (e) {
-        window.$message?.error?.('Failed to fetch packages')
-      }
+      this.resetPackageState()
+      await this.fetchPackagesForTenant(tenant.CpiEndpoint.name)
+    },
+    resetPackageState() {
+      this.selectedPackages = []
+      this.packageOptions = []
       this.packageArtifacts = {}
       this.expandedPackages = []
       this.artifactSelections = {}
+      this.packagesLoadError = ''
       this.updateArtifactsFromSelection()
     },
-    async handleGenerate() {
+    async fetchPackagesForTenant(tenantKey: string) {
+      this.packagesLoading = true
+      this.packagesLoadError = ''
+      try {
+        const pkgs = await GetPackages(tenantKey)
+        this.packageOptions = pkgs
+      } catch (e: any) {
+        this.packagesLoadError = 'Failed to load packages.'
+      } finally {
+        this.packagesLoading = false
+      }
     },
-    async handleGenImportJob() {
-      // generate import job
-      await GenImportJob(this.deliveryRequest.ID)
-      await this.refresh()
+    async retryFetchPackages() {
+      if (!this.deliveryRequest.SourceTenant) return
+      await this.fetchPackagesForTenant(this.deliveryRequest.SourceTenant.CpiEndpoint.name)
+    },
+    async handleGenerate() {
     },
     async loadPackageArtifacts(pkgId: string) {
       if (!this.deliveryRequest.SourceTenant) return
       if (this.packageArtifacts[pkgId]) return // already loaded
       const tenantKey = this.deliveryRequest.SourceTenant.CpiEndpoint.name
-  this.loadingPackages[pkgId] = true
+      this.loadingPackages[pkgId] = true
       try {
-        const artifacts = await GetPackageArtifacts(tenantKey, pkgId)
-        this.packageArtifacts[pkgId] = artifacts
+        this.packageArtifacts[pkgId] = await GetPackageArtifacts(tenantKey, pkgId)
         if (!this.artifactSelections[pkgId]) {
           this.artifactSelections[pkgId] = []
         }
@@ -330,20 +365,51 @@ export default {
       })
       this.deliveryRequest.Artifacts = list
     },
-    packageLabel(pkgId: string) {
-      const pkg = this.packageOptions.find(p => p.Id === pkgId)
-      return pkg ? `${pkg.Name} @ ${pkg.Version}` : pkgId
+    packageLabel(pkg: Package) {
+      return `${pkg.Name} @ ${pkg.Version}`
     },
     artifactKey(a: Artifact) { return `${a.Id}@${a.Version}` }
+    ,
+    filteredArtifacts(pkgId: string): Artifact[] {
+      const list = this.packageArtifacts[pkgId] || []
+      const kw = (this.artifactSearch[pkgId] || '').trim().toLowerCase()
+      if (!kw) return list
+      return list.filter(a =>
+        a.Id.toLowerCase().includes(kw) ||
+        a.Version.toLowerCase().includes(kw) ||
+        (a.Type && a.Type.toLowerCase().includes(kw))
+      )
+    },
+    isArtifactSelected(pkgId: string, a: Artifact) {
+      const key = this.artifactKey(a)
+      return (this.artifactSelections[pkgId] || []).includes(key)
+    },
+    toggleArtifact(pkgId: string, a: Artifact) {
+      if (!this.artifactSelections[pkgId]) this.artifactSelections[pkgId] = []
+      const key = this.artifactKey(a)
+      const arr = this.artifactSelections[pkgId]
+      const idx = arr.indexOf(key)
+      if (idx >= 0) arr.splice(idx, 1)
+      else arr.push(key)
+      this.updateArtifactsFromSelection()
+    },
+    selectAllFiltered(pkgId: string) {
+      const keys = this.filteredArtifacts(pkgId).map(a => this.artifactKey(a))
+      this.artifactSelections[pkgId] = keys
+      this.updateArtifactsFromSelection()
+    },
+    clearSelections(pkgId: string) {
+      this.artifactSelections[pkgId] = []
+      this.updateArtifactsFromSelection()
+    },
   },
   watch: {
-    selectedPackageIds(newVal: string[], oldVal: string[]) {
-      // remove unselected packages data
-      const removed = (oldVal || []).filter(id => !newVal.includes(id))
-      removed.forEach(id => {
-        delete this.packageArtifacts[id]
-        delete this.artifactSelections[id]
-        this.expandedPackages = this.expandedPackages.filter(p => p !== id)
+    selectedPackages(newPkgs: Package[], oldPkgs: Package[]) {
+      const removed = (oldPkgs || []).filter(p => !newPkgs.includes(p))
+      removed.forEach(p => {
+        delete this.packageArtifacts[p.Id]
+        delete this.artifactSelections[p.Id]
+        this.expandedPackages = this.expandedPackages.filter(id => id !== p.Id)
       })
       this.updateArtifactsFromSelection()
     },
@@ -358,7 +424,7 @@ export default {
   },
   computed: {
     packagesOptions() {
-      return this.packageOptions.map(p => ({ label: `${p.Name} @ ${p.Version}`, value: p.Id }))
+      return this.packageOptions.map(pkg => ({ label: `${pkg.Name} @ ${pkg.Version}`, value: pkg }))
     },
     selectedArtifacts(): Artifact[] {
       return this.deliveryRequest.Artifacts || []
