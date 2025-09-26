@@ -43,26 +43,25 @@
     <!-- head -->
     <n-card class="header-card-shadow-class">
       <n-grid x-gap="10" :cols="5">
-        <!-- transport plan name and desctiption -->
+        <!-- delivery request name and desctiption -->
         <n-gi>
           <n-flex vertical>
-            <!-- plan name -->
             <n-input
               class="ui5-title-root"
               v-model:value="deliveryRequest.Name"
-              placeholder="Transport Plan Name"
+              placeholder="Delivery Request Name"
               clearable
               autofocus
               v-if="editing"
             />
             <span class="ui5-title-root" v-else-if="deliveryRequest.Name">
-              <n-text depth="3"> Transport Plan Name: </n-text>
+              <n-text depth="3"> Delivery Request Name: </n-text>
               {{ deliveryRequest.Name }}
             </span>
             <!-- plan JIRA link -->
             <n-input
               v-model:value="deliveryRequest.JiraLink"
-              placeholder="Transport Plan Description"
+              placeholder="Delivery Request Description"
               size="large"
               clearable
               v-if="editing"
@@ -73,7 +72,7 @@
           </n-flex>
         </n-gi>
 
-        <!-- transport plan basic information -->
+        <!-- Delivery Request basic information -->
         <n-gi span="2">
           <n-flex vertical>
             <n-text depth="3" style="font-size: 12px" strong>
@@ -86,7 +85,7 @@
             </n-text>
           </n-flex>
         </n-gi>
-        <!-- transport plan status tag -->
+        <!-- Delivery Request status tag -->
         <n-gi> </n-gi>
         <!-- action buttions -->
         <n-gi>
@@ -103,11 +102,6 @@
           </IconBtn>
 
           <n-divider vertical />
-
-          <!-- Submit Button -->
-          <IconBtn tip="Save" :handler="handleSave" v-if="editing">
-            <SaveAltRound />
-          </IconBtn>
         </n-gi>
       </n-grid>
     </n-card>
@@ -115,7 +109,7 @@
     <!-- step list with config view -->
     <n-card class="card-shadow-class">
       <div style="margin-bottom: 15px; font-size: 15px; font-weight: bold">
-        Transport Plan <n-gradient-text type="success">#{{ deliveryRequest.ID }}</n-gradient-text>
+        Delivery Request <n-gradient-text type="success">#{{ deliveryRequest.ID }}</n-gradient-text>
       </div>
       <n-grid x-gap="40" :cols="5">
         <!-- step lists -->
@@ -233,29 +227,28 @@
                           </div>
                         </n-collapse-item>
                       </n-collapse>
-                      <div v-if="selectedArtifacts.length" style="margin-top:18px">
-                        <n-divider dashed title-placement="center" style="margin:0 0 10px 0; font-weight:600; letter-spacing:.5px">
-                          Selected Artifacts ({{ selectedArtifacts.length }})
-                        </n-divider>
-                        <div style="display:flex; flex-wrap:wrap; gap:6px">
-                          <n-tag v-for="(a, i) in selectedArtifacts" :key="'sel-' + i + '-' + a.Id + '@' + a.Version" type="info" size="small" :bordered="false">
-                            {{ a.Id }}@{{ a.Version }}
-                            <n-tooltip trigger="hover" placement="top">
-                              <template #trigger>
-                                <n-icon size="18" @click.stop="openArtifactDetails(a.Package, a)">
-                                  <Info16Regular />
-                                </n-icon>
-                              </template>
-                              Show Details
-                            </n-tooltip>
-                          </n-tag>
-                        </div>
-                      </div>
                     </div>
+                    <!-- selected Artifacts list -->
+                    <n-flex vertical v-if="selectedArtifacts.length" style="margin-top:18px">
+                      <n-divider dashed title-placement="center" style="margin:0 0 10px 0; font-weight:600; letter-spacing:.5px">
+                        Selected Artifacts ({{ selectedArtifacts.length }})
+                      </n-divider>
+                      <n-flex wrap>
+                        <n-tag v-for="(a, i) in selectedArtifacts" :key="'sel-' + i + '-' + a.Id + '@' + a.Version" type="info" size="small" :bordered="false">
+                          {{ a.Id }}@{{ a.Version }}
+                          <n-tooltip trigger="hover" placement="top">
+                            <template #trigger>
+                              <n-icon size="18" @click.stop="openArtifactDetails(a.Package, a)">
+                                <Info16Regular />
+                              </n-icon>
+                            </template>
+                            Show Details
+                          </n-tooltip>
+                        </n-tag>
+                      </n-flex>
+                    </n-flex>
                   </n-flex>
-                  <div>
-                    <n-button type="primary" secondary @click="handleGenerate">Generate</n-button>
-                  </div>
+                  <n-button type="primary" secondary @click="handleGenerate">Generate</n-button>
                 </n-flex>
               </n-card>
             </n-step>
@@ -269,8 +262,6 @@
 
 <script lang="ts">
 import {
-  DeleteTransportPlan,
-  GenImportJob,
   GetCpiTenants,
   GetDeliveryRequest,
   UpsertDeliveryRequest,
@@ -279,7 +270,8 @@ import {
   type CpiTenant,
   type DeliveryRequest,
   type Package,
-  type Artifact
+  type Artifact,
+  DeleteDeliveryRequest
 } from '@/service/api'
 import { toLocalTime } from '@/service/consts'
 import { Edit16Regular, Delete28Regular, Info16Regular } from '@vicons/fluent'
@@ -304,7 +296,6 @@ export default {
       current: 0,
       toLocalTime,
       cpiTenantsOptions: [] as { label: string; value: CpiTenant }[],
-      transportNodes: [],
       packageOptions: [] as Package[],
       selectedPackages: [] as Package[],
       packageArtifacts: {} as { [key: string]: Artifact[] },
@@ -312,7 +303,6 @@ export default {
       expandedPackages: [] as string[],
       artifactSelections: {} as { [key: string]: string[] },
       packagesLoading: false,
-  // tenant details modal removed
       packagesLoadError: '' as string,
       artifactSearch: {} as { [key: string]: string },
       // artifact details state
@@ -331,13 +321,8 @@ export default {
       this.deliveryRequest = await GetDeliveryRequest(this.planId)
     },
     async handleDelete() {
-      await DeleteTransportPlan(this.planId)
+      await DeleteDeliveryRequest(this.planId)
       this.$router.go(-1)
-    },
-    async handleSave() {
-      this.editing = false
-      await UpsertDeliveryRequest(this.deliveryRequest)
-      await this.refresh()
     },
     handleCurrent(current: number) {
       this.current = current
@@ -373,6 +358,8 @@ export default {
       await this.fetchPackagesForTenant(this.deliveryRequest.SourceTenant.CpiEndpoint.name)
     },
     async handleGenerate() {
+      await UpsertDeliveryRequest(this.deliveryRequest)
+      await this.refresh()
     },
     async loadPackageArtifacts(pkgId: string) {
       if (!this.deliveryRequest.SourceTenant) return
@@ -478,6 +465,9 @@ export default {
     await this.refresh()
     const cpiTenants = await GetCpiTenants()
     this.cpiTenantsOptions = cpiTenants.map((tenant: CpiTenant) => ({ label: tenant.Name, value: tenant }))
+    if (this.deliveryRequest.SourceTenant) {
+      await this.fetchPackagesForTenant(this.deliveryRequest.SourceTenant.CpiEndpoint.name)
+    }
   }
 }
 </script>
