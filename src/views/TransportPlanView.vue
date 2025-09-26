@@ -7,8 +7,8 @@
       title="Tenant Details"
       style="max-width:640px"
       size="small"
-      :closable="false"
-      :close-on-esc="false"
+      :closable="true"
+      :close-on-esc="true"
       :mask-closable="true"
     >
       <div v-if="deliveryRequest.SourceTenant">
@@ -34,6 +34,46 @@
                 {{ deliveryRequest.SourceTenant.CpiEndpoint.name }} ({{ deliveryRequest.SourceTenant.CpiEndpoint.url }})
               </n-tag>
             </div>
+          </div>
+        </n-flex>
+      </div>
+    </n-modal>
+    <!-- artifact details modal -->
+    <n-modal
+      v-model:show="showArtifactDetails"
+      preset="card"
+      title="Artifact Details"
+      style="max-width:560px"
+      size="small"
+      :closable="true"
+      :close-on-esc="true"
+      :mask-closable="true"
+    >
+      <div v-if="artifactDetail">
+        <n-flex vertical style="gap:12px">
+          <div style="display:flex; gap:16px; flex-wrap:wrap">
+            <div>
+              <n-text depth="3" strong>ID</n-text>
+              <div style="margin-top:4px">{{ artifactDetail.Id }}</div>
+            </div>
+            <div>
+              <n-text depth="3" strong>Version</n-text>
+              <div style="margin-top:4px">{{ artifactDetail.Version }}</div>
+            </div>
+            <div v-if="artifactDetail.Type">
+              <n-text depth="3" strong>Type</n-text>
+              <div style="margin-top:4px">{{ artifactDetail.Type }}</div>
+            </div>
+          </div>
+          <div>
+            <n-text depth="3" strong>Raw JSON</n-text>
+            <n-code :code="artifactRawJson" language="json" style="margin-top:6px; max-height:260px; overflow:auto" />
+          </div>
+          <div style="display:flex; gap:8px">
+            <n-button size="small" type="primary" @click="toggleArtifact(artifactDetailPkgId, artifactDetail)">
+              {{ isArtifactSelected(artifactDetailPkgId, artifactDetail) ? 'Unselect' : 'Select' }}
+            </n-button>
+            <n-button size="small" secondary @click="showArtifactDetails=false">Close</n-button>
           </div>
         </n-flex>
       </div>
@@ -169,10 +209,11 @@
                         </div>
                       </div>
                     </div>
-                    <!-- Artifacts Section -->
+                    <!-- Package & Artifacts Section -->
                     <div v-if="selectedPackages.length" style="margin-top:16px; width:100%">
                       <n-text depth="3" strong>Artifacts (select to include):</n-text>
                       <n-collapse v-model:expanded-names="expandedPackages" style="margin-top:6px">
+                        <!-- Package Lists -->
                         <n-collapse-item v-for="pkg in selectedPackages" :key="pkg.Id" :name="pkg.Id" :title="packageLabel(pkg)">
                           <div v-if="loadingPackages[pkg.Id]" style="padding:4px 0">
                             <n-skeleton text style="width:55%" :repeat="1" />
@@ -191,6 +232,7 @@
                                 <n-button tertiary size="tiny" @click="selectAllFiltered(pkg.Id)" :disabled="!filteredArtifacts(pkg.Id).length">Select All Filtered</n-button>
                                 <n-button tertiary size="tiny" @click="clearSelections(pkg.Id)" :disabled="!(artifactSelections[pkg.Id]||[]).length">Clear Selected</n-button>
                               </div>
+                              <!-- Artifact list section -->
                               <n-scrollbar style="max-height:260px; border:1px solid var(--n-border-color); padding:6px; border-radius:4px">
                                 <div style="display:flex; flex-wrap:wrap; gap:6px">
                                   <n-tag
@@ -199,11 +241,19 @@
                                     :type="isArtifactSelected(pkg.Id, a) ? 'success' : 'default'"
                                     :bordered="false"
                                     size="small"
-                                    style="cursor:pointer"
+                                    style="cursor:pointer; display:inline-flex; align-items:center; gap:4px"
                                     @click="toggleArtifact(pkg.Id, a)"
                                   >
-                                    {{ a.Id }}@{{ a.Version }}
-                                    <template v-if="isArtifactSelected(pkg.Id, a)"><span style="margin-left:4px">✔</span></template>
+                                    <span>{{ a.Id }}@{{ a.Version }}</span>
+                                    <template v-if="isArtifactSelected(pkg.Id, a)"><span style="margin-left:2px">✔</span></template>
+                                    <n-tooltip trigger="hover" placement="top">
+                                      <template #trigger>
+                                        <n-icon size="14" @click.stop="openArtifactDetails(pkg.Id, a)">
+                                          <Info16Regular />
+                                        </n-icon>
+                                      </template>
+                                      Show Details
+                                    </n-tooltip>
                                   </n-tag>
                                 </div>
                               </n-scrollbar>
@@ -248,7 +298,7 @@ import {
   type Artifact
 } from '@/service/api'
 import { toLocalTime } from '@/service/consts'
-import { Edit16Regular, Delete28Regular } from '@vicons/fluent'
+import { Edit16Regular, Delete28Regular, Info16Regular } from '@vicons/fluent'
 import { SaveAltRound, StartTwotone, CancelOutlined } from '@vicons/material'
 import IconBtn from '@/components/IconBtn.vue'
 export default {
@@ -259,7 +309,8 @@ export default {
     SaveAltRound,
     StartTwotone,
     CancelOutlined,
-    IconBtn
+    IconBtn,
+    Info16Regular
   },
   props: { planId: { required: true, type: Number } },
   data() {
@@ -280,6 +331,11 @@ export default {
       showTenantDetails: false,
       packagesLoadError: '' as string,
       artifactSearch: {} as { [key: string]: string },
+      // artifact details state
+      showArtifactDetails: false,
+      artifactDetail: null as Artifact | null,
+      artifactDetailPkgId: '' as string,
+      artifactRawJson: '' as string,
     }
   },
   methods: {
@@ -402,6 +458,12 @@ export default {
     clearSelections(pkgId: string) {
       this.artifactSelections[pkgId] = []
       this.updateArtifactsFromSelection()
+    },
+    openArtifactDetails(pkgId: string, a: Artifact) {
+      this.artifactDetail = a
+      this.artifactDetailPkgId = pkgId
+      this.artifactRawJson = JSON.stringify(a, null, 2)
+      this.showArtifactDetails = true
     },
   },
   watch: {
