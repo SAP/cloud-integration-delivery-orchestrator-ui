@@ -124,25 +124,21 @@
               <template #title> Create Delivery Plan </template>
               <n-card hoverable size="medium">
                 <n-flex vertical style="gap:12px">
-                  <div>
+                  <n-flex inline>
                     <n-text depth="3" strong>Choose Source Cpi Tenant:</n-text>
                     <n-select style="margin-top:4px; max-width:420px" @update:value="handleSelectSourceCpiTenant" :options="cpiTenantsOptions" filterable/>
-                  </div>
-                  <div v-if="deliveryRequest.SourceTenant">
-                    <n-flex vertical style="gap:8px">
-                      <div>
-                        <n-text depth="3" strong>Tenant:</n-text>
-                        <n-tooltip placement="top" trigger="hover">
-                          <template #trigger>
-                            <n-tag type="info" :bordered="false" style="margin-left:6px; cursor:pointer" @click="openTenantDetails">#{{ deliveryRequest.SourceTenant.ID }} {{ deliveryRequest.SourceTenant.Name }}</n-tag>
-                          </template>
-                          View details
-                        </n-tooltip>
-                      </div>
-                      <!-- Transport Node & CPI Endpoint details moved into modal -->
-                    </n-flex>
-                  </div>
-                  <div v-if="deliveryRequest.SourceTenant"> 
+                  </n-flex>
+                  <!-- display selected tenant -->
+                  <n-flex inline style="gap:8px" v-if="deliveryRequest.SourceTenant">
+                    <n-text depth="3" strong>Tenant:</n-text>
+                    <n-tooltip placement="top" trigger="hover">
+                      <template #trigger>
+                        <n-tag type="info" :bordered="false" style="margin-left:6px; cursor:pointer" @click="openTenantDetails">#{{ deliveryRequest.SourceTenant.ID }} {{ deliveryRequest.SourceTenant.Name }}</n-tag>
+                      </template>
+                      View details
+                    </n-tooltip>
+                  </n-flex>
+                  <n-flex vertical v-if="deliveryRequest.SourceTenant"> 
                     <n-text depth="3" strong>Packages:</n-text>
                     <div style="margin-top:6px">
                       <!-- Error State -->
@@ -178,36 +174,41 @@
                       <n-text depth="3" strong>Artifacts (select to include):</n-text>
                       <n-collapse v-model:expanded-names="expandedPackages" style="margin-top:6px">
                         <n-collapse-item v-for="pkg in selectedPackages" :key="pkg.Id" :name="pkg.Id" :title="packageLabel(pkg)">
-                          <n-spin :show="loadingPackages[pkg.Id]">
-                            <template v-if="!loadingPackages[pkg.Id]">
-                              <div v-if="(packageArtifacts[pkg.Id] || []).length === 0">
-                                <n-empty description="No artifacts" />
+                          <div v-if="loadingPackages[pkg.Id]" style="padding:4px 0">
+                            <n-skeleton text style="width:55%" :repeat="1" />
+                            <n-skeleton text style="width:70%; margin-top:6px" :repeat="1" />
+                            <div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:10px">
+                              <n-skeleton v-for="i in 6" :key="'art-skel-'+i" text style="width:92px" />
+                            </div>
+                          </div>
+                          <div v-else>
+                            <div v-if="(packageArtifacts[pkg.Id] || []).length === 0">
+                              <n-empty description="No artifacts" />
+                            </div>
+                            <div v-else>
+                              <n-input v-model:value="artifactSearch[pkg.Id]" size="small" placeholder="Filter artifacts (id / version / type)" clearable style="max-width:320px; margin-bottom:8px"/>
+                              <div style="margin-bottom:6px; display:flex; gap:8px; flex-wrap:wrap">
+                                <n-button tertiary size="tiny" @click="selectAllFiltered(pkg.Id)" :disabled="!filteredArtifacts(pkg.Id).length">Select All Filtered</n-button>
+                                <n-button tertiary size="tiny" @click="clearSelections(pkg.Id)" :disabled="!(artifactSelections[pkg.Id]||[]).length">Clear Selected</n-button>
                               </div>
-                              <div v-else>
-                                <n-input v-model:value="artifactSearch[pkg.Id]" size="small" placeholder="Filter artifacts (id / version / type)" clearable style="max-width:320px; margin-bottom:8px"/>
-                                <div style="margin-bottom:6px; display:flex; gap:8px; flex-wrap:wrap">
-                                  <n-button tertiary size="tiny" @click="selectAllFiltered(pkg.Id)" :disabled="!filteredArtifacts(pkg.Id).length">Select All Filtered</n-button>
-                                  <n-button tertiary size="tiny" @click="clearSelections(pkg.Id)" :disabled="!(artifactSelections[pkg.Id]||[]).length">Clear Selected</n-button>
+                              <n-scrollbar style="max-height:260px; border:1px solid var(--n-border-color); padding:6px; border-radius:4px">
+                                <div style="display:flex; flex-wrap:wrap; gap:6px">
+                                  <n-tag
+                                    v-for="a in filteredArtifacts(pkg.Id)"
+                                    :key="pkg.Id + '-' + a.Id + '@' + a.Version"
+                                    :type="isArtifactSelected(pkg.Id, a) ? 'success' : 'default'"
+                                    :bordered="false"
+                                    size="small"
+                                    style="cursor:pointer"
+                                    @click="toggleArtifact(pkg.Id, a)"
+                                  >
+                                    {{ a.Id }}@{{ a.Version }}
+                                    <template v-if="isArtifactSelected(pkg.Id, a)"><span style="margin-left:4px">✔</span></template>
+                                  </n-tag>
                                 </div>
-                                <n-scrollbar style="max-height:260px; border:1px solid var(--n-border-color); padding:6px; border-radius:4px">
-                                  <div style="display:flex; flex-wrap:wrap; gap:6px">
-                                    <n-tag
-                                      v-for="a in filteredArtifacts(pkg.Id)"
-                                      :key="pkg.Id + '-' + a.Id + '@' + a.Version"
-                                      :type="isArtifactSelected(pkg.Id, a) ? 'success' : 'default'"
-                                      :bordered="false"
-                                      size="small"
-                                      style="cursor:pointer"
-                                      @click="toggleArtifact(pkg.Id, a)"
-                                    >
-                                      {{ a.Id }}@{{ a.Version }}
-                                      <template v-if="isArtifactSelected(pkg.Id, a)"><span style="margin-left:4px">✔</span></template>
-                                    </n-tag>
-                                  </div>
-                                </n-scrollbar>
-                              </div>
-                            </template>
-                          </n-spin>
+                              </n-scrollbar>
+                            </div>
+                          </div>
                         </n-collapse-item>
                       </n-collapse>
                       <div v-if="selectedArtifacts.length" style="margin-top:10px">
@@ -217,7 +218,7 @@
                         </div>
                       </div>
                     </div>
-                  </div>
+                  </n-flex>
                   <div>
                     <n-button type="primary" secondary @click="handleGenerate">Generate</n-button>
                   </div>
