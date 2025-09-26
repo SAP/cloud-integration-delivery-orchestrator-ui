@@ -1,43 +1,5 @@
 <template>
   <div style="margin: 0 42px">
-    <!-- tenant details modal -->
-    <n-modal
-      v-model:show="showTenantDetails"
-      preset="card"
-      title="Tenant Details"
-      style="max-width:640px"
-      size="small"
-      :closable="true"
-      :close-on-esc="true"
-      :mask-closable="true"
-    >
-      <div v-if="deliveryRequest.SourceTenant">
-        <n-flex vertical style="gap:12px">
-          <div>
-            <n-text depth="3" strong>Tenant</n-text>
-            <div style="margin-top:4px">
-              <n-tag type="info" :bordered="false">#{{ deliveryRequest.SourceTenant.ID }} {{ deliveryRequest.SourceTenant.Name }}</n-tag>
-            </div>
-          </div>
-          <div v-if="deliveryRequest.SourceTenant.TransportNode">
-            <n-text depth="3" strong>Transport Node</n-text>
-            <div style="margin-top:4px">
-              <n-tag type="success" :bordered="false">
-                #{{ deliveryRequest.SourceTenant.TransportNode.id }} {{ deliveryRequest.SourceTenant.TransportNode.name }} - {{ deliveryRequest.SourceTenant.TransportNode.description }}
-              </n-tag>
-            </div>
-          </div>
-          <div v-if="deliveryRequest.SourceTenant.CpiEndpoint">
-            <n-text depth="3" strong>CPI Endpoint</n-text>
-            <div style="margin-top:4px">
-              <n-tag type="warning" :bordered="false">
-                {{ deliveryRequest.SourceTenant.CpiEndpoint.name }} ({{ deliveryRequest.SourceTenant.CpiEndpoint.url }})
-              </n-tag>
-            </div>
-          </div>
-        </n-flex>
-      </div>
-    </n-modal>
     <!-- artifact details modal -->
     <n-modal
       v-model:show="showArtifactDetails"
@@ -167,19 +129,22 @@
                   <n-divider dashed title-placement="center" style="margin:0 0 10px 0; font-weight:600; letter-spacing:.5px">
                     Source Cpi Tenant
                   </n-divider>
-                  <!-- cpi tenants list -->
-                  <n-flex inline style="gap:8px" v-if="deliveryRequest.SourceTenant">
-                    <n-select style="margin-top:4px; max-width:420px" @update:value="handleSelectSourceCpiTenant" :options="cpiTenantsOptions" filterable/>
+                  <n-select style="margin-top:4px; max-width:420px" @update:value="handleSelectSourceCpiTenant" :options="cpiTenantsOptions" filterable/>
 
-                    <n-tooltip placement="top" trigger="hover">
-                      <template #trigger>
-                        <n-tag type="info" :bordered="false" style="margin-left:6px; cursor:pointer" @click="openTenantDetails">#{{ deliveryRequest.SourceTenant.ID }} {{ deliveryRequest.SourceTenant.Name }}</n-tag>
-                      </template>
-                      View details
-                    </n-tooltip>
-                  </n-flex>
-
-                  <n-flex vertical v-if="deliveryRequest.SourceTenant"> 
+                  <!-- cpi tenants selection -->
+                  <n-flex vertical v-if="deliveryRequest.SourceTenant" style="gap:8px"> 
+                    <div>
+                      <n-text depth="3" strong>Tenant:</n-text>
+                      <n-tag type="info" :bordered="false" style="margin-left:6px">#{{ deliveryRequest.SourceTenant.ID }} {{ deliveryRequest.SourceTenant.Name }}</n-tag>
+                    </div>
+                    <div v-if="deliveryRequest.SourceTenant.TransportNode">
+                      <n-text depth="3" strong>Transport Node:</n-text>
+                      <n-tag type="success" :bordered="false" style="margin-left:6px">#{{ deliveryRequest.SourceTenant.TransportNode.id }} {{ deliveryRequest.SourceTenant.TransportNode.name }} - {{ deliveryRequest.SourceTenant.TransportNode.description }}</n-tag>
+                    </div>
+                    <div v-if="deliveryRequest.SourceTenant.CpiEndpoint">
+                      <n-text depth="3" strong>CPI Endpoint:</n-text>
+                      <n-tag type="warning" :bordered="false" style="margin-left:6px">{{ deliveryRequest.SourceTenant.CpiEndpoint.name }} ({{ deliveryRequest.SourceTenant.CpiEndpoint.url }})</n-tag>
+                    </div>
                     <n-divider dashed title-placement="center" style="margin:0 0 10px 0; font-weight:600; letter-spacing:.5px">
                       Packages({{ selectedPackages.length }})
                     </n-divider>
@@ -347,7 +312,7 @@ export default {
       expandedPackages: [] as string[],
       artifactSelections: {} as { [key: string]: string[] },
       packagesLoading: false,
-      showTenantDetails: false,
+  // tenant details modal removed
       packagesLoadError: '' as string,
       artifactSearch: {} as { [key: string]: string },
       // artifact details state
@@ -360,9 +325,6 @@ export default {
   methods: {
     onEdit() {
       this.editing = true
-    },
-    openTenantDetails() {
-      this.showTenantDetails = true
     },
     async refresh() {
       this.editing = false
