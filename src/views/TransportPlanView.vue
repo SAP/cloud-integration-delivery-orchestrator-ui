@@ -164,13 +164,13 @@
               <template #title> Create Delivery Plan </template>
               <n-card hoverable size="medium">
                 <n-flex vertical style="gap:12px">
-                  <n-flex inline>
-                    <n-text depth="3" strong>Choose Source Cpi Tenant:</n-text>
-                    <n-select style="margin-top:4px; max-width:420px" @update:value="handleSelectSourceCpiTenant" :options="cpiTenantsOptions" filterable/>
-                  </n-flex>
-                  <!-- display selected tenant -->
+                  <n-divider dashed title-placement="center" style="margin:0 0 10px 0; font-weight:600; letter-spacing:.5px">
+                    Source Cpi Tenant
+                  </n-divider>
+                  <!-- cpi tenants list -->
                   <n-flex inline style="gap:8px" v-if="deliveryRequest.SourceTenant">
-                    <n-text depth="3" strong>Tenant:</n-text>
+                    <n-select style="margin-top:4px; max-width:420px" @update:value="handleSelectSourceCpiTenant" :options="cpiTenantsOptions" filterable/>
+
                     <n-tooltip placement="top" trigger="hover">
                       <template #trigger>
                         <n-tag type="info" :bordered="false" style="margin-left:6px; cursor:pointer" @click="openTenantDetails">#{{ deliveryRequest.SourceTenant.ID }} {{ deliveryRequest.SourceTenant.Name }}</n-tag>
@@ -178,8 +178,11 @@
                       View details
                     </n-tooltip>
                   </n-flex>
+
                   <n-flex vertical v-if="deliveryRequest.SourceTenant"> 
-                    <n-text depth="3" strong>Packages:</n-text>
+                    <n-divider dashed title-placement="center" style="margin:0 0 10px 0; font-weight:600; letter-spacing:.5px">
+                      Packages({{ selectedPackages.length }})
+                    </n-divider>
                     <div style="margin-top:6px">
                       <!-- Error State -->
                       <n-alert v-if="packagesLoadError" type="error" closable @close="packagesLoadError=''" style="max-width:420px">
@@ -227,11 +230,15 @@
                               <n-empty description="No artifacts" />
                             </div>
                             <div v-else>
-                              <n-input v-model:value="artifactSearch[pkg.Id]" size="small" placeholder="Filter artifacts (id / version / type)" clearable style="max-width:320px; margin-bottom:8px"/>
-                              <div style="margin-bottom:6px; display:flex; gap:8px; flex-wrap:wrap">
+                              <n-flex>
+                                <n-input v-model:value="artifactSearch[pkg.Id]" size="small" placeholder="Filter artifacts (id / version / type)" clearable style="max-width:320px; margin-bottom:8px"/>
                                 <n-button tertiary size="tiny" @click="selectAllFiltered(pkg.Id)" :disabled="!filteredArtifacts(pkg.Id).length">Select All Filtered</n-button>
                                 <n-button tertiary size="tiny" @click="clearSelections(pkg.Id)" :disabled="!(artifactSelections[pkg.Id]||[]).length">Clear Selected</n-button>
-                              </div>
+                                <n-text depth="1" type="info" style="font-size:12px; margin-left:auto">
+                                  Hint: click Info16Regular icon on an artifact tag to view details
+                                </n-text>
+                              </n-flex>
+
                               <!-- Artifact list section -->
                               <n-scrollbar style="max-height:260px; border:1px solid var(--n-border-color); padding:6px; border-radius:4px">
                                 <div style="display:flex; flex-wrap:wrap; gap:6px">
@@ -241,14 +248,14 @@
                                     :type="isArtifactSelected(pkg.Id, a) ? 'success' : 'default'"
                                     :bordered="false"
                                     size="small"
-                                    style="cursor:pointer; display:inline-flex; align-items:center; gap:4px"
                                     @click="toggleArtifact(pkg.Id, a)"
                                   >
+                                  <!-- TODO: may extract a component -->
                                     <span>{{ a.Id }}@{{ a.Version }}</span>
                                     <template v-if="isArtifactSelected(pkg.Id, a)"><span style="margin-left:2px">✔</span></template>
                                     <n-tooltip trigger="hover" placement="top">
                                       <template #trigger>
-                                        <n-icon size="14" @click.stop="openArtifactDetails(pkg.Id, a)">
+                                        <n-icon size="18" @click.stop="openArtifactDetails(pkg.Id, a)">
                                           <Info16Regular />
                                         </n-icon>
                                       </template>
@@ -261,10 +268,22 @@
                           </div>
                         </n-collapse-item>
                       </n-collapse>
-                      <div v-if="selectedArtifacts.length" style="margin-top:10px">
-                        <n-text depth="3" strong>Selected Artifacts:</n-text>
-                        <div style="margin-top:4px; display:flex; flex-wrap:wrap; gap:6px">
-                          <n-tag v-for="(a, i) in selectedArtifacts" :key="'sel-' + i + '-' + a.Id + '@' + a.Version" type="info" size="small" :bordered="false">{{ a.Id }}@{{ a.Version }}</n-tag>
+                      <div v-if="selectedArtifacts.length" style="margin-top:18px">
+                        <n-divider dashed title-placement="center" style="margin:0 0 10px 0; font-weight:600; letter-spacing:.5px">
+                          Selected Artifacts ({{ selectedArtifacts.length }})
+                        </n-divider>
+                        <div style="display:flex; flex-wrap:wrap; gap:6px">
+                          <n-tag v-for="(a, i) in selectedArtifacts" :key="'sel-' + i + '-' + a.Id + '@' + a.Version" type="info" size="small" :bordered="false">
+                            {{ a.Id }}@{{ a.Version }}
+                            <n-tooltip trigger="hover" placement="top">
+                              <template #trigger>
+                                <n-icon size="18" @click.stop="openArtifactDetails(a.Package, a)">
+                                  <Info16Regular />
+                                </n-icon>
+                              </template>
+                              Show Details
+                            </n-tooltip>
+                          </n-tag>
                         </div>
                       </div>
                     </div>
