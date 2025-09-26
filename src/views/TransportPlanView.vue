@@ -1,16 +1,8 @@
 <template>
   <div style="margin: 0 42px">
     <!-- artifact details modal -->
-    <n-modal
-      v-model:show="showArtifactDetails"
-      preset="card"
-      title="Artifact Details"
-      style="max-width:560px"
-      size="small"
-      :closable="true"
-      :close-on-esc="true"
-      :mask-closable="true"
-    >
+    <n-modal v-model:show="showArtifactDetails" preset="card" title="Artifact Details" style="max-width:560px"
+      size="small" :closable="true" :close-on-esc="true" :mask-closable="true">
       <div v-if="artifactDetail">
         <n-flex vertical style="gap:12px">
           <div style="display:flex; gap:16px; flex-wrap:wrap">
@@ -35,7 +27,7 @@
             <n-button size="small" type="primary" @click="toggleArtifact(artifactDetailPkgId, artifactDetail)">
               {{ isArtifactSelected(artifactDetailPkgId, artifactDetail) ? 'Unselect' : 'Select' }}
             </n-button>
-            <n-button size="small" secondary @click="showArtifactDetails=false">Close</n-button>
+            <n-button size="small" secondary @click="showArtifactDetails = false">Close</n-button>
           </div>
         </n-flex>
       </div>
@@ -46,26 +38,15 @@
         <!-- delivery request name and desctiption -->
         <n-gi>
           <n-flex vertical>
-            <n-input
-              class="ui5-title-root"
-              v-model:value="deliveryRequest.Name"
-              placeholder="Delivery Request Name"
-              clearable
-              autofocus
-              v-if="editing"
-            />
+            <n-input class="ui5-title-root" v-model:value="deliveryRequest.Name" placeholder="Delivery Request Name"
+              clearable autofocus v-if="editing" />
             <span class="ui5-title-root" v-else-if="deliveryRequest.Name">
               <n-text depth="3"> Delivery Request Name: </n-text>
               {{ deliveryRequest.Name }}
             </span>
             <!-- plan JIRA link -->
-            <n-input
-              v-model:value="deliveryRequest.JiraLink"
-              placeholder="Delivery Request Description"
-              size="large"
-              clearable
-              v-if="editing"
-            />
+            <n-input v-model:value="deliveryRequest.JiraLink" placeholder="Delivery Request Description" size="large"
+              clearable v-if="editing" />
             <n-text style="font-weight: bold" v-else-if="deliveryRequest.JiraLink">
               {{ deliveryRequest.JiraLink }}
             </n-text>
@@ -120,33 +101,45 @@
               <template #title> Create Delivery Plan </template>
               <n-card hoverable size="medium">
                 <n-flex vertical style="gap:12px">
-                  <n-divider dashed title-placement="center" style="margin:0 0 10px 0; font-weight:600; letter-spacing:.5px">
+                  <n-divider dashed title-placement="center"
+                    style="margin:0 0 10px 0; font-weight:600; letter-spacing:.5px">
                     Source Cpi Tenant
                   </n-divider>
-                  <n-select style="margin-top:4px; max-width:420px" @update:value="handleSelectSourceCpiTenant" :options="cpiTenantsOptions" filterable/>
+                  <n-select style="margin-top:4px; max-width:420px" @update:value="handleSelectSourceCpiTenant"
+                    :options="cpiTenantsOptions" filterable />
 
                   <!-- cpi tenants selection -->
-                  <n-flex vertical v-if="deliveryRequest.SourceTenant" style="gap:8px"> 
+                  <n-flex vertical v-if="deliveryRequest.SourceTenant" style="gap:8px">
                     <div>
                       <n-text depth="3" strong>Tenant:</n-text>
-                      <n-tag type="info" :bordered="false" style="margin-left:6px">#{{ deliveryRequest.SourceTenant.ID }} {{ deliveryRequest.SourceTenant.Name }}</n-tag>
+                      <n-tag type="info" :bordered="false" style="margin-left:6px">#{{ deliveryRequest.SourceTenant.ID
+                        }} {{
+                          deliveryRequest.SourceTenant.Name }}</n-tag>
                     </div>
                     <div v-if="deliveryRequest.SourceTenant.TransportNode">
                       <n-text depth="3" strong>Transport Node:</n-text>
-                      <n-tag type="success" :bordered="false" style="margin-left:6px">#{{ deliveryRequest.SourceTenant.TransportNode.id }} {{ deliveryRequest.SourceTenant.TransportNode.name }} - {{ deliveryRequest.SourceTenant.TransportNode.description }}</n-tag>
+                      <n-tag type="success" :bordered="false" style="margin-left:6px">#{{
+                        deliveryRequest.SourceTenant.TransportNode.id }} {{
+                          deliveryRequest.SourceTenant.TransportNode.name }} - {{
+                          deliveryRequest.SourceTenant.TransportNode.description }}</n-tag>
                     </div>
                     <div v-if="deliveryRequest.SourceTenant.CpiEndpoint">
                       <n-text depth="3" strong>CPI Endpoint:</n-text>
-                      <n-tag type="warning" :bordered="false" style="margin-left:6px">{{ deliveryRequest.SourceTenant.CpiEndpoint.name }} ({{ deliveryRequest.SourceTenant.CpiEndpoint.url }})</n-tag>
+                      <n-tag type="warning" :bordered="false" style="margin-left:6px">{{
+                        deliveryRequest.SourceTenant.CpiEndpoint.name
+                        }} ({{ deliveryRequest.SourceTenant.CpiEndpoint.url }})</n-tag>
                     </div>
-                    <n-divider dashed title-placement="center" style="margin:0 0 10px 0; font-weight:600; letter-spacing:.5px">
+                    <n-divider dashed title-placement="center"
+                      style="margin:0 0 10px 0; font-weight:600; letter-spacing:.5px">
                       Packages({{ selectedPackages.length }})
                     </n-divider>
                     <div style="margin-top:6px">
                       <!-- Error State -->
-                      <n-alert v-if="packagesLoadError" type="error" closable @close="packagesLoadError=''" style="max-width:420px">
+                      <n-alert v-if="packagesLoadError" type="error" closable @close="packagesLoadError = ''"
+                        style="max-width:420px">
                         {{ packagesLoadError }}
-                        <n-button size="tiny" text type="primary" @click.stop="retryFetchPackages" style="margin-left:8px">Retry</n-button>
+                        <n-button size="tiny" text type="primary" @click.stop="retryFetchPackages"
+                          style="margin-left:8px">Retry</n-button>
                       </n-alert>
                       <!-- Loading Skeleton -->
                       <div v-else-if="packagesLoading" style="max-width:420px">
@@ -156,16 +149,9 @@
                       </div>
                       <!-- Packages Select -->
                       <div v-else>
-                        <n-select
-                          v-model:value="selectedPackages"
-                          :options="packagesOptions"
-                          multiple
-                          clearable
-                          filterable
-                          placeholder="Select packages from this tenant"
-                          style="width: 420px"
-                          :disabled="!packagesOptions.length"
-                        />
+                        <n-select v-model:value="selectedPackages" :options="packagesOptions" multiple clearable
+                          filterable placeholder="Select packages from this tenant" style="width: 420px"
+                          :disabled="!packagesOptions.length" />
                         <div v-if="!packagesOptions.length" style="margin-top:6px">
                           <n-text depth="3" type="warning">No packages found for this tenant.</n-text>
                         </div>
@@ -176,12 +162,13 @@
                       <n-text depth="3" strong>Artifacts (select to include):</n-text>
                       <n-collapse v-model:expanded-names="expandedPackages" style="margin-top:6px">
                         <!-- Package Lists -->
-                        <n-collapse-item v-for="pkg in selectedPackages" :key="pkg.Id" :name="pkg.Id" :title="packageLabel(pkg)">
+                        <n-collapse-item v-for="pkg in selectedPackages" :key="pkg.Id" :name="pkg.Id"
+                          :title="packageLabel(pkg)">
                           <div v-if="loadingPackages[pkg.Id]" style="padding:4px 0">
                             <n-skeleton text style="width:55%" :repeat="1" />
                             <n-skeleton text style="width:70%; margin-top:6px" :repeat="1" />
                             <div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:10px">
-                              <n-skeleton v-for="i in 6" :key="'art-skel-'+i" text style="width:92px" />
+                              <n-skeleton v-for="i in 6" :key="'art-skel-' + i" text style="width:92px" />
                             </div>
                           </div>
                           <div v-else>
@@ -190,28 +177,30 @@
                             </div>
                             <div v-else>
                               <n-flex>
-                                <n-input v-model:value="artifactSearch[pkg.Id]" size="small" placeholder="Filter artifacts (id / version / type)" clearable style="max-width:320px; margin-bottom:8px"/>
-                                <n-button tertiary size="tiny" @click="selectAllFiltered(pkg.Id)" :disabled="!filteredArtifacts(pkg.Id).length">Select All Filtered</n-button>
-                                <n-button tertiary size="tiny" @click="clearSelections(pkg.Id)" :disabled="!(artifactSelections[pkg.Id]||[]).length">Clear Selected</n-button>
+                                <n-input v-model:value="artifactSearch[pkg.Id]" size="small"
+                                  placeholder="Filter artifacts (id / version / type)" clearable
+                                  style="max-width:320px; margin-bottom:8px" />
+                                <n-button tertiary size="tiny" @click="selectAllFiltered(pkg.Id)"
+                                  :disabled="!filteredArtifacts(pkg.Id).length">Select All Filtered</n-button>
+                                <n-button tertiary size="tiny" @click="clearSelections(pkg.Id)"
+                                  :disabled="!(artifactSelections[pkg.Id] || []).length">Clear Selected</n-button>
                                 <n-text depth="1" type="info" style="font-size:12px; margin-left:auto">
                                   Hint: click Info16Regular icon on an artifact tag to view details
                                 </n-text>
                               </n-flex>
 
                               <!-- Artifact list section -->
-                              <n-scrollbar style="max-height:260px; border:1px solid var(--n-border-color); padding:6px; border-radius:4px">
+                              <n-scrollbar
+                                style="max-height:260px; border:1px solid var(--n-border-color); padding:6px; border-radius:4px">
                                 <div style="display:flex; flex-wrap:wrap; gap:6px">
-                                  <n-tag
-                                    v-for="a in filteredArtifacts(pkg.Id)"
+                                  <n-tag v-for="a in filteredArtifacts(pkg.Id)"
                                     :key="pkg.Id + '-' + a.Id + '@' + a.Version"
-                                    :type="isArtifactSelected(pkg.Id, a) ? 'success' : 'default'"
-                                    :bordered="false"
-                                    size="small"
-                                    @click="toggleArtifact(pkg.Id, a)"
-                                  >
-                                  <!-- TODO: may extract a component -->
+                                    :type="isArtifactSelected(pkg.Id, a) ? 'success' : 'default'" :bordered="false"
+                                    size="small" @click="toggleArtifact(pkg.Id, a)">
+                                    <!-- TODO: may extract a component -->
                                     <span>{{ a.Id }}@{{ a.Version }}</span>
-                                    <template v-if="isArtifactSelected(pkg.Id, a)"><span style="margin-left:2px">✔</span></template>
+                                    <template v-if="isArtifactSelected(pkg.Id, a)"><span
+                                        style="margin-left:2px">✔</span></template>
                                     <n-tooltip trigger="hover" placement="top">
                                       <template #trigger>
                                         <n-icon size="18" @click.stop="openArtifactDetails(pkg.Id, a)">
@@ -230,11 +219,13 @@
                     </div>
                     <!-- selected Artifacts list -->
                     <n-flex vertical v-if="selectedArtifacts.length" style="margin-top:18px">
-                      <n-divider dashed title-placement="center" style="margin:0 0 10px 0; font-weight:600; letter-spacing:.5px">
+                      <n-divider dashed title-placement="center"
+                        style="margin:0 0 10px 0; font-weight:600; letter-spacing:.5px">
                         Selected Artifacts ({{ selectedArtifacts.length }})
                       </n-divider>
                       <n-flex wrap>
-                        <n-tag v-for="(a, i) in selectedArtifacts" :key="'sel-' + i + '-' + a.Id + '@' + a.Version" type="info" size="small" :bordered="false">
+                        <n-tag v-for="(a, i) in selectedArtifacts" :key="'sel-' + i + '-' + a.Id + '@' + a.Version"
+                          type="info" size="small" :bordered="false">
                           {{ a.Id }}@{{ a.Version }}
                           <n-tooltip trigger="hover" placement="top">
                             <template #trigger>
@@ -384,8 +375,8 @@ export default {
         const arts = this.packageArtifacts[pkgId] || []
         keys.forEach(k => {
           const [id, version] = k.split('@')
-            const found = arts.find(a => a.Id === id && a.Version === version)
-            if (found) list.push(found)
+          const found = arts.find(a => a.Id === id && a.Version === version)
+          if (found) list.push(found)
         })
       })
       this.deliveryRequest.Artifacts = list
@@ -487,6 +478,7 @@ export default {
   font-weight: bold;
   font-size: larger;
 }
+
 .card-shadow-class {
   border-radius: 0.5rem;
   box-shadow:
