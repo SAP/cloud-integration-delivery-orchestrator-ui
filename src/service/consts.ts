@@ -3,6 +3,7 @@ import type { ApiEndpoint, Artifact, Job, Package, TransportGroup, TransportNode
 import { h } from 'vue'
 import type { Router } from 'vue-router'
 import { IosArrowForward } from '@vicons/ionicons4'
+import type { DeliveryRequest } from './api'
 
 // uase maco.account400 Cloud Identity Service: https://maco.accounts400.ondemand.com/admin/#/applications/668667c6474e930344d2f375
 // document: https://help.sap.com/docs/cloud-identity-services/cloud-identity-services/configure-client-to-call-identity-authentication-token-endpoint-for-authorization-code-flow
@@ -754,3 +755,119 @@ export function toJobStatusTag(status: string) {
 export function toLocalTime(str: string) {
   return new Date(str).toLocaleString('zh-CN')
 }
+
+export const deliveryRequestColumns: DataTableColumns<DeliveryRequest> = [
+  { type: 'selection', multiple: false },
+  {
+    title: 'ID',
+    key: 'ID',
+    resizable: true,
+    sortOrder: 'descend'
+  },
+  {
+    title: 'Name',
+    key: 'Name',
+    resizable: true
+  },
+  {
+    title: 'Jira Link',
+    key: 'JiraLink',
+    resizable: true,
+    render(row: DeliveryRequest) {
+      if (!row.JiraLink) return ''
+      return h(
+        'a',
+        {
+          href: row.JiraLink,
+          target: '_blank',
+          style: 'color: var(--primary-color)'
+        },
+        row.JiraLink
+      )
+    }
+  },
+  {
+    title: 'Status',
+    key: 'Status',
+    resizable: true,
+    render(row: DeliveryRequest) {
+      const type =
+        row.Status === 'Error'
+          ? 'error'
+          : row.Status === 'Success' || row.Status === 'Completed'
+            ? 'success'
+            : row.Status === 'Draft'
+              ? 'default'
+              : 'info'
+      return h(
+        NTag,
+        { type },
+        { default: () => row.Status }
+      )
+    }
+  },
+  {
+    title: 'Source Tenant',
+    key: 'SourceTenant',
+    resizable: true,
+    render(row: DeliveryRequest) {
+      return row.SourceTenant?.Name || ''
+    }
+  },
+  {
+    title: 'Delivery Rule',
+    key: 'DeliveryRule',
+    resizable: true,
+    render(row: DeliveryRequest) {
+      return row.DeliveryRule?.Name || ''
+    }
+  },
+  {
+    title: 'Artifacts',
+    key: 'Artifacts',
+    resizable: true,
+    render(row: DeliveryRequest) {
+      if (!row.Artifacts?.length) return ''
+      return h(
+        'div',
+        row.Artifacts.map(a =>
+          h(
+            NTag,
+            {
+              size: 'small',
+              style: { marginRight: '4px', marginBottom: '4px' },
+              type: 'info'
+            },
+            { default: () => `${a.Id}@${a.Version}` }
+          )
+        )
+      )
+    }
+  },
+  {
+    title: 'Updated At',
+    key: 'UpdatedAt',
+    resizable: true,
+    render(row: DeliveryRequest) {
+      return toLocalTime(row.UpdatedAt)
+    }
+  },
+  {
+    title: 'Created At',
+    key: 'CreatedAt',
+    resizable: true,
+    render(row: DeliveryRequest) {
+      return toLocalTime(row.CreatedAt)
+    }
+  },
+  {
+    title: 'Created By',
+    key: 'CreatedBy',
+    resizable: true
+  },
+  {
+    title: 'Updated By',
+    key: 'UpdatedBy',
+    resizable: true
+  }
+]

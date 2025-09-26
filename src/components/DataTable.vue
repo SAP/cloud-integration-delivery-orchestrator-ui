@@ -54,14 +54,8 @@
 <script lang="ts">
 import { defineComponent, h, reactive, type HTMLAttributes, type PropType } from 'vue'
 import { type ToolBar } from '@/service/consts'
-import type {
-  DataTableBaseColumn,
-  DataTableColumns,
-  DataTableFilterState,
-  DataTableRowKey
-} from 'naive-ui'
+import type { DataTableColumns, DataTableRowKey } from 'naive-ui'
 import { IosAdd, IosSettings } from '@vicons/ionicons4'
-import type { TableBaseColumn, TableColumn } from 'naive-ui/es/data-table/src/interface'
 
 export default defineComponent({
   props: {
@@ -73,14 +67,15 @@ export default defineComponent({
     customToolBars: { type: Array<ToolBar> },
     handleAdd: { type: Function },
     loading: { type: Boolean },
-    enableSearch: { type: Boolean, default: true }
+    enableSearch: { type: Boolean, default: true },
+    rowClick: { type: Function as PropType<(row: any) => void> }
   },
   data() {
-    const rowProps = (row: Job) => {
+    const rowProps = (row: any) => {
       return {
         style: 'cursor: pointer;',
         onClick: () => {
-          // conso,le.log(row)
+          this.rowClick && this.rowClick(row)
         }
       } as HTMLAttributes
     }
@@ -121,33 +116,33 @@ export default defineComponent({
     },
     handleClearSearch(v: string) {},
     doFilter(v: string[]) {
-      this.columns.forEach((column: DataTableBaseColumn) => {
-        column.filter = (value, row) => {
+      ;(this.columns as any[]).forEach((column: any) => {
+        column.filter = (_value: any, row: any) => {
           const vat = Object.values(row)
             .filter((v) => this.isPrimitive(v))
             .join()
-          for (value of v) {
+          for (const value of v) {
             if (vat.toLowerCase().includes(value.toLowerCase())) {
               return true
             }
           }
           return false
         }
-        column.filterOptionValue = v
+        column.filterOptionValue = v as any
       })
     },
-    isPrimitive(value) {
+    isPrimitive(value: any) {
       const type = typeof value
       return value === null || (type !== 'object' && type !== 'function')
     },
     doSorter() {
-      const st = new Set(this.defaultCheckedRowKeys)
-      this.columns.forEach((column: DataTableBaseColumn) => {
+      const st = new Set(this.defaultCheckedRowKeys as any)
+      ;(this.columns as any[]).forEach((column: any) => {
         if (!column.sortOrder) return
-        column.sorter = (row1, row2) => {
-          const key = this.rowKey
-          const a = st.has(key(row1)) ? 1 : 0
-          const b = st.has(key(row2)) ? 1 : 0
+        column.sorter = (row1: any, row2: any) => {
+          const keyFn = this.rowKey as any
+          const a = st.has(keyFn(row1)) ? 1 : 0
+          const b = st.has(keyFn(row2)) ? 1 : 0
           return a - b
         }
         column.sortOrder = 'descend'

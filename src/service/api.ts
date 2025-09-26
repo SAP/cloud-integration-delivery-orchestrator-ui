@@ -442,3 +442,33 @@ export const DeleteDeliveryRule = (id: number) => {
   return http.delete(`/api/v1/deliveryRule/${id}`)
 }
 
+export interface DeliveryRequest {
+  ID:             number;
+  Name:           string;
+  JiraLink:       string;
+  Status:         string;
+  Artifacts:      Artifact[];
+  SourceTenant:   CpiTenant;   // 后端 Preload 后返回的完整对象
+  DeliveryRule:   DeliveryRule;
+  CreatedBy:      string;
+  UpdatedBy:      string;
+  CreatedAt:      string;      // ISO 字符串
+  UpdatedAt:      string;
+}
+
+// DeliveryRequest CRUD
+export const GetDeliveryRequests = () => {
+  return http.get('/api/v1/deliveryRequest') as Promise<DeliveryRequest[]>
+}
+
+export const GetDeliveryRequest = (id: Number) => {
+  return http.get(`/api/v1/deliveryRequest/${id}`) as Promise<DeliveryRequest>
+}
+
+export const UpsertDeliveryRequest = (req: DeliveryRequest) => {
+  return http.post('/api/v1/deliveryRequest', req) as Promise<DeliveryRequest>
+}
+
+export const DeleteDeliveryRequest = (id: number) => {
+  return http.delete(`/api/v1/deliveryRequest/${id}`)
+}

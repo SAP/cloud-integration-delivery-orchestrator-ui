@@ -67,7 +67,7 @@ const router = createRouter({
       path: '/transportplan/:planId',
       name: 'Transport&Delivery Plan',
       component: () => import('@/views/TransportPlanView.vue'),
-      props: true
+      props: route => ({ planId: Number(route.params.planId) })
     }
   ]
 })
