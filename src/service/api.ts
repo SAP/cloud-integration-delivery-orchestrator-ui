@@ -287,8 +287,14 @@ export interface Package {
 export interface Artifact {
   Id: string
   Version: string
-  Package: string
+  PackageId: string
+  Name: string
   Type: string
+  Description: string
+  CreatedBy: string
+  CreatedAt: string
+  ModifiedBy: string
+  ModifiedAt: string
   TaskId: string
   Status: string
 }
@@ -471,4 +477,35 @@ export const UpsertDeliveryRequest = (req: DeliveryRequest) => {
 
 export const DeleteDeliveryRequest = (id: number) => {
   return http.delete(`/api/v1/deliveryRequest/${id}`)
+}
+
+
+// Version history (CPI cookie service) types & helpers
+export interface ArtifactVersionHistoryItem {
+  comment: string
+  semanticVersion: string
+  technicalVersion: number
+  createdDate: string        // epoch milliseconds in string form
+  createdBy: string
+  state: string
+}
+
+// cpi cookie service
+// version history
+export const GetArtifactVersionHistory = async (
+  cpiTenant: string,
+  targetPackageTechName: string,
+  targetArtifactName: string
+): Promise<ArtifactVersionHistoryItem[]> => {
+  const { data } = await axios.get<ArtifactVersionHistoryItem[]>(
+    '/cpi-cookie-service/api/version_history',
+    {
+      params: {
+        cpi_tenant: cpiTenant,
+        target_package_tech_name: targetPackageTechName,
+        target_artifact_name: targetArtifactName
+      }
+    }
+  )
+  return data
 }

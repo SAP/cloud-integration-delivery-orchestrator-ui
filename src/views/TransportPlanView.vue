@@ -23,6 +23,10 @@
             <n-text depth="3" strong>Raw JSON</n-text>
             <n-code :code="artifactRawJson" language="json" style="margin-top:6px; max-height:260px; overflow:auto" />
           </div>
+          <div>
+            <n-text depth="3" strong>Version History</n-text>
+            {{ artifactVersionHistory }}
+          </div>
           <div style="display:flex; gap:8px">
             <n-button size="small" type="primary" @click="toggleArtifact(artifactDetailPkgId, artifactDetail)">
               {{ isArtifactSelected(artifactDetailPkgId, artifactDetail) ? 'Unselect' : 'Select' }}
@@ -203,7 +207,7 @@
                                         style="margin-left:2px">✔</span></template>
                                     <n-tooltip trigger="hover" placement="top">
                                       <template #trigger>
-                                        <n-icon size="18" @click.stop="openArtifactDetails(pkg.Id, a)">
+                                        <n-icon size="18" @click.stop="openArtifactDetails(a)">
                                           <Info16Regular />
                                         </n-icon>
                                       </template>
@@ -229,7 +233,7 @@
                           {{ a.Id }}@{{ a.Version }}
                           <n-tooltip trigger="hover" placement="top">
                             <template #trigger>
-                              <n-icon size="18" @click.stop="openArtifactDetails(a.Package, a)">
+                              <n-icon size="18" @click.stop="openArtifactDetails(a)">
                                 <Info16Regular />
                               </n-icon>
                             </template>
@@ -262,7 +266,9 @@ import {
   type DeliveryRequest,
   type Package,
   type Artifact,
-  DeleteDeliveryRequest
+  DeleteDeliveryRequest,
+  GetArtifactVersionHistory,
+  type ArtifactVersionHistoryItem
 } from '@/service/api'
 import { toLocalTime } from '@/service/consts'
 import { Edit16Regular, Delete28Regular, Info16Regular } from '@vicons/fluent'
@@ -301,6 +307,7 @@ export default {
       artifactDetail: null as Artifact | null,
       artifactDetailPkgId: '' as string,
       artifactRawJson: '' as string,
+      artifactVersionHistory: [] as ArtifactVersionHistoryItem[]
     }
   },
   methods: {
@@ -418,11 +425,16 @@ export default {
       this.artifactSelections[pkgId] = []
       this.updateArtifactsFromSelection()
     },
-    openArtifactDetails(pkgId: string, a: Artifact) {
+    async openArtifactDetails(a: Artifact) {
       this.artifactDetail = a
-      this.artifactDetailPkgId = pkgId
+      this.artifactDetailPkgId = a.PackageId
       this.artifactRawJson = JSON.stringify(a, null, 2)
       this.showArtifactDetails = true
+      
+      const cpiTenantUrl = this.deliveryRequest.SourceTenant.CpiEndpoint.url
+      const baseUrl = new URL(cpiTenantUrl)
+      this.artifactVersionHistory = await GetArtifactVersionHistory(`${baseUrl.protocol}//${baseUrl.host}`, a.PackageId, a.Id)
+      console.log(this.artifactVersionHistory)
     },
   },
   watch: {

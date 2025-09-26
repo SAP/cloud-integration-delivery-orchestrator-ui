@@ -29,6 +29,12 @@ export default defineConfig(({mode}) => {
           rewrite: (path) => path.replace(/^\/user/, ''),
           secure: false,
           changeOrigin: true,
+        },
+        '^/cpi-cookie-service/.*': {
+          target: env.VITE_CPI_COOKIE_SERVICE_URL,
+          rewrite: (path) => path.replace(/^\/cpi-cookie-service/, ''),
+          secure: false,
+          changeOrigin: true,
         }
       },
       port: parseInt(env.VITE_PORT),
