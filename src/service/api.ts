@@ -251,7 +251,7 @@ export interface NodeTransportRequest {
   createdBy: string
 }
 
-export interface TMSRoute {
+export interface TransportRoute {
   id: number
   description: string
   name: string
@@ -269,7 +269,7 @@ export const GetTransportRequests = (node_id: number | string) => {
 }
 
 export const GetTransportRoutes = () => {
-  return http.get('/api/v1/tms/routes') as Promise<TMSRoute[]>
+  return http.get('/api/v1/tms/routes') as Promise<TransportRoute[]>
 }
 
 // CPI
@@ -295,6 +295,7 @@ export interface Artifact {
   CreatedAt: string
   ModifiedBy: string
   ModifiedAt: string
+  TransportRequestNumber: string
   TaskId: string
   Status: string
 }
@@ -456,6 +457,9 @@ export interface DeliveryRequest {
   Artifacts:      Artifact[];
   SourceTenant:   CpiTenant;   // 后端 Preload 后返回的完整对象
   DeliveryRule:   DeliveryRule;
+  TargetNodes:    TransportNode[];
+  TargetRoutes:   TransportRoute[];
+  DeliveredTo:    CpiTenant[]; // 已经成功投递到的 CPI 租户
   CreatedBy:      string;
   UpdatedBy:      string;
   CreatedAt:      string;      // ISO 字符串

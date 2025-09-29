@@ -1,42 +1,43 @@
 <template>
+  <!-- artifact details modal -->
+  <n-modal v-model:show="showArtifactDetails" preset="card" title="Artifact Details" style="max-width:560px"
+    size="small" :closable="true" :close-on-esc="true" :mask-closable="true">
+    <div v-if="artifactDetail">
+      <n-flex vertical style="gap:12px">
+        <div style="display:flex; gap:16px; flex-wrap:wrap">
+          <div>
+            <n-text depth="3" strong>ID</n-text>
+            <div style="margin-top:4px">{{ artifactDetail.Id }}</div>
+          </div>
+          <div>
+            <n-text depth="3" strong>Version</n-text>
+            <div style="margin-top:4px">{{ artifactDetail.Version }}</div>
+          </div>
+          <div v-if="artifactDetail.Type">
+            <n-text depth="3" strong>Type</n-text>
+            <div style="margin-top:4px">{{ artifactDetail.Type }}</div>
+          </div>
+        </div>
+        <div>
+          <n-text depth="3" strong>Raw JSON</n-text>
+          <n-code :code="artifactRawJson" language="json" style="margin-top:6px; max-height:260px; overflow:auto" />
+        </div>
+        <div>
+          <n-text depth="3" strong>Version History</n-text>
+          {{ artifactVersionHistory }}
+        </div>
+        <div style="display:flex; gap:8px">
+          <n-button size="small" type="primary" @click="toggleArtifact(artifactDetailPkgId, artifactDetail)">
+            {{ isArtifactSelected(artifactDetailPkgId, artifactDetail) ? 'Unselect' : 'Select' }}
+          </n-button>
+          <n-button size="small" secondary @click="showArtifactDetails = false">Close</n-button>
+        </div>
+      </n-flex>
+    </div>
+  </n-modal>
   <div style="margin: 0 42px">
-    <!-- artifact details modal -->
-    <n-modal v-model:show="showArtifactDetails" preset="card" title="Artifact Details" style="max-width:560px"
-      size="small" :closable="true" :close-on-esc="true" :mask-closable="true">
-      <div v-if="artifactDetail">
-        <n-flex vertical style="gap:12px">
-          <div style="display:flex; gap:16px; flex-wrap:wrap">
-            <div>
-              <n-text depth="3" strong>ID</n-text>
-              <div style="margin-top:4px">{{ artifactDetail.Id }}</div>
-            </div>
-            <div>
-              <n-text depth="3" strong>Version</n-text>
-              <div style="margin-top:4px">{{ artifactDetail.Version }}</div>
-            </div>
-            <div v-if="artifactDetail.Type">
-              <n-text depth="3" strong>Type</n-text>
-              <div style="margin-top:4px">{{ artifactDetail.Type }}</div>
-            </div>
-          </div>
-          <div>
-            <n-text depth="3" strong>Raw JSON</n-text>
-            <n-code :code="artifactRawJson" language="json" style="margin-top:6px; max-height:260px; overflow:auto" />
-          </div>
-          <div>
-            <n-text depth="3" strong>Version History</n-text>
-            {{ artifactVersionHistory }}
-          </div>
-          <div style="display:flex; gap:8px">
-            <n-button size="small" type="primary" @click="toggleArtifact(artifactDetailPkgId, artifactDetail)">
-              {{ isArtifactSelected(artifactDetailPkgId, artifactDetail) ? 'Unselect' : 'Select' }}
-            </n-button>
-            <n-button size="small" secondary @click="showArtifactDetails = false">Close</n-button>
-          </div>
-        </n-flex>
-      </div>
-    </n-modal>
-    <!-- head -->
+
+    <!-- header -->
     <n-card class="header-card-shadow-class">
       <n-grid x-gap="10" :cols="5">
         <!-- delivery request name and desctiption -->
@@ -91,7 +92,7 @@
       </n-grid>
     </n-card>
 
-    <!-- step list with config view -->
+    <!-- Generate Delivert Request -->
     <n-card class="card-shadow-class">
       <div style="margin-bottom: 15px; font-size: 15px; font-weight: bold">
         Delivery Request <n-gradient-text type="success">#{{ deliveryRequest.ID }}</n-gradient-text>
@@ -116,22 +117,20 @@
                   <n-flex vertical v-if="deliveryRequest.SourceTenant" style="gap:8px">
                     <div>
                       <n-text depth="3" strong>Tenant:</n-text>
-                      <n-tag type="info" :bordered="false" style="margin-left:6px">#{{ deliveryRequest.SourceTenant.ID
-                        }} {{
-                          deliveryRequest.SourceTenant.Name }}</n-tag>
+                      <n-tag type="info" :bordered="false" style="margin-left:6px">
+                        #{{ deliveryRequest.SourceTenant.ID}} {{deliveryRequest.SourceTenant.Name }}
+                      </n-tag>
                     </div>
                     <div v-if="deliveryRequest.SourceTenant.TransportNode">
                       <n-text depth="3" strong>Transport Node:</n-text>
-                      <n-tag type="success" :bordered="false" style="margin-left:6px">#{{
-                        deliveryRequest.SourceTenant.TransportNode.id }} {{
-                          deliveryRequest.SourceTenant.TransportNode.name }} - {{
-                          deliveryRequest.SourceTenant.TransportNode.description }}</n-tag>
+                      <n-tag type="success" :bordered="false" style="margin-left:6px">
+                        #{{deliveryRequest.SourceTenant.TransportNode.id }} {{deliveryRequest.SourceTenant.TransportNode.name }} - {{deliveryRequest.SourceTenant.TransportNode.description }}</n-tag>
                     </div>
                     <div v-if="deliveryRequest.SourceTenant.CpiEndpoint">
                       <n-text depth="3" strong>CPI Endpoint:</n-text>
-                      <n-tag type="warning" :bordered="false" style="margin-left:6px">{{
-                        deliveryRequest.SourceTenant.CpiEndpoint.name
-                        }} ({{ deliveryRequest.SourceTenant.CpiEndpoint.url }})</n-tag>
+                      <n-tag type="warning" :bordered="false" style="margin-left:6px">
+                        {{deliveryRequest.SourceTenant.CpiEndpoint.name}} ({{ deliveryRequest.SourceTenant.CpiEndpoint.url }})
+                      </n-tag>
                     </div>
                     <n-divider dashed title-placement="center"
                       style="margin:0 0 10px 0; font-weight:600; letter-spacing:.5px">
@@ -253,6 +252,14 @@
       </n-grid>
     </n-card>
   </div>
+
+  <div style="height:1000px; width:100%">
+    <VueFlow :nodes="flowNodes" :edges="flowEdges" fit-view-on-init>
+      <template #node-cpi-transport="props" >
+        <CpiTransportNode v-bind="props" />
+      </template>
+    </VueFlow>
+  </div>
 </template>
 
 <script lang="ts">
@@ -268,12 +275,19 @@ import {
   type Artifact,
   DeleteDeliveryRequest,
   GetArtifactVersionHistory,
-  type ArtifactVersionHistoryItem
+  type ArtifactVersionHistoryItem,
+  GetTransportRoutes,
+  type TransportNode,
+  type TransportRoute
 } from '@/service/api'
 import { toLocalTime } from '@/service/consts'
 import { Edit16Regular, Delete28Regular, Info16Regular } from '@vicons/fluent'
 import { SaveAltRound, StartTwotone, CancelOutlined } from '@vicons/material'
 import IconBtn from '@/components/IconBtn.vue'
+import { VueFlow, type Edge, type Node } from '@vue-flow/core'
+import CpiTransportNode from '@/components/CpiTransportNode.vue'
+
+
 export default {
   name: 'TransportPlanView',
   components: {
@@ -283,7 +297,9 @@ export default {
     StartTwotone,
     CancelOutlined,
     IconBtn,
-    Info16Regular
+    Info16Regular,
+    VueFlow,
+    CpiTransportNode
   },
   props: { planId: { required: true, type: Number } },
   data() {
@@ -358,6 +374,7 @@ export default {
     async handleGenerate() {
       await UpsertDeliveryRequest(this.deliveryRequest)
       await this.refresh()
+      const routes = await GetTransportRoutes()
     },
     async loadPackageArtifacts(pkgId: string) {
       if (!this.deliveryRequest.SourceTenant) return
@@ -430,7 +447,7 @@ export default {
       this.artifactDetailPkgId = a.PackageId
       this.artifactRawJson = JSON.stringify(a, null, 2)
       this.showArtifactDetails = true
-      
+
       const cpiTenantUrl = this.deliveryRequest.SourceTenant.CpiEndpoint.url
       const baseUrl = new URL(cpiTenantUrl)
       this.artifactVersionHistory = await GetArtifactVersionHistory(`${baseUrl.protocol}//${baseUrl.host}`, a.PackageId, a.Id)
@@ -454,7 +471,8 @@ export default {
     artifactSelections: {
       deep: true,
       handler() { this.updateArtifactsFromSelection() }
-    }
+    },
+    
   },
   computed: {
     packagesOptions() {
@@ -462,6 +480,29 @@ export default {
     },
     selectedArtifacts(): Artifact[] {
       return this.deliveryRequest.Artifacts || []
+    },
+    flowEdges(): Edge[] {
+      if (!this.deliveryRequest.SourceTenant) return []
+      const routes = (this.deliveryRequest)?.TargetRoutes || []
+      return routes.map((route: TransportRoute) => ({
+        id: route.description || `e-${route.sourceNodeId}-to-${route.targetNodeId}`,
+        source: String(route.sourceNodeId),
+        target: String(route.targetNodeId),
+        animated: true,
+        label: route.description || ''
+      }))
+    },
+    flowNodes(): Node[] {      
+      if(!this.deliveryRequest.SourceTenant) return []
+      const nodes = (this.deliveryRequest)?.TargetNodes || []
+      nodes.push(this.deliveryRequest.SourceTenant?.TransportNode as TransportNode) // add source node
+      return nodes.map((node: TransportNode) => ({
+        id: String(node.id),
+        data: { curNode: node, deliveryRequest: this.deliveryRequest },
+        position: { x: Math.random() * 600, y: Math.random() * 400 },
+        type: 'cpi-transport'
+
+      }))
     }
   },
   async created() {
