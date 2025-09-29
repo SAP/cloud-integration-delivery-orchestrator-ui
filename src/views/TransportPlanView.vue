@@ -256,7 +256,13 @@
   <div style="height:1000px; width:100%">
     <VueFlow :nodes="flowNodes" :edges="flowEdges" fit-view-on-init>
       <template #node-cpi-transport="props" >
-        <CpiTransportNode v-bind="props" />
+        <CpiTransportNode
+          v-bind="props"
+          @import-artifact="onImportArtifact"
+            @deploy-artifact="onDeployArtifact"
+            @import-all="onImportAll"
+            @deploy-all="onDeployAll"
+        />
       </template>
     </VueFlow>
   </div>
@@ -453,6 +459,23 @@ export default {
       this.artifactVersionHistory = await GetArtifactVersionHistory(`${baseUrl.protocol}//${baseUrl.host}`, a.PackageId, a.Id)
       console.log(this.artifactVersionHistory)
     },
+    // Node-level artifact operations (stubs / placeholders for backend integration)
+    async onImportArtifact(payload: { node: TransportNode; artifact: Artifact }) {
+      // TODO: integrate with backend import endpoint
+      window.$message?.info(`Import ${payload.artifact.Name} to node ${payload.node.name} (not implemented)`)
+    },
+    async onDeployArtifact(payload: { node: TransportNode; artifact: Artifact }) {
+      // TODO: integrate with backend deploy endpoint
+      window.$message?.info(`Deploy ${payload.artifact.Name} to node ${payload.node.name} (not implemented)`)
+    },
+    async onImportAll(payload: { node: TransportNode; artifacts: Artifact[] }) {
+      // TODO: batch import implementation
+      window.$message?.info(`Import ALL (${payload.artifacts.length}) artifacts to node ${payload.node.name} (not implemented)`)
+    },
+    async onDeployAll(payload: { node: TransportNode; artifacts: Artifact[] }) {
+      // TODO: batch deploy implementation
+      window.$message?.info(`Deploy ALL (${payload.artifacts.length}) artifacts to node ${payload.node.name} (not implemented)`)
+    }
   },
   watch: {
     selectedPackages(newPkgs: Package[], oldPkgs: Package[]) {
@@ -494,14 +517,17 @@ export default {
     },
     flowNodes(): Node[] {      
       if(!this.deliveryRequest.SourceTenant) return []
-      const nodes = (this.deliveryRequest)?.TargetNodes || []
-      nodes.push(this.deliveryRequest.SourceTenant?.TransportNode as TransportNode) // add source node
-      return nodes.map((node: TransportNode) => ({
-        id: String(node.id),
-        data: { curNode: node, deliveryRequest: this.deliveryRequest },
+      const sourceNode = this.deliveryRequest.SourceTenant.TransportNode as TransportNode
+      const targetNodes = (this.deliveryRequest?.TargetNodes || []) as TransportNode[]
+      const all: { node: TransportNode; isSource?: boolean }[] = [
+        { node: sourceNode, isSource: true },
+        ...targetNodes.map(n => ({ node: n }))
+      ]
+      return all.map(entry => ({
+        id: String(entry.node.id),
+        data: { curNode: entry.node, deliveryRequest: this.deliveryRequest, isSource: !!entry.isSource },
         position: { x: Math.random() * 600, y: Math.random() * 400 },
         type: 'cpi-transport'
-
       }))
     }
   },
