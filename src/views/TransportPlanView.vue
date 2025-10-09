@@ -338,7 +338,7 @@ export default {
       packageArtifacts: {} as { [key: string]: Artifact[] }, // packages to their artifacts, this is like a cache for package
       loadingPackages: {} as { [key: string]: boolean },
       expandedPackages: [] as string[],
-      artifactSelections: {} as { [key: string]: string[] },  // selected artifacts within each package, [package id, array of artifact keys (id@version)]
+      artifactSelections: {} as { [key: string]: Artifact[] },  // selected artifacts within each package, [package id, array of artifact keys (id@version)]
       packagesLoading: false,
       packagesLoadError: '' as string,
       artifactSearch: {} as { [key: string]: string },
@@ -432,8 +432,7 @@ export default {
       Object.entries(this.artifactSelections).forEach(([pkgId, keys]) => { // loop selected artifacts
         const pkgArts = this.packageArtifacts[pkgId] || []
         keys.forEach(k => {
-          const [id, version] = k.split('@')
-          const found = pkgArts.find(a => a.TechID === id && a.Version === version)
+          const found = pkgArts.find(a => a.TechID === k.TechID && a.Version === k.Version)
           if (found) artifOp.push({
             DeliveryRequestID: this.deliveryRequest.ID,
             // for quick access, save value in field Artifact.
@@ -451,8 +450,6 @@ export default {
     packageLabel(pkg: Package) {
       return `${pkg.Name} @ ${pkg.Version}`
     },
-    artifactKey(a: Artifact) { return `${a.TechID}@${a.Version}` }
-    ,
     filteredArtifacts(pkgId: string): Artifact[] {
       const list = this.packageArtifacts[pkgId] || []
       const kw = (this.artifactSearch[pkgId] || '').trim().toLowerCase()
@@ -464,20 +461,19 @@ export default {
       )
     },
     isArtifactSelected(pkgId: string, a: Artifact) {
-      const key = this.artifactKey(a)
-      return (this.artifactSelections[pkgId] || []).includes(key)
+      return (this.artifactSelections[pkgId] || []).findIndex(x => x.TechID == a.TechID && x.Version == a.Version) >= 0
     },
     toggleArtifact(pkgId: string, a: Artifact) {
       if (!this.artifactSelections[pkgId]) this.artifactSelections[pkgId] = []
-      const key = this.artifactKey(a)
       const arr = this.artifactSelections[pkgId]
-      const idx = arr.indexOf(key)
-      if (idx >= 0) arr.splice(idx, 1)
-      else arr.push(key)
+      
+      const foundIdx = arr.findIndex(x => x.TechID == a.TechID && x.Version == a.Version)
+      if (foundIdx >= 0) arr.splice(foundIdx, 1)
+      else arr.push(a)
       this.updateArtifactsFromSelection()
     },
     selectAllFiltered(pkgId: string) {
-      const keys = this.filteredArtifacts(pkgId).map(a => this.artifactKey(a))
+      const keys = this.filteredArtifacts(pkgId)
       this.artifactSelections[pkgId] = keys
       this.updateArtifactsFromSelection()
     },
