@@ -2,6 +2,7 @@ import axios from 'axios'
 import { clientId, clientSecret, tokenEndpoint, userInfoEndpoint } from './consts'
 import http from './http'
 import { defineStore } from 'pinia'
+import type { DeployState, ImportState, RequestState } from './statuses'
 // validate if a step can be modified
 export const validate = (step: Step) => {
   if (
@@ -468,9 +469,9 @@ export interface ArtifactTenantOperation {
   TransportRequestNumber: string
 
   // Lifecycle states (backend enum/string values: RequestState / ImportState / DeployState)
-  TransportState: string
-  ImportState: string
-  DeployState: string
+  RequestState: RequestState
+  ImportState: ImportState
+  DeployState: DeployState
 
   LastError: string
   RetryCountImport: number

@@ -202,8 +202,9 @@
                                     size="small" @click="toggleArtifact(pkg.Id, a)">
                                     <!-- TODO: may extract a component -->
                                     <span>{{ a.TechID }}@{{ a.Version }}</span>
-                                    <template v-if="isArtifactSelected(pkg.Id, a)"><span
-                                        style="margin-left:2px">✔</span></template>
+                                    <template v-if="isArtifactSelected(pkg.Id, a)">
+                                      <span style="margin-left:2px">✔</span>
+                                    </template>
                                     <n-tooltip trigger="hover" placement="top">
                                       <template #trigger>
                                         <n-icon size="18" @click.stop="openArtifactDetails(a)">
@@ -435,11 +436,13 @@ export default {
           const found = pkgArts.find(a => a.TechID === id && a.Version === version)
           if (found) artifOp.push({
             DeliveryRequestID: this.deliveryRequest.ID,
+            // for quick access, save value in field Artifact.
             ArtifactTechID: found.TechID,
             ArtifactVersion: found.Version,
             Artifact: found,
             TenantID: this.deliveryRequest.SourceTenant.ID,
             Tenant: this.deliveryRequest.SourceTenant,
+            ImportState: 'NOT_STARTED',
           })
         })
       })

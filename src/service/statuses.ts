@@ -1,0 +1,52 @@
+// Transport (Request) Phase
+export type RequestState =
+  | 'NOT_REQUESTED'
+  | 'REQUESTING'
+  | 'READY'
+  | 'FAILED';
+
+// Import Phase
+export type ImportState =
+  | 'NOT_STARTED'
+  | 'QUEUED'
+  | 'IN_PROGRESS'
+  | 'FAILED'
+  | 'COMPLETE';        // (You can drop PARTIAL if you remove it in Go)
+
+// Deploy Phase
+export type DeployState =
+  | 'NOT_STARTED'
+  | 'QUEUED'
+  | 'IN_PROGRESS'
+  | 'FAILED'
+  | 'COMPLETE'
+  | 'ROLLBACKING'
+  | 'ROLLED_BACK';
+
+// Aggregate Status (public surface)
+export type AggregateStatus =
+  | 'UNKNOWN'
+  | 'PENDING'
+  | 'WAITING_APPROVAL'
+  | 'AWAITING_IMPORT'
+  | 'IMPORTING'
+  | 'IMPORT_FAILED'
+  | 'IMPORTED'
+  | 'DEPLOYING'
+  | 'DEPLOY_FAILED'
+  | 'DEPLOYED'
+  | 'ROLLBACKING'
+  | 'ROLLED_BACK'
+  | 'CANCELED';
+
+// Condition Types
+export type ConditionType =
+  | 'TransportReady'
+  | 'ImportComplete'
+  | 'DeployComplete'
+  | 'PartialProgress'
+  | 'RetryScheduled'
+  | 'RollbackInProgress'
+  | 'Canceled'
+  | 'LastFailurePhase'
+  | 'LastFailureReason';
