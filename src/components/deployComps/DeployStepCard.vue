@@ -13,7 +13,7 @@
       <n-text depth="3" style="font-size: medium">{{ packageName }}:</n-text>
       <n-space>
         <n-tag v-for="(artifact, index) in artifacts" :key="index" type="info" :bordered="false">
-          {{ artifact.Id }}:{{ artifact.Version }}
+          {{ artifact.TechID }}:{{ artifact.Version }}
         </n-tag>
       </n-space>
     </div>

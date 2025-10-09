@@ -2,7 +2,6 @@ import axios from 'axios'
 import { clientId, clientSecret, tokenEndpoint, userInfoEndpoint } from './consts'
 import http from './http'
 import { defineStore } from 'pinia'
-import { ParaglidingSharp } from '@vicons/material'
 // validate if a step can be modified
 export const validate = (step: Step) => {
   if (
@@ -285,7 +284,7 @@ export interface Package {
 
 // design time artifact
 export interface Artifact {
-  Id: string
+  TechID: string
   Version: string
   PackageId: string
   Name: string
@@ -295,7 +294,6 @@ export interface Artifact {
   CreatedAt: string
   ModifiedBy: string
   ModifiedAt: string
-  TransportRequestNumber: string
   TaskId: string
   Status: string
 }
@@ -449,17 +447,51 @@ export const DeleteDeliveryRule = (id: number) => {
   return http.delete(`/api/v1/deliveryRule/${id}`)
 }
 
+// Represents the per-tenant lifecycle operation of an artifact within a delivery request.
+export interface ArtifactTenantOperation {
+  ID: number
+  CreatedAt: string
+  UpdatedAt: string
+  DeletedAt?: string | null
+
+  DeliveryRequestID: number
+
+  ArtifactID: number
+  Artifact: Artifact
+
+  ArtifactTechID: string
+  ArtifactVersion: string
+
+  TenantID: number
+  Tenant?: CpiTenant
+
+  TransportRequestNumber: string
+
+  // Lifecycle states (backend enum/string values: RequestState / ImportState / DeployState)
+  TransportState: string
+  ImportState: string
+  DeployState: string
+
+  LastError: string
+  RetryCountImport: number
+  RetryCountDeploy: number
+  NextRetryAt?: string | null
+
+  // Raw condition/action bytes (backend []byte). Treat as base64 or JSON string.
+  Conditions: string
+}
+
 export interface DeliveryRequest {
   ID:             number;
   Name:           string;
   JiraLink:       string;
-  Status:         string;
-  Artifacts:      Artifact[];
-  SourceTenant:   CpiTenant;   // 后端 Preload 后返回的完整对象
+  Status:         string;  // overall status
+  ArtifactTenantOperations:      ArtifactTenantOperation[];
+  SourceTenant:   CpiTenant;   // mandatory
   DeliveryRule:   DeliveryRule;
   TargetNodes:    TransportNode[];
   TargetRoutes:   TransportRoute[];
-  DeliveredTo:    CpiTenant[]; // 已经成功投递到的 CPI 租户
+  DeliveredTo:    CpiTenant[]; 
   CreatedBy:      string;
   UpdatedBy:      string;
   CreatedAt:      string;      // ISO 字符串
@@ -475,14 +507,45 @@ export const GetDeliveryRequest = (id: Number) => {
   return http.get(`/api/v1/deliveryRequest/${id}`) as Promise<DeliveryRequest>
 }
 
-export const UpsertDeliveryRequest = (req: DeliveryRequest) => {
+export const CreateDeliveryRequest = (req: DeliveryRequest) => {
   return http.post('/api/v1/deliveryRequest', req) as Promise<DeliveryRequest>
+}
+
+export const UpdateDeliveryRequest = (req: DeliveryRequest) => {
+  return http.put(`/api/v1/deliveryRequest`, req) as Promise<DeliveryRequest>
 }
 
 export const DeleteDeliveryRequest = (id: number) => {
   return http.delete(`/api/v1/deliveryRequest/${id}`)
 }
 
+// Placeholder endpoints for artifact import / deploy operations.
+// Adjust paths & payloads once backend contract is finalized.
+export const ImportArtifactsToNode = (
+  deliveryRequestId: number,
+  nodeId: number,
+  artifacts: { id: string; version: string }[]
+) => {
+  return http.post(`/api/v1/deliveryRequest/${deliveryRequestId}/import`, {
+    nodeId,
+    artifacts
+  })
+}
+
+export const DeployArtifactsToNode = (
+  deliveryRequestId: number,
+  nodeId: number,
+  artifacts: { id: string; version: string }[]
+) => {
+  return http.post(`/api/v1/deliveryRequest/${deliveryRequestId}/deploy`, {
+    nodeId,
+    artifacts
+  })
+}
+
+export const CheckArtifactNodeStatus = (artifacts: Artifact[]) => {
+  return http.post('/api/v1/tms/artifactStatus', { artifacts }) as Promise<Artifact[]>;
+}
 
 // Version history (CPI cookie service) types & helpers
 export interface ArtifactVersionHistoryItem {

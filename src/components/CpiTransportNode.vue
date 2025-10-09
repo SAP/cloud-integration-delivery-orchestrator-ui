@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { DeliveryRequest, TransportNode, Artifact, CpiTenant } from '@/service/api'
+import type { DeliveryRequest, TransportNode, ArtifactTenantOperation } from '@/service/api'
 import { computed } from 'vue'
 
 // Props: passed from VueFlow slot
@@ -13,10 +13,10 @@ const props = defineProps({
 })
 
 const emit = defineEmits<{
-  (e: 'import-artifact', payload: { node: TransportNode; artifact: Artifact }): void
-  (e: 'deploy-artifact', payload: { node: TransportNode; artifact: Artifact }): void
-  (e: 'import-all', payload: { node: TransportNode; artifacts: Artifact[] }): void
-  (e: 'deploy-all', payload: { node: TransportNode; artifacts: Artifact[] }): void
+  (e: 'import-artifact', payload: { node: TransportNode; artifact: ArtifactTenantOperation }): void
+  (e: 'deploy-artifact', payload: { node: TransportNode; artifact: ArtifactTenantOperation }): void
+  (e: 'import-all', payload: { node: TransportNode; artifacts: ArtifactTenantOperation[] }): void
+  (e: 'deploy-all', payload: { node: TransportNode; artifacts: ArtifactTenantOperation[] }): void
 }>()
 
 // Helper: list of delivered tenant node ids
@@ -30,16 +30,16 @@ const deliveredNodeIds = computed<number[]>(() => {
 const nodeDelivered = computed(() => deliveredNodeIds.value.includes(props.data.curNode.id))
 
 // Artifacts to display: only if already transported to (delivered) OR if source node
-const visibleArtifacts = computed<Artifact[]>(() => {
-  if (props.data.isSource) return props.data.deliveryRequest.Artifacts || []
-  if (nodeDelivered.value) return props.data.deliveryRequest.Artifacts || []
+const visibleArtifacts = computed<ArtifactTenantOperation[]>(() => {
+  if (props.data.isSource) return props.data.deliveryRequest.ArtifactTenantOperations || []
+  if (nodeDelivered.value) return props.data.deliveryRequest.ArtifactTenantOperations || []
   return []
 })
 
-function handleImport(a: Artifact) {
+function handleImport(a: ArtifactTenantOperation) {
   emit('import-artifact', { node: props.data.curNode, artifact: a })
 }
-function handleDeploy(a: Artifact) {
+function handleDeploy(a: ArtifactTenantOperation) {
   emit('deploy-artifact', { node: props.data.curNode, artifact: a })
 }
 function handleImportAll() {
@@ -67,10 +67,10 @@ function handleDeployAll() {
       <n-text depth="3" style="font-size:11px">No artifacts {{ data.isSource ? '' : 'delivered here yet' }}</n-text>
     </div>
     <n-scrollbar v-else style="max-height:200px; margin-top:4px;">
-      <div v-for="a in visibleArtifacts" :key="a.Id + '@' + a.Version" class="artifact-row">
+      <div v-for="a in visibleArtifacts" :key="a.ArtifactTechID + '@' + a.ArtifactVersion" class="artifact-row">
         <div class="artifact-meta">
-          <span class="artifact-name" :title="a.Name">{{ a.Name }}</span>
-          <span class="artifact-version">@{{ a.Version }}</span>
+          <span class="artifact-name" :title="a.ArtifactTechID">{{ a.ArtifactTechID }}</span>
+          <span class="artifact-version">@{{ a.ArtifactVersion }}</span>
         </div>
         <div v-if="!data.isSource" class="artifact-actions">
           <n-button size="tiny" quaternary @click="handleImport(a)" :disabled="nodeDelivered">Import</n-button>

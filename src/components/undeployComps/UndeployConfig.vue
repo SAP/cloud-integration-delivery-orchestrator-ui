@@ -14,7 +14,7 @@
     :columns="runtimeArtifactColumns"
     :row-key="(row: RuntimeArtifact) => row.Id"
     @update:check-rows="handleRuntimeArtifacts"
-    :default-checked-row-keys="step.Artifacts.map((art) => art.Id)"
+    :default-checked-row-keys="step.Artifacts.map((art) => art.TechID)"
     :loading="!runtimeArtifactOptions || !runtimeArtifactOptions.length"
     :key="step.Endpoint"
   />

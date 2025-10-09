@@ -827,10 +827,10 @@ export const deliveryRequestColumns: DataTableColumns<DeliveryRequest> = [
     key: 'Artifacts',
     resizable: true,
     render(row: DeliveryRequest) {
-      if (!row.Artifacts?.length) return ''
+      if (!row.ArtifactTenantOperations?.length) return ''
       return h(
         'div',
-        row.Artifacts.map(a =>
+        row.ArtifactTenantOperations.map(a =>
           h(
             NTag,
             {
@@ -838,7 +838,7 @@ export const deliveryRequestColumns: DataTableColumns<DeliveryRequest> = [
               style: { marginRight: '4px', marginBottom: '4px' },
               type: 'info'
             },
-            { default: () => `${a.Id}@${a.Version}` }
+            { default: () => `${a.ArtifactTechID}@${a.ArtifactVersion}` }
           )
         )
       )

@@ -13,7 +13,7 @@
     </n-space>
     <n-space>
       <n-tag v-for="(artifact, index) in step.Artifacts" :key="index" type="info" :bordered="false">
-        {{ artifact.Id }}:{{ artifact.Version }}
+        {{ artifact.TechID }}:{{ artifact.Version }}
       </n-tag>
     </n-space>
   </n-card>

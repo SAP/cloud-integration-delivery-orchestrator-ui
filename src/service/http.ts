@@ -28,8 +28,9 @@ service.interceptors.response.use(
     return res.result
   },
   (error) => {
+    const content = error.response.data.msg ? error.response.data.msg : error.response.data.error
     window.$message.error(
-      error.response.data.msg,
+      content,
       {
         closable: true,
         duration: 1000*30

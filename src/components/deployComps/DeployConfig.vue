@@ -21,9 +21,9 @@
     :title="'Design Time Artifacts of ' +  selectedPackage.Name"
     :data="artifactOptions"
     :columns="artifactColumns"
-    :row-key="(row: Artifact) => row.Id"
+    :row-key="(row: Artifact) => row.TechID"
     @update:check-rows="handleArtifacts"
-    :default-checked-row-keys="step.Artifacts.filter((art) => art.PackageId === selectedPackage.Id).map((art) => art.Id)"
+    :default-checked-row-keys="step.Artifacts.filter((art) => art.PackageId === selectedPackage.Id).map((art) => art.TechID)"
     :loading="!artifactOptions || !artifactOptions.length"
     :key="selectedPackage.Id"
   />

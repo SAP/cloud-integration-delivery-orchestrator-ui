@@ -7,7 +7,7 @@
         <div style="display:flex; gap:16px; flex-wrap:wrap">
           <div>
             <n-text depth="3" strong>ID</n-text>
-            <div style="margin-top:4px">{{ artifactDetail.Id }}</div>
+            <div style="margin-top:4px">{{ artifactDetail.TechID }}</div>
           </div>
           <div>
             <n-text depth="3" strong>Version</n-text>
@@ -197,11 +197,11 @@
                                 style="max-height:260px; border:1px solid var(--n-border-color); padding:6px; border-radius:4px">
                                 <div style="display:flex; flex-wrap:wrap; gap:6px">
                                   <n-tag v-for="a in filteredArtifacts(pkg.Id)"
-                                    :key="pkg.Id + '-' + a.Id + '@' + a.Version"
+                                    :key="pkg.Id + '-' + a.TechID + '@' + a.Version"
                                     :type="isArtifactSelected(pkg.Id, a) ? 'success' : 'default'" :bordered="false"
                                     size="small" @click="toggleArtifact(pkg.Id, a)">
                                     <!-- TODO: may extract a component -->
-                                    <span>{{ a.Id }}@{{ a.Version }}</span>
+                                    <span>{{ a.TechID }}@{{ a.Version }}</span>
                                     <template v-if="isArtifactSelected(pkg.Id, a)"><span
                                         style="margin-left:2px">✔</span></template>
                                     <n-tooltip trigger="hover" placement="top">
@@ -227,22 +227,33 @@
                         Selected Artifacts ({{ selectedArtifacts.length }})
                       </n-divider>
                       <n-flex wrap>
-                        <n-tag v-for="(a, i) in selectedArtifacts" :key="'sel-' + i + '-' + a.Id + '@' + a.Version"
+                        <n-tag v-for="(artOp, i) in selectedArtifacts" :key="'sel-' + i + '-' + artOp.ArtifactTechID + '@' + artOp.ArtifactVersion"
                           type="info" size="small" :bordered="false">
-                          {{ a.Id }}@{{ a.Version }}
+                          {{ artOp.ArtifactTechID }}@{{ artOp.ArtifactVersion }}
                           <n-tooltip trigger="hover" placement="top">
                             <template #trigger>
-                              <n-icon size="18" @click.stop="openArtifactDetails(a)">
+                              <n-icon size="18" @click.stop="openArtifactDetails(artOp.Artifact)">
                                 <Info16Regular />
                               </n-icon>
                             </template>
                             Show Details
                           </n-tooltip>
+                          <n-divider vertical />
+                            TR Number:
+                            <n-input
+                            v-model:value="artOp.TransportRequestNumber" size="tiny" placeholder="TR Number"
+                            style="width:90px; margin-left:4px"
+                            @click.stop
+                            :status="!artOp.TransportRequestNumber ? 'warning' : 'info'"
+                            />
+                            
                         </n-tag>
                       </n-flex>
                     </n-flex>
                   </n-flex>
-                  <n-button type="primary" secondary @click="handleGenerate">Generate</n-button>
+                  <n-button type="primary" secondary @click="handleUpdate">Save</n-button>
+                  <n-button size="small" tertiary @click="showFlowModal = true">Show Delivery Flow</n-button>
+
                 </n-flex>
               </n-card>
             </n-step>
@@ -253,26 +264,29 @@
     </n-card>
   </div>
 
-  <div style="height:1000px; width:100%">
-    <VueFlow :nodes="flowNodes" :edges="flowEdges" fit-view-on-init>
-      <template #node-cpi-transport="props" >
-        <CpiTransportNode
-          v-bind="props"
-          @import-artifact="onImportArtifact"
+  <!-- Flow Modal -->
+  <n-modal v-model:show="showFlowModal" preset="card" title="Delivery Flow" :closable="true" :mask-closable="true" style="width:90vw; max-width:1600px">
+    <div style="height:72vh; min-height:560px; width:100%;">
+      <VueFlow :key="showFlowModal ? 'flow-open' : 'flow-closed'" :nodes="flowNodes" :edges="flowEdges" fit-view-on-init>
+        <template #node-cpi-transport="props" >
+          <CpiTransportNode
+            v-bind="props"
+            @import-artifact="onImportArtifact"
             @deploy-artifact="onDeployArtifact"
             @import-all="onImportAll"
             @deploy-all="onDeployAll"
-        />
-      </template>
-    </VueFlow>
-  </div>
+          />
+        </template>
+      </VueFlow>
+    </div>
+  </n-modal>
 </template>
 
 <script lang="ts">
 import {
   GetCpiTenants,
   GetDeliveryRequest,
-  UpsertDeliveryRequest,
+  UpdateDeliveryRequest,
   GetPackages,
   GetPackageArtifacts,
   type CpiTenant,
@@ -284,7 +298,9 @@ import {
   type ArtifactVersionHistoryItem,
   GetTransportRoutes,
   type TransportNode,
-  type TransportRoute
+  type TransportRoute,
+  CheckArtifactNodeStatus,
+  type ArtifactTenantOperation
 } from '@/service/api'
 import { toLocalTime } from '@/service/consts'
 import { Edit16Regular, Delete28Regular, Info16Regular } from '@vicons/fluent'
@@ -292,6 +308,7 @@ import { SaveAltRound, StartTwotone, CancelOutlined } from '@vicons/material'
 import IconBtn from '@/components/IconBtn.vue'
 import { VueFlow, type Edge, type Node } from '@vue-flow/core'
 import CpiTransportNode from '@/components/CpiTransportNode.vue'
+import { ImportArtifactsToNode, DeployArtifactsToNode } from '@/service/api'
 
 
 export default {
@@ -317,19 +334,20 @@ export default {
       cpiTenantsOptions: [] as { label: string; value: CpiTenant }[],
       packageOptions: [] as Package[],
       selectedPackages: [] as Package[],
-      packageArtifacts: {} as { [key: string]: Artifact[] },
+      packageArtifacts: {} as { [key: string]: Artifact[] }, // packages to their artifacts, this is like a cache for package
       loadingPackages: {} as { [key: string]: boolean },
       expandedPackages: [] as string[],
-      artifactSelections: {} as { [key: string]: string[] },
+      artifactSelections: {} as { [key: string]: string[] },  // selected artifacts within each package, [package id, array of artifact keys (id@version)]
       packagesLoading: false,
       packagesLoadError: '' as string,
       artifactSearch: {} as { [key: string]: string },
       // artifact details state
       showArtifactDetails: false,
-      artifactDetail: null as Artifact | null,
+      artifactDetail: {} as Artifact | null,
       artifactDetailPkgId: '' as string,
       artifactRawJson: '' as string,
-      artifactVersionHistory: [] as ArtifactVersionHistoryItem[]
+      artifactVersionHistory: [] as ArtifactVersionHistoryItem[],
+      showFlowModal: false
     }
   },
   methods: {
@@ -377,8 +395,18 @@ export default {
       if (!this.deliveryRequest.SourceTenant) return
       await this.fetchPackagesForTenant(this.deliveryRequest.SourceTenant.CpiEndpoint.name)
     },
-    async handleGenerate() {
-      await UpsertDeliveryRequest(this.deliveryRequest)
+    async handleUpdate() {
+      if (!this.deliveryRequest.SourceTenant) {
+        window.$message?.warning?.('Please select a source CPI tenant')
+        return
+      }
+      for(const a of this.deliveryRequest.ArtifactTenantOperations) {
+        if(!a.TransportRequestNumber || !a.TransportRequestNumber.trim()) {
+          window.$message?.warning?.(`Please provide TR Number for artifact ${a.ArtifactTechID}@${a.ArtifactVersion}`)
+          return
+        }
+      }
+      await UpdateDeliveryRequest(this.deliveryRequest)
       await this.refresh()
       const routes = await GetTransportRoutes()
     },
@@ -389,7 +417,7 @@ export default {
       this.loadingPackages[pkgId] = true
       try {
         this.packageArtifacts[pkgId] = await GetPackageArtifacts(tenantKey, pkgId)
-        if (!this.artifactSelections[pkgId]) {
+        if (!this.artifactSelections[pkgId]) { // clear selected artifacts within the package, if reload the package artifacts
           this.artifactSelections[pkgId] = []
         }
       } catch (e) {
@@ -399,29 +427,35 @@ export default {
       }
     },
     updateArtifactsFromSelection() {
-      // flatten selected artifacts based on artifactSelections
-      const list: Artifact[] = []
-      Object.entries(this.artifactSelections).forEach(([pkgId, keys]) => {
-        const arts = this.packageArtifacts[pkgId] || []
+      const artifOp: Partial<ArtifactTenantOperation>[] = []
+      Object.entries(this.artifactSelections).forEach(([pkgId, keys]) => { // loop selected artifacts
+        const pkgArts = this.packageArtifacts[pkgId] || []
         keys.forEach(k => {
           const [id, version] = k.split('@')
-          const found = arts.find(a => a.Id === id && a.Version === version)
-          if (found) list.push(found)
+          const found = pkgArts.find(a => a.TechID === id && a.Version === version)
+          if (found) artifOp.push({
+            DeliveryRequestID: this.deliveryRequest.ID,
+            ArtifactTechID: found.TechID,
+            ArtifactVersion: found.Version,
+            Artifact: found,
+            TenantID: this.deliveryRequest.SourceTenant.ID,
+            Tenant: this.deliveryRequest.SourceTenant,
+          })
         })
       })
-      this.deliveryRequest.Artifacts = list
+      this.deliveryRequest.ArtifactTenantOperations = artifOp as ArtifactTenantOperation[]
     },
     packageLabel(pkg: Package) {
       return `${pkg.Name} @ ${pkg.Version}`
     },
-    artifactKey(a: Artifact) { return `${a.Id}@${a.Version}` }
+    artifactKey(a: Artifact) { return `${a.TechID}@${a.Version}` }
     ,
     filteredArtifacts(pkgId: string): Artifact[] {
       const list = this.packageArtifacts[pkgId] || []
       const kw = (this.artifactSearch[pkgId] || '').trim().toLowerCase()
       if (!kw) return list
       return list.filter(a =>
-        a.Id.toLowerCase().includes(kw) ||
+        a.TechID.toLowerCase().includes(kw) ||
         a.Version.toLowerCase().includes(kw) ||
         (a.Type && a.Type.toLowerCase().includes(kw))
       )
@@ -456,25 +490,16 @@ export default {
 
       const cpiTenantUrl = this.deliveryRequest.SourceTenant.CpiEndpoint.url
       const baseUrl = new URL(cpiTenantUrl)
-      this.artifactVersionHistory = await GetArtifactVersionHistory(`${baseUrl.protocol}//${baseUrl.host}`, a.PackageId, a.Id)
+      this.artifactVersionHistory = await GetArtifactVersionHistory(`${baseUrl.protocol}//${baseUrl.host}`, a.PackageId, a.TechID)
       console.log(this.artifactVersionHistory)
     },
-    // Node-level artifact operations (stubs / placeholders for backend integration)
-    async onImportArtifact(payload: { node: TransportNode; artifact: Artifact }) {
-      // TODO: integrate with backend import endpoint
-      window.$message?.info(`Import ${payload.artifact.Name} to node ${payload.node.name} (not implemented)`)
+    async onImportArtifact(payload: { node: TransportNode; artifact: ArtifactTenantOperation }) {
     },
-    async onDeployArtifact(payload: { node: TransportNode; artifact: Artifact }) {
-      // TODO: integrate with backend deploy endpoint
-      window.$message?.info(`Deploy ${payload.artifact.Name} to node ${payload.node.name} (not implemented)`)
+    async onDeployArtifact(payload: { node: TransportNode; artifact: ArtifactTenantOperation }) {
     },
-    async onImportAll(payload: { node: TransportNode; artifacts: Artifact[] }) {
-      // TODO: batch import implementation
-      window.$message?.info(`Import ALL (${payload.artifacts.length}) artifacts to node ${payload.node.name} (not implemented)`)
+    async onImportAll(payload: { node: TransportNode; artifacts: ArtifactTenantOperation[] }) {
     },
-    async onDeployAll(payload: { node: TransportNode; artifacts: Artifact[] }) {
-      // TODO: batch deploy implementation
-      window.$message?.info(`Deploy ALL (${payload.artifacts.length}) artifacts to node ${payload.node.name} (not implemented)`)
+    async onDeployAll(payload: { node: TransportNode; artifacts: ArtifactTenantOperation[] }) {
     }
   },
   watch: {
@@ -501,8 +526,11 @@ export default {
     packagesOptions() {
       return this.packageOptions.map(pkg => ({ label: `${pkg.Name} @ ${pkg.Version}`, value: pkg }))
     },
-    selectedArtifacts(): Artifact[] {
-      return this.deliveryRequest.Artifacts || []
+    selectedArtifacts(): ArtifactTenantOperation[] {
+      const ops = this.deliveryRequest.ArtifactTenantOperations || []
+      const srcTenantId = this.deliveryRequest.SourceTenant ? this.deliveryRequest.SourceTenant.ID : undefined
+      if (typeof srcTenantId === 'undefined') return []
+      return ops.filter((op: ArtifactTenantOperation) => op.TenantID === srcTenantId)
     },
     flowEdges(): Edge[] {
       if (!this.deliveryRequest.SourceTenant) return []
@@ -523,12 +551,27 @@ export default {
         { node: sourceNode, isSource: true },
         ...targetNodes.map(n => ({ node: n }))
       ]
-      return all.map(entry => ({
-        id: String(entry.node.id),
-        data: { curNode: entry.node, deliveryRequest: this.deliveryRequest, isSource: !!entry.isSource },
-        position: { x: Math.random() * 600, y: Math.random() * 400 },
-        type: 'cpi-transport'
-      }))
+      const baseX = 80
+      const baseY = 40
+      const colWidth = 240
+      const rowHeight = 220
+      return all.map((entry, idx) => {
+        let position = { x: 0, y: 0 }
+        if (entry.isSource) {
+          position = { x: baseX + colWidth, y: baseY }
+        } else {
+          const tIndex = idx - 1
+          const col = tIndex % 3
+          const row = Math.floor(tIndex / 3)
+          position = { x: baseX + col * colWidth, y: baseY + rowHeight + row * rowHeight }
+        }
+        return {
+          id: String(entry.node.id),
+          data: { curNode: entry.node, deliveryRequest: this.deliveryRequest, isSource: !!entry.isSource },
+          position,
+          type: 'cpi-transport'
+        }
+      })
     }
   },
   async created() {

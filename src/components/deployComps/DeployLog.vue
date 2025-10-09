@@ -19,7 +19,7 @@
       </n-text>
     </template>
     <p v-for="(artifact, index) in step.Artifacts" :key="index">
-      <n-tag :bordered="false" type="info"> {{ artifact.Id }}:{{ artifact.Version }} </n-tag>
+      <n-tag :bordered="false" type="info"> {{ artifact.TechID }}:{{ artifact.Version }} </n-tag>
       - <n-text code>{{ artifact.TaskId }}</n-text> -
       <n-tag :type="toStatusTag(artifact.Status)">
         {{ artifact.Status }}

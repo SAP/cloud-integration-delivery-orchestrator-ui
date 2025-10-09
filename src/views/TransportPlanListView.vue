@@ -7,8 +7,15 @@
     <n-input v-model:value="selectedDeliveryRequest.Name" placeholder="Delivery Plan Name" />
     Description:
     <n-input v-model:value="selectedDeliveryRequest.JiraLink" placeholder="Jira Link" />
+    Delivery Rule:
+    <n-select
+      v-model:value="selectedDeliveryRequest.DeliveryRule"
+      :options="deliveryRuleOptions"
+      placeholder="Select Delivery Rule"
+      clearable
+    />
     <template #action>
-      <n-button type="primary" @click="onSave">Save</n-button>
+      <n-button type="primary" @click="onCreate">Create</n-button>
     </template>
   </n-modal>
   <data-table
@@ -26,7 +33,7 @@
 import { defineComponent } from 'vue'
 import DataTable from '@/components/DataTable.vue'
 import { deliveryRequestColumns, type ToolBar } from '@/service/consts'
-import { DeleteDeliveryRequest, GetDeliveryRequests, UpsertDeliveryRequest, type DeliveryRequest } from '@/service/api';
+import { DeleteDeliveryRequest, GetDeliveryRequests, CreateDeliveryRequest, type DeliveryRequest, GetDeliveryRules, type DeliveryRule } from '@/service/api';
 export default defineComponent({
   components: { DataTable },
   data(){
@@ -42,6 +49,7 @@ export default defineComponent({
       toolBars,
       showModal: false,
       selectedDeliveryRequest: {} as DeliveryRequest,
+      deliveryRuleOptions: [] as {label: string, value: DeliveryRule}[],
     }
   },
   methods: {
@@ -53,9 +61,9 @@ export default defineComponent({
       deliveryRequests.sort((a, b) => new Date(b.UpdatedAt).getTime() - new Date(a.UpdatedAt).getTime())
       this.deliveryRequests = deliveryRequests
     },
-    async onSave() {
+    async onCreate() {
       try {
-        await UpsertDeliveryRequest(this.selectedDeliveryRequest)
+        await CreateDeliveryRequest(this.selectedDeliveryRequest)
         this.showModal = false
         await this.loadDeliveryRequests()
         window.$message?.success?.('Saved')
@@ -80,6 +88,8 @@ export default defineComponent({
   },
   async created() {
     await this.loadDeliveryRequests()
+    const options = await GetDeliveryRules()
+    this.deliveryRuleOptions = options.map(op => ({ label: op.Name, value: op }))
   },
 })
 </script>
