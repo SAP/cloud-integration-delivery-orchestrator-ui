@@ -22,11 +22,12 @@
 
 <script lang="ts">
 import { defineComponent, h, ref } from 'vue'
-import { CopyJob, DeleteJob, GetJobs, NewJob, useUserInfoStore, type Job } from '@/service/api'
+import { CopyJob, DeleteJob, GetJobs, NewJob, useUserInfoStore } from '@/service/api'
 import { type ToolBar } from '@/service/consts'
 import { NTag, type DataTableColumns, type DataTableRowKey } from 'naive-ui'
 import DataTable from '@/components/DataTable.vue'
 import { createJobColums } from '@/service/consts'
+import type { Job } from '@/service/model'
 
 export default defineComponent({
   props: {
@@ -40,13 +41,13 @@ export default defineComponent({
         window.$message.warning('Please input job name and description')
         return
       }
-      const job: Job = {
+      const job = {
         Name: this.jobName,
         Description: this.jobDesc,
         Status: 'Draft',
         Type: this.type,
         ID: 0,
-      }
+      } as Job
       NewJob(job).then((job) => {
         this.$router.push({
           name: 'Job Flow',

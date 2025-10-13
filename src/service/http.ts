@@ -25,6 +25,7 @@ service.interceptors.response.use(
   (response) => {
     const res = response.data
     if (res.msg) window.$message.info(res.msg)
+    if (res.status) window.$message.info(res.status)
     return res.result
   },
   (error) => {

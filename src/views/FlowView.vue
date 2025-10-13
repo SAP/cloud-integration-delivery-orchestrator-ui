@@ -183,8 +183,6 @@ import ImportStepCard from '@/components/importComps/ImportStepCard.vue'
 import DeployStepCard from '@/components/deployComps/DeployStepCard.vue'
 import { SaveAltRound, StartTwotone, CancelOutlined } from '@vicons/material'
 import {
-  type Job,
-  type Step,
   DeleteJob,
   SaveJob,
   FetchJob,
@@ -208,6 +206,7 @@ import UnDeployStepCard from '@/components/undeployComps/UndeployStepCard.vue'
 import UndeployStepCard from '@/components/undeployComps/UndeployStepCard.vue'
 import UndeployConfig from '@/components/undeployComps/UndeployConfig.vue'
 import UndeployLog from '@/components/undeployComps/UndeployLog.vue'
+import type { Job, Step } from '@/service/model'
 export default defineComponent({
   props: {
     jobId: { required: true, type: String }
@@ -247,12 +246,12 @@ export default defineComponent({
     }
   },
   data() {
-    const jobInstance: Job = {}
+    const curJob = {} as Job
 
     return {
       selectedStepType: null,
       stepTypeOptions,
-      jobInstance,
+      jobInstance: curJob,
       current: -1,
       trColums: transportRequestColums,
       message: useMessage(),
@@ -296,11 +295,11 @@ export default defineComponent({
         this.message.error('Not in edit mode.')
         return
       }
-      const newStep: Step = {
+      const newStep= {
         ID: 0,
         Status: 'Draft',
         Type: stepType
-      }
+      } as Step
       this.jobInstance.Steps.push(newStep)
       this.current = this.jobInstance.Steps.length
       // this.jobInstance.status = 'DRAFT'

@@ -222,7 +222,7 @@ export const cpiTenantColums: DataTableColumns<CpiTenant> = [
     render(row: CpiTenant) {
       return h(
         'div',
-        `${row.TransportNode.name}#${row.TransportNode.id}`
+        `${row.TransportNodeName}#${row.TransportNodeID}`
       )
     }
   },

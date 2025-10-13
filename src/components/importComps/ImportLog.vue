@@ -37,7 +37,7 @@
 
 <script lang="ts">
 import { defineComponent, type PropType } from 'vue'
-import { type ImportStep } from '@/service/api'
+import { type ImportStep } from '@/service/model'
 import { stepTypeOptions, toLocalTime } from '@/service/consts'
 export default defineComponent({
   props: {

@@ -36,13 +36,10 @@ import {
   GetCPIApiEndpoints,
   GetPackageArtifacts,
   GetPackages,
-  validate,
-  type ApiEndpoint,
-  type Artifact,
-  type DeployStep,
-  type Package
+  validate
 } from '@/service/api'
 import { apiEndpointColums, artifactColumns, packageColums } from '@/service/consts'
+import type { DeployStep, ApiEndpoint, Package, Artifact } from '@/service/model'
 export default defineComponent({
   props: {
     step: { type: Object as PropType<DeployStep>, required: true }

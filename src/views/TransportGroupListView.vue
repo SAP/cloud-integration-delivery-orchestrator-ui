@@ -49,9 +49,8 @@ import {
   GetCPIApiEndpoints,
   GetTransportGroups,
   GetTransportNodes,
-  type TransportGroup,
-  type TransportNode
 } from '@/service/api'
+import type { TransportGroup } from '@/service/model'
 export default defineComponent({
   components: { DataTable },
   data() {

@@ -6,7 +6,7 @@
         Name:
         <n-input v-model:value="selectedCpiTenant.Name" placeholder="Cpi Tenant Name, e.g. cpi-mmt-dev" />
         TMS Node:
-        <n-select v-model:value="selectedCpiTenant.TransportNode" filterable placeholder="Choose TMS Transport Nodes"
+        <n-select @update:value="onSelectNode" filterable placeholder="Choose TMS Transport Nodes"
             :options="transportNodesOptions" />
 
         Cpi Api Endpoint:
@@ -32,7 +32,8 @@
 import { defineComponent } from 'vue'
 import DataTable from '@/components/DataTable.vue'
 import { cpiTenantColums, type ToolBar } from '@/service/consts'
-import { DeleteCpiTenant, GetCPIApiEndpoints, GetCpiTenants, GetTransportNodes, UpsertCpiTenant, type ApiEndpoint, type CpiTenant, type TransportNode } from '@/service/api'
+import { DeleteCpiTenant, GetCPIApiEndpoints, GetCpiTenants, GetTransportNodes, UpsertCpiTenant } from '@/service/api'
+import type { CpiTenant, TransportNode, ApiEndpoint } from '@/service/model'
 export default defineComponent({
     components: { DataTable },
     data() {
@@ -78,6 +79,11 @@ export default defineComponent({
             this.selectedCpiTenant = {} as CpiTenant
             this.showModal = true
         },
+        onSelectNode(node: TransportNode) {
+            this.selectedCpiTenant.TransportNodeID = node.id
+            this.selectedCpiTenant.TransportNodeName = node.name
+            this.selectedCpiTenant.TransportNodeDescription = node.description
+        }
     },
     async created() {
         await this.refresh()

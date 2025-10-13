@@ -36,7 +36,7 @@
 
 <script lang="ts">
 import { defineComponent, type PropType } from 'vue'
-import { type DeployStep } from '@/service/api'
+import { type DeployStep } from '@/service/model'
 import { toLocalTime, stepTypeOptions } from '@/service/consts'
 export default defineComponent({
   props: {

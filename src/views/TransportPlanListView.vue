@@ -33,7 +33,8 @@
 import { defineComponent } from 'vue'
 import DataTable from '@/components/DataTable.vue'
 import { deliveryRequestColumns, type ToolBar } from '@/service/consts'
-import { DeleteDeliveryRequest, GetDeliveryRequests, CreateDeliveryRequest, type DeliveryRequest, GetDeliveryRules, type DeliveryRule } from '@/service/api';
+import { DeleteDeliveryRequest, GetDeliveryRequests, CreateDeliveryRequest, GetDeliveryRules, } from '@/service/api';
+import type { DeliveryRequest, DeliveryRule } from '@/service/model';
 export default defineComponent({
   components: { DataTable },
   data(){

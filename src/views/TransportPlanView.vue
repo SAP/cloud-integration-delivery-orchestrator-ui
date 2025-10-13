@@ -121,10 +121,10 @@
                         #{{ deliveryRequest.SourceTenant.ID}} {{deliveryRequest.SourceTenant.Name }}
                       </n-tag>
                     </div>
-                    <div v-if="deliveryRequest.SourceTenant.TransportNode">
+                    <div v-if="deliveryRequest.SourceTenant.TransportNodeID">
                       <n-text depth="3" strong>Transport Node:</n-text>
                       <n-tag type="success" :bordered="false" style="margin-left:6px">
-                        #{{deliveryRequest.SourceTenant.TransportNode.id }} {{deliveryRequest.SourceTenant.TransportNode.name }} - {{deliveryRequest.SourceTenant.TransportNode.description }}</n-tag>
+                        #{{deliveryRequest.SourceTenant.TransportNodeID }} {{deliveryRequest.SourceTenant.TransportNodeName }} - {{deliveryRequest.SourceTenant.TransportNodeDescription }}</n-tag>
                     </div>
                     <div v-if="deliveryRequest.SourceTenant.CpiEndpoint">
                       <n-text depth="3" strong>CPI Endpoint:</n-text>
@@ -290,18 +290,10 @@ import {
   UpdateDeliveryRequest,
   GetPackages,
   GetPackageArtifacts,
-  type CpiTenant,
-  type DeliveryRequest,
-  type Package,
-  type Artifact,
   DeleteDeliveryRequest,
   GetArtifactVersionHistory,
-  type ArtifactVersionHistoryItem,
   GetTransportRoutes,
-  type TransportNode,
-  type TransportRoute,
   CheckArtifactNodeStatus,
-  type ArtifactTenantOperation
 } from '@/service/api'
 import { toLocalTime } from '@/service/consts'
 import { Edit16Regular, Delete28Regular, Info16Regular } from '@vicons/fluent'
@@ -310,6 +302,7 @@ import IconBtn from '@/components/IconBtn.vue'
 import { VueFlow, type Edge, type Node } from '@vue-flow/core'
 import CpiTransportNode from '@/components/CpiTransportNode.vue'
 import { ImportArtifactsToNode, DeployArtifactsToNode } from '@/service/api'
+import type { DeliveryRequest, CpiTenant, Package, Artifact, ArtifactVersionHistoryItem, ArtifactTenantOperation, TransportNode, TransportRoute } from '@/service/model'
 
 
 export default {
@@ -544,9 +537,9 @@ export default {
     },
     flowNodes(): Node[] {      
       if(!this.deliveryRequest.SourceTenant) return []
-      const sourceNode = this.deliveryRequest.SourceTenant.TransportNode as TransportNode
+      const sourceNode = this.deliveryRequest.SourceTenant as CpiTenant
       const targetNodes = (this.deliveryRequest?.TargetNodes || []) as TransportNode[]
-      const all: { node: TransportNode; isSource?: boolean }[] = [
+      const all: { node: CpiTenant; isSource?: boolean }[] = [
         { node: sourceNode, isSource: true },
         ...targetNodes.map(n => ({ node: n }))
       ]

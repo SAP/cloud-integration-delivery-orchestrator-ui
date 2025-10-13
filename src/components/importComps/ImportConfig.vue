@@ -25,14 +25,10 @@ import DataTable from '@/components/DataTable.vue'
 import {
   GetTransportNodes,
   GetTransportRequests,
-  validate,
-  type ApiEndpoint,
-  type ImportStep,
-  type Step,
-  type TransportNode,
-  type NodeTransportRequest
+  validate
 } from '@/service/api'
 import { transportNodesColums, transportRequestColums } from '@/service/consts'
+import type { ImportStep, TransportNode, NodeTransportRequest } from '@/service/model'
 import { defineComponent, type PropType } from 'vue'
 
 export default defineComponent({

@@ -66,11 +66,10 @@ import {
     UpsertDeliveryRule,
     DeleteDeliveryRule,
     GetCpiTenants,
-    type DeliveryRule,
-    type CpiTenant
 } from '@/service/api'
 import type { DataTableColumns } from 'naive-ui'
 import {deliveryRuleColumns} from '@/service/consts'
+import type { DeliveryRule, CpiTenant } from '@/service/model'
 
 export default defineComponent({
     components: { DataTable },

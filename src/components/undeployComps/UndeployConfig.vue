@@ -25,12 +25,10 @@ import DataTable from '@/components/DataTable.vue'
 import {
   GetCPIApiEndpoints,
   GetRuntimeArtifacts,
-  validate,
-  type ApiEndpoint,
-  type DeployStep,
-  type RuntimeArtifact
+  validate
 } from '@/service/api'
 import { apiEndpointColums, runtimeArtifactColumns } from '@/service/consts'
+import type { DeployStep, ApiEndpoint, RuntimeArtifact } from '@/service/model'
 export default defineComponent({
   components: {
     DataTable

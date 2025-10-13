@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { DeliveryRequest, TransportNode, ArtifactTenantOperation } from '@/service/api'
+import type { DeliveryRequest, TransportNode, ArtifactTenantOperation } from '@/service/model'
 import { computed } from 'vue'
 
 // Props: passed from VueFlow slot
@@ -23,7 +23,7 @@ const emit = defineEmits<{
 const deliveredNodeIds = computed<number[]>(() => {
   const dr = props.data.deliveryRequest
   if (!dr?.DeliveredTo) return []
-  return dr.DeliveredTo.filter(t => !!t?.TransportNode).map(t => t.TransportNode.id)
+  return dr.DeliveredTo.filter(t => !!t?.TransportNodeID).map(t => t.TransportNodeID)
 })
 
 // Whether this node has already received delivery (all artifacts considered delivered)
