@@ -531,6 +531,13 @@ export default {
       if (typeof srcTenantId === 'undefined') return []
       return ops.filter((op: ArtifactTenantOperation) => op.TenantID === srcTenantId)
     },
+    nodeTenantCache(): Record<number, CpiTenant> { // transport node ID to cpi tenant
+      const cache: Record<number, CpiTenant> = {}
+      this.cpiTenantsOptions.forEach(opt => {
+        cache[opt.value.TransportNodeID] = opt.value
+      })
+      return cache
+    },
     flowEdges(): Edge[] {
       if (!this.deliveryRequest.SourceTenant) return []
       const routes = (this.deliveryRequest)?.TargetRoutes || []
@@ -544,17 +551,28 @@ export default {
     },
     flowNodes(): Node[] {      
       if(!this.deliveryRequest.SourceTenant) return []
-      const tenantToOps = tenantOps(this.deliveryRequest)
-      const all: CpiTenantNodeData[] = []
-      
-      for (const [tenantID, trToOp] of Object.entries(tenantToOps)) {
-        all.push({
-          TenantID: Number(tenantID),
+      const tenantToOps = tenantOps(this.deliveryRequest) // cpi tenant ID - map[trNumber]ArtifactTenantOperation
+      const targetNodes: CpiTenantNodeData[] = []
+      this.deliveryRequest.TargetNodes.forEach((tn: TransportNode) => {
+        const tenant = this.nodeTenantCache[tn.id]
+        const trToOp = tenantToOps[tenant.ID] || {}
+        targetNodes.push({
+          NodeID: tn.id, // transport node ID
+          TenantID: tenant.ID,
           TrToOp: trToOp,
-          IsSource: Number(tenantID) === this.deliveryRequest.SourceTenant.ID,
-          Tenant: trToOp[0].Tenant
+          IsSource: tenant.ID === this.deliveryRequest.SourceTenant.ID,
+          Tenant: tenant
         })
+      })
+
+      const sourceNode: CpiTenantNodeData = {
+        NodeID: this.deliveryRequest.SourceTenant.TransportNodeID,
+        TenantID: this.deliveryRequest.SourceTenant.ID,
+        TrToOp: tenantToOps[this.deliveryRequest.SourceTenant.ID] || {},
+        IsSource: true,
+        Tenant: this.deliveryRequest.SourceTenant
       }
+      const all = [sourceNode, ...targetNodes]
       const baseX = 80
       const baseY = 40
       const colWidth = 240
@@ -570,7 +588,7 @@ export default {
           position = { x: baseX + col * colWidth, y: baseY + rowHeight + row * rowHeight }
         }
         return {
-          id: String(entry.TenantID),
+          id: String(entry.NodeID),
           data: entry,
           position,
           type: 'cpi-transport'

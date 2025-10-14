@@ -46,7 +46,7 @@ function handleDeployAll() {
 <template>
   <div class="cpi-node">
     <div class="node-header" :class="{ source: data.IsSource }">
-      <span class="node-title">{{ data.Tenant.TransportNodeName }}</span>
+      <span class="node-title">{{ data.Tenant.Name }}</span>
       <n-tag v-if="data.IsSource" type="info" size="small" :bordered="false">Source</n-tag>
       <n-tag else :type="'warning'" size="small" :bordered="false">
         Target
@@ -56,7 +56,7 @@ function handleDeployAll() {
       <n-button size="tiny" tertiary @click="handleImportAll" :disabled="nodeImported">Import All</n-button>
       <n-button size="tiny" tertiary type="primary" @click="handleDeployAll" :disabled="nodeDeployed">Deploy All</n-button>
     </div>
-    <div v-if="!ops.length" class="empty-artifacts">
+    <div v-if="!Object.keys(ops).length" class="empty-artifacts">
       <n-text depth="3" style="font-size:11px">No artifacts {{ data.IsSource ? '' : 'delivered here yet' }}</n-text>
     </div>
     <n-scrollbar v-else style="max-height:200px; margin-top:4px;">

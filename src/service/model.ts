@@ -303,6 +303,7 @@ export interface ArtifactVersionHistoryItem {
 }
 
 export interface CpiTenantNodeData {
+  NodeID: number, // equal to TransportNode.ID
   TenantID: number,
   TrToOp: Record<string, ArtifactTenantOperation>, // map[trNumber]ArtifactTenantOperation
   IsSource: boolean,
