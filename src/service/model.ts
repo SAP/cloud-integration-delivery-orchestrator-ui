@@ -16,7 +16,7 @@ export interface ArtifactTenantOperation {
   ArtifactVersion: string
 
   TenantID: number
-  Tenant?: CpiTenant
+  Tenant: CpiTenant
 
   TransportRequestNumber: string
 
@@ -300,4 +300,11 @@ export interface ArtifactVersionHistoryItem {
   createdDate: string        // epoch milliseconds in string form
   createdBy: string
   state: string
+}
+
+export interface CpiTenantNodeData {
+  TenantID: number,
+  TrToOp: Record<string, ArtifactTenantOperation>, // map[trNumber]ArtifactTenantOperation
+  IsSource: boolean,
+  Tenant: CpiTenant
 }

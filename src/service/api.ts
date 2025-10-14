@@ -3,7 +3,7 @@ import { clientId, clientSecret, tokenEndpoint, userInfoEndpoint } from './const
 import http from './http'
 import { defineStore } from 'pinia'
 import type { DeployState, ImportState, RequestState } from './statuses'
-import type { ApiEndpoint, Artifact, ArtifactVersionHistoryItem, CpiTenant, DeliveryRequest, DeliveryRule, Job, NodeTransportRequest, Package, RuntimeArtifact, Step, TransportGroup, TransportNode, TransportPlan, TransportRoute, UserInfo } from './model'
+import type { ApiEndpoint, Artifact, ArtifactTenantOperation, ArtifactVersionHistoryItem, CpiTenant, DeliveryRequest, DeliveryRule, Job, NodeTransportRequest, Package, RuntimeArtifact, Step, TransportGroup, TransportNode, TransportPlan, TransportRoute, UserInfo } from './model'
 // validate if a step can be modified
 export const validate = (step: Step) => {
   if (
@@ -297,4 +297,18 @@ export const GetArtifactVersionHistory = async (
     }
   )
   return data
+}
+
+
+// Cpi tenant operations mapping
+export const tenantOps = (dr: DeliveryRequest) => {
+  const tenantToOps: Record<number, Record<string, ArtifactTenantOperation>> = {}  // cpi tenant ID - map[trNumber]ArtifactTenantOperation
+  dr.ArtifactTenantOperations.forEach(op => {
+    const tenantId = op.Tenant!.ID
+    tenantToOps[tenantId] = tenantToOps[tenantId] || {}
+    const trNumber = (op.TransportRequestNumber ?? 0) as string
+    tenantToOps[tenantId][trNumber] = op
+  })
+
+  return tenantToOps
 }

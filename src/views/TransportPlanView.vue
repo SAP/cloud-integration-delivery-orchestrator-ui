@@ -294,6 +294,7 @@ import {
   GetArtifactVersionHistory,
   GetTransportRoutes,
   CheckArtifactNodeStatus,
+  tenantOps,
 } from '@/service/api'
 import { toLocalTime } from '@/service/consts'
 import { Edit16Regular, Delete28Regular, Info16Regular } from '@vicons/fluent'
@@ -302,7 +303,7 @@ import IconBtn from '@/components/IconBtn.vue'
 import { VueFlow, type Edge, type Node } from '@vue-flow/core'
 import CpiTransportNode from '@/components/CpiTransportNode.vue'
 import { ImportArtifactsToNode, DeployArtifactsToNode } from '@/service/api'
-import type { DeliveryRequest, CpiTenant, Package, Artifact, ArtifactVersionHistoryItem, ArtifactTenantOperation, TransportNode, TransportRoute } from '@/service/model'
+import type { DeliveryRequest, CpiTenant, Package, Artifact, ArtifactVersionHistoryItem, ArtifactTenantOperation, TransportNode, TransportRoute, CpiTenantNodeData } from '@/service/model'
 
 
 export default {
@@ -426,7 +427,13 @@ export default {
         const pkgArts = this.packageArtifacts[pkgId] || []
         keys.forEach(k => {
           const found = pkgArts.find(a => a.TechID === k.TechID && a.Version === k.Version)
+          const existID = this.deliveryRequest.ArtifactTenantOperations?.find(op =>
+            op.ArtifactTechID === k.TechID &&
+            op.ArtifactVersion === k.Version &&
+            op.TenantID === this.deliveryRequest.SourceTenant?.ID
+          )?.ID ?? 0
           if (found) artifOp.push({
+            ID: existID,
             DeliveryRequestID: this.deliveryRequest.ID,
             // for quick access, save value in field Artifact.
             ArtifactTechID: found.TechID,
@@ -485,13 +492,13 @@ export default {
       this.artifactVersionHistory = await GetArtifactVersionHistory(`${baseUrl.protocol}//${baseUrl.host}`, a.PackageId, a.TechID)
       console.log(this.artifactVersionHistory)
     },
-    async onImportArtifact(payload: { node: TransportNode; artifact: ArtifactTenantOperation }) {
+    async onImportArtifact(payload: { tenant: CpiTenant; artifactOp: ArtifactTenantOperation }) {
     },
-    async onDeployArtifact(payload: { node: TransportNode; artifact: ArtifactTenantOperation }) {
+    async onDeployArtifact(payload: { tenant: CpiTenant; artifactOp: ArtifactTenantOperation }) {
     },
-    async onImportAll(payload: { node: TransportNode; artifacts: ArtifactTenantOperation[] }) {
+    async onImportAll(payload: { tenant: CpiTenant; artifactOps: ArtifactTenantOperation[] }) {
     },
-    async onDeployAll(payload: { node: TransportNode; artifacts: ArtifactTenantOperation[] }) {
+    async onDeployAll(payload: { tenant: CpiTenant; artifactOps: ArtifactTenantOperation[] }) {
     }
   },
   watch: {
@@ -537,19 +544,24 @@ export default {
     },
     flowNodes(): Node[] {      
       if(!this.deliveryRequest.SourceTenant) return []
-      const sourceNode = this.deliveryRequest.SourceTenant as CpiTenant
-      const targetNodes = (this.deliveryRequest?.TargetNodes || []) as TransportNode[]
-      const all: { node: CpiTenant; isSource?: boolean }[] = [
-        { node: sourceNode, isSource: true },
-        ...targetNodes.map(n => ({ node: n }))
-      ]
+      const tenantToOps = tenantOps(this.deliveryRequest)
+      const all: CpiTenantNodeData[] = []
+      
+      for (const [tenantID, trToOp] of Object.entries(tenantToOps)) {
+        all.push({
+          TenantID: Number(tenantID),
+          TrToOp: trToOp,
+          IsSource: Number(tenantID) === this.deliveryRequest.SourceTenant.ID,
+          Tenant: trToOp[0].Tenant
+        })
+      }
       const baseX = 80
       const baseY = 40
       const colWidth = 240
       const rowHeight = 220
       return all.map((entry, idx) => {
         let position = { x: 0, y: 0 }
-        if (entry.isSource) {
+        if (entry.IsSource) {
           position = { x: baseX + colWidth, y: baseY }
         } else {
           const tIndex = idx - 1
@@ -558,8 +570,8 @@ export default {
           position = { x: baseX + col * colWidth, y: baseY + rowHeight + row * rowHeight }
         }
         return {
-          id: String(entry.node.id),
-          data: { curNode: entry.node, deliveryRequest: this.deliveryRequest, isSource: !!entry.isSource },
+          id: String(entry.TenantID),
+          data: entry,
           position,
           type: 'cpi-transport'
         }
