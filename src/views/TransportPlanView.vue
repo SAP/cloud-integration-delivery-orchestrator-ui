@@ -576,28 +576,7 @@ export default {
       }
       const all = [sourceNode, ...targetNodes]
       const tRoutes = this.deliveryRequest.TargetRoutes
-      // return NodePosition(sourceNodeID, all, tRoutes)
-      const baseX = 80
-      const baseY = 40
-      const colWidth = 240
-      const rowHeight = 220
-      return all.map((entry, idx) => {
-        let position = { x: 0, y: 0 }
-        if (entry.IsSource) {
-          position = { x: baseX + colWidth, y: baseY }
-        } else {
-          const tIndex = idx - 1
-          const col = tIndex % 3
-          const row = Math.floor(tIndex / 3)
-          position = { x: baseX + col * colWidth, y: baseY + rowHeight + row * rowHeight }
-        }
-        return {
-          id: String(entry.NodeID),
-          data: entry,
-          position,
-          type: 'cpi-transport'
-        }
-      })
+      return NodePosition(sourceNodeID, all, tRoutes)
     }
   },
   async created() {
