@@ -295,6 +295,7 @@ import {
   GetTransportRoutes,
   CheckArtifactNodeStatus,
   tenantOps,
+  NodePosition,
 } from '@/service/api'
 import { toLocalTime } from '@/service/consts'
 import { Edit16Regular, Delete28Regular, Info16Regular } from '@vicons/fluent'
@@ -564,15 +565,18 @@ export default {
           Tenant: tenant
         })
       })
-
+      const sourceNodeID = this.deliveryRequest.SourceTenant.TransportNodeID
+      const sourceTenantID = this.deliveryRequest.SourceTenant.ID
       const sourceNode: CpiTenantNodeData = {
-        NodeID: this.deliveryRequest.SourceTenant.TransportNodeID,
-        TenantID: this.deliveryRequest.SourceTenant.ID,
-        TrToOp: tenantToOps[this.deliveryRequest.SourceTenant.ID] || {},
+        NodeID: sourceNodeID,
+        TenantID: sourceTenantID,
+        TrToOp: tenantToOps[sourceTenantID] || {},
         IsSource: true,
         Tenant: this.deliveryRequest.SourceTenant
       }
       const all = [sourceNode, ...targetNodes]
+      const tRoutes = this.deliveryRequest.TargetRoutes
+      // return NodePosition(sourceNodeID, all, tRoutes)
       const baseX = 80
       const baseY = 40
       const colWidth = 240
