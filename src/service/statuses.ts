@@ -32,12 +32,14 @@ export type AggregateStatus =
   | 'IMPORTING'
   | 'IMPORT_FAILED'
   | 'IMPORTED'
+  | 'AWAITING_DEPLOY'
   | 'DEPLOYING'
   | 'DEPLOY_FAILED'
   | 'DEPLOYED'
   | 'ROLLBACKING'
   | 'ROLLED_BACK'
-  | 'CANCELED';
+  | 'CANCELED'
+  | 'Error';  // error status
 
 // Condition Types
 export type ConditionType =

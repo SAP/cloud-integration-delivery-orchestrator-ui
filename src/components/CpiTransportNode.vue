@@ -1,5 +1,7 @@
 <script setup lang="ts">
-import type { DeliveryRequest, TransportNode, ArtifactTenantOperation, CpiTenant, CpiTenantNodeData } from '@/service/model'
+import { DeriveNodeAgg } from '@/service/api';
+import type { ArtifactTenantOperation, CpiTenant, CpiTenantNodeData } from '@/service/model'
+import type { AggregateStatus } from '@/service/statuses';
 import { computed, reactive } from 'vue'
 
 // Props: passed from VueFlow slot
@@ -29,6 +31,10 @@ const nodeDeployed = computed(() => {
   return Object.values(ops).every(o => o.DeployState === 'COMPLETE')
 })
 
+const nodeAggState = computed((): AggregateStatus => {
+  return DeriveNodeAgg(props.data)
+})
+
 function handleImport(op: ArtifactTenantOperation) {
   emit('import-artifact', { tenant: props.data.Tenant, artifactOp: op })
 }
@@ -48,9 +54,10 @@ function handleDeployAll() {
     <div class="node-header" :class="{ source: data.IsSource }">
       <span class="node-title">{{ data.Tenant.Name }}</span>
       <n-tag v-if="data.IsSource" type="info" size="small" :bordered="false">Source</n-tag>
-      <n-tag else :type="'warning'" size="small" :bordered="false">
-        Target
+      <n-tag v-else :type="'warning'" size="small" :bordered="false">
+        {{ nodeAggState }}
       </n-tag>
+      
     </div>
     <div v-if="!data.IsSource" class="batch-actions">
       <n-button size="tiny" tertiary @click="handleImportAll" :disabled="nodeImported">Import All</n-button>

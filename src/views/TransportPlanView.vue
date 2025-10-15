@@ -294,7 +294,7 @@ import {
   GetArtifactVersionHistory,
   GetTransportRoutes,
   CheckArtifactNodeStatus,
-  tenantOps,
+  TenantOps,
   NodePosition,
 } from '@/service/api'
 import { toLocalTime } from '@/service/consts'
@@ -552,7 +552,7 @@ export default {
     },
     flowNodes(): Node[] {      
       if(!this.deliveryRequest.SourceTenant) return []
-      const tenantToOps = tenantOps(this.deliveryRequest) // cpi tenant ID - map[trNumber]ArtifactTenantOperation
+      const tenantToOps = TenantOps(this.deliveryRequest) // cpi tenant ID - map[trNumber]ArtifactTenantOperation
       const targetNodes: CpiTenantNodeData[] = []
       this.deliveryRequest.TargetNodes.forEach((tn: TransportNode) => {
         const tenant = this.nodeTenantCache[tn.id]

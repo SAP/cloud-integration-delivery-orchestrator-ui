@@ -3,6 +3,7 @@ import { clientId, clientSecret, tokenEndpoint, userInfoEndpoint } from './const
 import http from './http'
 import { defineStore } from 'pinia'
 import type { ApiEndpoint, Artifact, ArtifactTenantOperation, ArtifactVersionHistoryItem, CpiTenant, CpiTenantNodeData, DeliveryRequest, DeliveryRule, Job, NodeTransportRequest, Package, RuntimeArtifact, Step, TransportGroup, TransportNode, TransportPlan, TransportRoute, UserInfo } from './model'
+import type { AggregateStatus } from './statuses'
 // validate if a step can be modified
 export const validate = (step: Step) => {
   if (
@@ -300,7 +301,7 @@ export const GetArtifactVersionHistory = async (
 
 
 // Cpi tenant operations mapping
-export const tenantOps = (dr: DeliveryRequest) => {
+export const TenantOps = (dr: DeliveryRequest) => {
   const tenantToOps: Record<number, Record<string, ArtifactTenantOperation>> = {}  // cpi tenant ID - map[trNumber]ArtifactTenantOperation
   dr.ArtifactTenantOperations.forEach(op => {
     const tenantId = op.Tenant!.ID
@@ -310,6 +311,48 @@ export const tenantOps = (dr: DeliveryRequest) => {
   })
 
   return tenantToOps
+}
+
+export const DeriveNodeAgg = (nodedata: CpiTenantNodeData): AggregateStatus => {
+  const ops = Object.values(nodedata.TrToOp || {})
+  if (ops.length === 0) return 'UNKNOWN'
+
+  // Collect state sets
+  const requestStates = ops.map(op => op.RequestState).filter(Boolean) as string[]
+  const importStates = ops.map(op => op.ImportState).filter(Boolean) as string[]
+  const deployStates = ops.map(op => op.DeployState).filter(Boolean) as string[]
+
+  const any = (arr: string[], v: string[]) => arr.some(s => v.includes(s))
+  const all = (arr: string[], v: string[]) => arr.length > 0 && arr.every(s => v.includes(s))
+
+  // 1. Request phase error overrides others
+  if (any(requestStates, ['FAILED'])) return 'Error'
+
+  // 2. Rollback scenarios
+  if (any(deployStates, ['ROLLBACKING'])) return 'ROLLBACKING'
+  if (deployStates.length > 0 && all(deployStates, ['ROLLED_BACK'])) return 'ROLLED_BACK'
+
+  // 3. Deployment failures / progress / completion
+  if (any(deployStates, ['FAILED'])) return 'DEPLOY_FAILED'
+  if (deployStates.length > 0 && all(deployStates, ['COMPLETE'])) return 'DEPLOYED'
+  if (any(deployStates, ['IN_PROGRESS', 'QUEUED'])) return 'DEPLOYING'
+
+  // 4. Import failures / progress / completion leading to deploy waiting
+  if (any(importStates, ['FAILED'])) return 'IMPORT_FAILED'
+  if (importStates.length > 0 && all(importStates, ['COMPLETE'])) {
+    // All imports done; if no deploy has started yet -> awaiting deploy
+    if (deployStates.length === 0 || all(deployStates, ['NOT_STARTED'])) return 'AWAITING_DEPLOY'
+    return 'IMPORTED' // Fallback if mixed states not covered
+  }
+  if (any(importStates, ['IN_PROGRESS'])) return 'IMPORTING'
+  if (any(importStates, ['QUEUED'])) return 'AWAITING_IMPORT'
+
+  // 5. Awaiting import / pending transport request readiness
+  const allRequestsReady = requestStates.length > 0 && all(requestStates, ['READY'])
+  if (allRequestsReady) return 'AWAITING_IMPORT'
+  if (any(requestStates, ['REQUESTING', 'NOT_REQUESTED'])) return 'PENDING'
+
+  return 'UNKNOWN'
 }
 
 
