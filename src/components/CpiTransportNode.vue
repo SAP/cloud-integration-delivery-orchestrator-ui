@@ -23,12 +23,12 @@ const emit = defineEmits<{
 
 const ops = reactive(props.data.TrToOp)
 
-const nodeImported = computed(() => {
-  return Object.values(ops).every(o => o.ImportState === 'COMPLETE')
+const nodeImportDisabled = computed(() => {
+  return nodeAggState.value !== 'AWAITING_IMPORT' && nodeAggState.value !== 'IMPORT_FAILED'
 })
 
-const nodeDeployed = computed(() => {
-  return Object.values(ops).every(o => o.DeployState === 'COMPLETE')
+const nodeDeployDsiabled = computed(() => {
+  return nodeAggState.value !== 'AWAITING_DEPLOY' && nodeAggState.value !== 'DEPLOY_FAILED'
 })
 
 const nodeAggState = computed((): AggregateStatus => {
@@ -47,6 +47,14 @@ function handleImportAll() {
 function handleDeployAll() {
   emit('deploy-all', { tenant: props.data.Tenant, artifactOps: Object.values(props.data.TrToOp) })
 }
+
+function opImportDisabled(op: ArtifactTenantOperation) {
+  return op.ImportState === 'COMPLETE' || op.ImportState === 'IN_PROGRESS'
+}
+
+function opDeployDisabled(op: ArtifactTenantOperation) {
+  return op.DeployState === 'COMPLETE' || op.DeployState === 'IN_PROGRESS'
+}
 </script>
 
 <template>
@@ -60,8 +68,8 @@ function handleDeployAll() {
       
     </div>
     <div v-if="!data.IsSource" class="batch-actions">
-      <n-button size="tiny" tertiary @click="handleImportAll" :disabled="nodeImported">Import All</n-button>
-      <n-button size="tiny" tertiary type="primary" @click="handleDeployAll" :disabled="nodeDeployed">Deploy All</n-button>
+      <n-button size="tiny" tertiary @click="handleImportAll" :disabled="nodeImportDisabled">Import All</n-button>
+      <n-button size="tiny" tertiary type="primary" @click="handleDeployAll" :disabled="nodeDeployDsiabled">Deploy All</n-button>
     </div>
     <div v-if="!Object.keys(ops).length" class="empty-artifacts">
       <n-text depth="3" style="font-size:11px">No artifacts {{ data.IsSource ? '' : 'delivered here yet' }}</n-text>
@@ -73,8 +81,8 @@ function handleDeployAll() {
           <span class="artifact-version">@{{ op.ArtifactVersion }}</span>
         </div>
         <div v-if="!data.IsSource" class="artifact-actions">
-          <n-button size="tiny" quaternary @click="handleImport(op)" :disabled="op.ImportState === 'COMPLETE'">Import</n-button>
-          <n-button size="tiny" quaternary type="primary" @click="handleDeploy(op)" :disabled="op.DeployState === 'COMPLETE'">Deploy</n-button>
+          <n-button size="tiny" quaternary @click="handleImport(op)" :disabled="opImportDisabled(op)">Import</n-button>
+          <n-button size="tiny" quaternary type="primary" @click="handleDeploy(op)" :disabled="opDeployDisabled(op)">Deploy</n-button>
         </div>
       </div>
     </n-scrollbar>

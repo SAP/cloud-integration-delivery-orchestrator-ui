@@ -254,6 +254,7 @@
                   </n-flex>
                   <n-button type="primary" secondary @click="handleUpdate">Save</n-button>
                   <n-button size="small" tertiary @click="showFlowModal = true">Show Delivery Flow</n-button>
+                  <n-button size="small" tertiary @click="onSyncDrStatus">Sync Status</n-button>
 
                 </n-flex>
               </n-card>
@@ -296,6 +297,9 @@ import {
   CheckArtifactNodeStatus,
   TenantOps,
   NodePosition,
+  ImportOps,
+  DeployOps,
+  SyncStatus,
 } from '@/service/api'
 import { toLocalTime } from '@/service/consts'
 import { Edit16Regular, Delete28Regular, Info16Regular } from '@vicons/fluent'
@@ -493,13 +497,26 @@ export default {
       this.artifactVersionHistory = await GetArtifactVersionHistory(`${baseUrl.protocol}//${baseUrl.host}`, a.PackageId, a.TechID)
       console.log(this.artifactVersionHistory)
     },
+    async onSyncDrStatus() {
+      if(!this.deliveryRequest.ID) return
+      await SyncStatus(this.deliveryRequest.ID)
+      await this.refresh()
+    },
     async onImportArtifact(payload: { tenant: CpiTenant; artifactOp: ArtifactTenantOperation }) {
+      const {tenant, artifactOp} = payload
+      await ImportOps([artifactOp.ID], tenant.ID)
     },
     async onDeployArtifact(payload: { tenant: CpiTenant; artifactOp: ArtifactTenantOperation }) {
+      const {tenant, artifactOp} = payload
+      await DeployOps([artifactOp.ID], tenant.ID)
     },
     async onImportAll(payload: { tenant: CpiTenant; artifactOps: ArtifactTenantOperation[] }) {
+      const {tenant, artifactOps} = payload
+      await ImportOps(artifactOps.map(op => op.ID), tenant.ID)
     },
     async onDeployAll(payload: { tenant: CpiTenant; artifactOps: ArtifactTenantOperation[] }) {
+      const {tenant, artifactOps} = payload
+      await DeployOps(artifactOps.map(op => op.ID), tenant.ID)
     }
   },
   watch: {

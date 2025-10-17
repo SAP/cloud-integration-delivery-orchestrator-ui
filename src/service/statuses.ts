@@ -28,13 +28,13 @@ export type AggregateStatus =
   | 'UNKNOWN'
   | 'PENDING'
   | 'WAITING_APPROVAL'
-  | 'AWAITING_IMPORT'
+  | 'AWAITING_IMPORT' // can import
   | 'IMPORTING'
-  | 'IMPORT_FAILED'
+  | 'IMPORT_FAILED' // can re-import
   | 'IMPORTED'
-  | 'AWAITING_DEPLOY'
+  | 'AWAITING_DEPLOY' // can deploy
   | 'DEPLOYING'
-  | 'DEPLOY_FAILED'
+  | 'DEPLOY_FAILED' // can re-deploy
   | 'DEPLOYED'
   | 'ROLLBACKING'
   | 'ROLLED_BACK'

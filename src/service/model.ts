@@ -309,3 +309,8 @@ export interface CpiTenantNodeData {
   IsSource: boolean,
   Tenant: CpiTenant
 }
+
+export interface DeliverOpRequest {
+  opIDs: number[]
+  targetTenant: number // target tenant ID
+}

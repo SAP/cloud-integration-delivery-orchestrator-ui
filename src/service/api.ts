@@ -2,8 +2,8 @@ import axios from 'axios'
 import { clientId, clientSecret, tokenEndpoint, userInfoEndpoint } from './consts'
 import http from './http'
 import { defineStore } from 'pinia'
-import type { ApiEndpoint, Artifact, ArtifactTenantOperation, ArtifactVersionHistoryItem, CpiTenant, CpiTenantNodeData, DeliveryRequest, DeliveryRule, Job, NodeTransportRequest, Package, RuntimeArtifact, Step, TransportGroup, TransportNode, TransportPlan, TransportRoute, UserInfo } from './model'
-import type { AggregateStatus } from './statuses'
+import type { ApiEndpoint, Artifact, ArtifactTenantOperation, ArtifactVersionHistoryItem, CpiTenant, CpiTenantNodeData, DeliverOpRequest, DeliveryRequest, DeliveryRule, Job, NodeTransportRequest, Package, RuntimeArtifact, Step, TransportGroup, TransportNode, TransportPlan, TransportRoute, UserInfo } from './model'
+import type { AggregateStatus, DeployState, ImportState, RequestState } from './statuses'
 // validate if a step can be modified
 export const validate = (step: Step) => {
   if (
@@ -299,6 +299,26 @@ export const GetArtifactVersionHistory = async (
   return data
 }
 
+export const ImportOps = (opIDs: number[], tenant: number) => {
+  const req: DeliverOpRequest ={
+    opIDs: opIDs,
+    targetTenant: tenant
+  }
+  return http.post(`/api/v1/deliveryRequest/import`, req)
+}
+
+export const DeployOps = (opIDs: number[], tenant: number) => {
+  const req: DeliverOpRequest ={
+    opIDs: opIDs,
+    targetTenant: tenant
+  }
+  return http.post(`/api/v1/deliveryRequest/deploy`, req)
+}
+
+export const SyncStatus = (drID: number) => {
+  return http.post(`/api/v1/deliveryRequest/syncState/${drID}`)
+}
+
 
 // Cpi tenant operations mapping
 export const TenantOps = (dr: DeliveryRequest) => {
@@ -318,30 +338,32 @@ export const DeriveNodeAgg = (nodedata: CpiTenantNodeData): AggregateStatus => {
   if (ops.length === 0) return 'UNKNOWN'
 
   // Collect state sets
-  const requestStates = ops.map(op => op.RequestState).filter(Boolean) as string[]
-  const importStates = ops.map(op => op.ImportState).filter(Boolean) as string[]
-  const deployStates = ops.map(op => op.DeployState).filter(Boolean) as string[]
+  const requestStates = ops.map(op => op.RequestState).filter(Boolean) as RequestState[]
+  const importStates = ops.map(op => op.ImportState).filter(Boolean) as ImportState[]
+  const deployStates = ops.map(op => op.DeployState).filter(Boolean) as DeployState[]
 
-  const any = (arr: string[], v: string[]) => arr.some(s => v.includes(s))
-  const all = (arr: string[], v: string[]) => arr.length > 0 && arr.every(s => v.includes(s))
+  const any = <T>(arr: T[], v: T[]) => arr.some(s => v.includes(s))
+  const all = <T>(arr: T[], v: T[]) => arr.length > 0 && arr.every(s => v.includes(s))
 
   // 1. Request phase error overrides others
   if (any(requestStates, ['FAILED'])) return 'Error'
 
   // 2. Rollback scenarios
   if (any(deployStates, ['ROLLBACKING'])) return 'ROLLBACKING'
-  if (deployStates.length > 0 && all(deployStates, ['ROLLED_BACK'])) return 'ROLLED_BACK'
+  if (all(deployStates, ['ROLLED_BACK'])) return 'ROLLED_BACK'
 
   // 3. Deployment failures / progress / completion
   if (any(deployStates, ['FAILED'])) return 'DEPLOY_FAILED'
-  if (deployStates.length > 0 && all(deployStates, ['COMPLETE'])) return 'DEPLOYED'
+  if (all(deployStates, ['COMPLETE'])) return 'DEPLOYED'
+  if (all(deployStates, ['IN_PROGRESS'])) return 'DEPLOYING'
+  if (all(deployStates, ['QUEUED'])) return 'AWAITING_DEPLOY'
   if (any(deployStates, ['IN_PROGRESS', 'QUEUED'])) return 'DEPLOYING'
 
   // 4. Import failures / progress / completion leading to deploy waiting
   if (any(importStates, ['FAILED'])) return 'IMPORT_FAILED'
-  if (importStates.length > 0 && all(importStates, ['COMPLETE'])) {
+  if (all(importStates, ['COMPLETE'])) {
     // All imports done; if no deploy has started yet -> awaiting deploy
-    if (deployStates.length === 0 || all(deployStates, ['NOT_STARTED'])) return 'AWAITING_DEPLOY'
+    if (all(deployStates, ['NOT_STARTED'])) return 'AWAITING_DEPLOY'
     return 'IMPORTED' // Fallback if mixed states not covered
   }
   if (any(importStates, ['IN_PROGRESS'])) return 'IMPORTING'
