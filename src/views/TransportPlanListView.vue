@@ -14,12 +14,15 @@
       placeholder="Select Delivery Rule"
       clearable
     />
+    <div v-for="v in selectedDeliveryRequest.DeliveryRule.IncludedTenants" :key="v.ID">
+      {{ v.Name }}
+    </div>
     <template #action>
       <n-button type="primary" @click="onCreate">Create</n-button>
     </template>
   </n-modal>
   <data-table
-    title="Transport&Delivery Plans"
+    title="Delivery Request"
     :columns="deliveryRequestColumns"
     :data="deliveryRequests"
     :custom-tool-bars="toolBars"

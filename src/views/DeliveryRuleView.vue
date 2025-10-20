@@ -18,9 +18,10 @@
                 <n-select
                     filterable
                     multiple
-                    v-model:value="selDeliveryRule.IncludedTenants"
+                    clearable
                     placeholder="Select Included Tenants"
                     :options="tenantOptions"
+                    @update:value="handleSelect"
                 />
             </div>
             <div v-for="tenant in selDeliveryRule.IncludedTenants">{{ tenant.Name }}</div>
@@ -77,6 +78,7 @@ export default defineComponent({
             selDeliveryRule: {} as DeliveryRule,
             cpiTenants: [] as CpiTenant[],
             transportRoutes: [] as TransportRoute[],
+            tenantOptions: [] as { label: string; value: CpiTenant, disabled: boolean }[],
         }
     },
     methods: {
@@ -92,26 +94,6 @@ export default defineComponent({
             await UpsertDeliveryRule(this.selDeliveryRule)
             await this.refresh()
         },
-        handleAdd() {
-            this.selDeliveryRule = {} as DeliveryRule
-            this.showModal = true
-        },
-        async handleDelete(rows: DeliveryRule[]) {
-            if (rows.length === 0) {
-                window.$message.warning('Please select a delivery rule')
-                return
-            }
-            await DeleteDeliveryRule(rows[0].ID)
-            await this.refresh()
-        },
-        handleEdit(rows: DeliveryRule[]) {
-            if (rows.length === 0) {
-                window.$message.warning('Please select a delivery rule')
-                return
-            }
-            this.selDeliveryRule = { ...rows[0] }
-            this.showModal = true
-        },
         async handleToggleActive(rows: DeliveryRule[]) {
             if (rows.length === 0) {
                 window.$message.warning('Please select a delivery rule')
@@ -121,22 +103,37 @@ export default defineComponent({
             await UpsertDeliveryRule(rule)
             await this.refresh()
         },
+        async handleDelete(rows: DeliveryRule[]) {
+            if (rows.length === 0) {
+                window.$message.warning('Please select a delivery rule')
+                return
+            }
+            await DeleteDeliveryRule(rows[0].ID)
+            await this.refresh()
+        },
+        handleAdd() {
+            this.selDeliveryRule = {} as DeliveryRule
+            this.showModal = true
+        },
+        handleEdit(rows: DeliveryRule[]) {
+            if (rows.length === 0) {
+                window.$message.warning('Please select a delivery rule')
+                return
+            }
+            this.selDeliveryRule = { ...rows[0] }
+            this.showModal = true
+        },
+        handleSelect(value: CpiTenant[]) {
+            this.selDeliveryRule.IncludedTenants = value
+            const include = this.transportRoutes.filter(
+                tr => this.selDeliveryRule.IncludedTenants.some(t => t.TransportNodeID === tr.sourceNodeId)
+            )
+            this.tenantOptions.forEach(opt => {
+                opt.disabled = !(include.some(tr => tr.targetNodeId === opt.value.TransportNodeID) ?? false)
+            })
+        }
     },
     computed: {
-        tenantOptions(): { label: string; value: CpiTenant }[] {
-            if (!this.selDeliveryRule?.IncludedTenants || !this.selDeliveryRule.IncludedTenants.length) 
-                return this.cpiTenants.map(t => ({ label: t.Name, value: t }))
-            const options: { label: string; value: CpiTenant }[] = []
-            this.transportRoutes.forEach(tr => {
-                const {sourceNodeId, targetNodeId} = tr
-                if(this.selDeliveryRule.IncludedTenants.find(t => t.TransportNodeID === sourceNodeId)) {
-                    const targetTenant = this.cpiTenants.find(t => t.TransportNodeID === targetNodeId)
-                    if (!this.selDeliveryRule.IncludedTenants.find(t => t.ID === targetTenant!.ID)) 
-                        options.push({label: targetTenant!.Name, value: targetTenant as CpiTenant})
-                }
-            })
-            return options
-        },
         selectedTenants(): { label: string; value: CpiTenant }[] {
             return this.selDeliveryRule.IncludedTenants.map(t => ({ label: t.Name, value: t }))
         }
@@ -145,6 +142,7 @@ export default defineComponent({
         await this.refresh()
         this.cpiTenants = await GetCpiTenants()
         this.transportRoutes = await GetTransportRoutes()
+        this.tenantOptions = this.cpiTenants.map(t => ({ label: t.Name, value: t, disabled:false }) )
     }
 })
 </script>
