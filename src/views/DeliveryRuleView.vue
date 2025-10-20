@@ -75,7 +75,7 @@ export default defineComponent({
             showModal: false,
             toolBars,
             selDeliveryRule: {} as DeliveryRule,
-            CpiTenants: [] as CpiTenant[],
+            cpiTenants: [] as CpiTenant[],
             transportRoutes: [] as TransportRoute[],
         }
     },
@@ -124,11 +124,13 @@ export default defineComponent({
     },
     computed: {
         tenantOptions(): { label: string; value: CpiTenant }[] {
+            if (!this.selDeliveryRule?.IncludedTenants || !this.selDeliveryRule.IncludedTenants.length) 
+                return this.cpiTenants.map(t => ({ label: t.Name, value: t }))
             const options: { label: string; value: CpiTenant }[] = []
             this.transportRoutes.forEach(tr => {
                 const {sourceNodeId, targetNodeId} = tr
                 if(this.selDeliveryRule.IncludedTenants.find(t => t.TransportNodeID === sourceNodeId)) {
-                    const targetTenant = this.CpiTenants.find(t => t.TransportNodeID === targetNodeId)
+                    const targetTenant = this.cpiTenants.find(t => t.TransportNodeID === targetNodeId)
                     if (!this.selDeliveryRule.IncludedTenants.find(t => t.ID === targetTenant!.ID)) 
                         options.push({label: targetTenant!.Name, value: targetTenant as CpiTenant})
                 }
@@ -141,7 +143,7 @@ export default defineComponent({
     },
     async created() {
         await this.refresh()
-        this.CpiTenants = await GetCpiTenants()
+        this.cpiTenants = await GetCpiTenants()
         this.transportRoutes = await GetTransportRoutes()
     }
 })
