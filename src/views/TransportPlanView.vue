@@ -259,6 +259,15 @@
                 </n-flex>
               </n-card>
             </n-step>
+            <n-step>
+              <template #title> Approve </template>
+
+            </n-step>
+            <n-step>
+              <template #title> Delivery Flow </template>
+              
+
+            </n-step>
           </n-steps>
         </n-gi>
         <!-- <n-gi span="2"> Log </n-gi> -->

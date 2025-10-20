@@ -314,3 +314,15 @@ export interface DeliverOpRequest {
   opIDs: number[]
   targetTenant: number // target tenant ID
 }
+
+
+export interface TenantGroup {
+  ID: number
+  Name: string
+  Description: string
+  CreatedAt: string
+  UpdatedAt: string
+  CreatedBy: string
+  UpdatedBy: string
+  Tenants: CpiTenant[]
+}

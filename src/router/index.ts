@@ -41,6 +41,11 @@ const router = createRouter({
           component: () => import('@/views/TransportGroupListView.vue')
         },
         {
+          path: 'tenantGroup',
+          name: 'Tenant Group',
+          component: () => import('@/views/TenantGroupListView.vue')
+        },
+        {
           path: 'cpiTenants',
           name: 'CPI Tenants',
           component: () => import('@/views/CpiTenantsView.vue')

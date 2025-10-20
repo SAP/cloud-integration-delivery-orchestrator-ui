@@ -1,43 +1,32 @@
 <!-- filepath: /Users/I589335/repos/mmt-devops-ui-cpi-delivery/src/views/DeliveryRuleView.vue -->
 <template>
-    <n-modal v-model:show="showModal" preset="dialog" :title="selectedDeliveryRule.ID ? 'Edit Delivery Rule' : 'Create Delivery Rule'">
+    <n-modal v-model:show="showModal" preset="dialog" :title="selDeliveryRule.ID ? 'Edit Delivery Rule' : 'Create Delivery Rule'">
         <template #header>
-            <div>{{ selectedDeliveryRule.ID ? 'Edit Delivery Rule' : 'Create Delivery Rule' }}</div>
+            <div>{{ selDeliveryRule.ID ? 'Edit Delivery Rule' : 'Create Delivery Rule' }}</div>
         </template>
         <div style="display:flex;flex-direction:column;gap:12px;">
             <div>
                 Name:
-                <n-input v-model:value="selectedDeliveryRule.Name" placeholder="Rule Name" />
+                <n-input v-model:value="selDeliveryRule.Name" placeholder="Rule Name" />
             </div>
             <div>
                 Version Pattern (regex):
-                <n-input v-model:value="selectedDeliveryRule.VersionPattern" placeholder="e.g. ^\\d+\\.\\d+\\.\\d+$" />
+                <n-input v-model:value="selDeliveryRule.VersionPattern" placeholder="e.g. ^\\d+\\.\\d+\\.\\d+$" />
             </div>
             <div>
                 Included Tenants:
                 <n-select
+                    filterable
                     multiple
-                        v-model:value="selectedDeliveryRule.IncludedTenants"
-                        filterable
-                        placeholder="Select Included Tenants"
-                        :options="tenantOptions"
-                        @update:value="onTenantListChange"
+                    v-model:value="selDeliveryRule.IncludedTenants"
+                    placeholder="Select Included Tenants"
+                    :options="tenantOptions"
                 />
             </div>
-            <div>
-                Excluded Tenants:
-                <n-select
-                    multiple
-                        v-model:value="selectedDeliveryRule.ExcludedTenants"
-                        filterable
-                        placeholder="Select Excluded Tenants"
-                        :options="tenantOptions"
-                        @update:value="onTenantListChange"
-                />
-            </div>
+            <div v-for="tenant in selDeliveryRule.IncludedTenants">{{ tenant.Name }}</div>
             <div>
                 Active:
-                <n-switch v-model:value="selectedDeliveryRule.Active" />
+                <n-switch v-model:value="selDeliveryRule.Active" />
             </div>
         </div>
         <template #action>
@@ -66,10 +55,10 @@ import {
     UpsertDeliveryRule,
     DeleteDeliveryRule,
     GetCpiTenants,
+    GetTransportRoutes,
 } from '@/service/api'
-import type { DataTableColumns } from 'naive-ui'
 import {deliveryRuleColumns} from '@/service/consts'
-import type { DeliveryRule, CpiTenant } from '@/service/model'
+import type { DeliveryRule, CpiTenant, TransportRoute } from '@/service/model'
 
 export default defineComponent({
     components: { DataTable },
@@ -85,9 +74,9 @@ export default defineComponent({
             rules: [] as DeliveryRule[],
             showModal: false,
             toolBars,
-            selectedDeliveryRule: {} as DeliveryRule,
-            tenants: [] as CpiTenant[],
-            tenantOptions: [] as { label: string; value: CpiTenant }[]
+            selDeliveryRule: {} as DeliveryRule,
+            CpiTenants: [] as CpiTenant[],
+            transportRoutes: [] as TransportRoute[],
         }
     },
     methods: {
@@ -98,13 +87,13 @@ export default defineComponent({
         },
         async onSave() {
             // ensure arrays exist
-            if (!this.selectedDeliveryRule.IncludedTenants) this.selectedDeliveryRule.IncludedTenants = []
-            if (!this.selectedDeliveryRule.ExcludedTenants) this.selectedDeliveryRule.ExcludedTenants = []
-            await UpsertDeliveryRule(this.selectedDeliveryRule)
+            if (!this.selDeliveryRule.IncludedTenants) this.selDeliveryRule.IncludedTenants = []
+            if (!this.selDeliveryRule.ExcludedTenants) this.selDeliveryRule.ExcludedTenants = []
+            await UpsertDeliveryRule(this.selDeliveryRule)
             await this.refresh()
         },
         handleAdd() {
-            this.selectedDeliveryRule = {} as DeliveryRule
+            this.selDeliveryRule = {} as DeliveryRule
             this.showModal = true
         },
         async handleDelete(rows: DeliveryRule[]) {
@@ -120,12 +109,7 @@ export default defineComponent({
                 window.$message.warning('Please select a delivery rule')
                 return
             }
-            // deep clone to avoid immediate mutation
-            const clone = JSON.parse(JSON.stringify(rows[0])) as DeliveryRule
-            // rebind tenant references to existing tenant objects for select component
-            clone.IncludedTenants = clone.IncludedTenants?.map(t => this.findTenantRef(t.ID)) || []
-            clone.ExcludedTenants = clone.ExcludedTenants?.map(t => this.findTenantRef(t.ID)) || []
-            this.selectedDeliveryRule = clone
+            this.selDeliveryRule = { ...rows[0] }
             this.showModal = true
         },
         async handleToggleActive(rows: DeliveryRule[]) {
@@ -137,19 +121,28 @@ export default defineComponent({
             await UpsertDeliveryRule(rule)
             await this.refresh()
         },
-        findTenantRef(id: number) {
-            return this.tenants.find(t => t.ID === id) as CpiTenant
+    },
+    computed: {
+        tenantOptions(): { label: string; value: CpiTenant }[] {
+            const options: { label: string; value: CpiTenant }[] = []
+            this.transportRoutes.forEach(tr => {
+                const {sourceNodeId, targetNodeId} = tr
+                if(this.selDeliveryRule.IncludedTenants.find(t => t.TransportNodeID === sourceNodeId)) {
+                    const targetTenant = this.CpiTenants.find(t => t.TransportNodeID === targetNodeId)
+                    if (!this.selDeliveryRule.IncludedTenants.find(t => t.ID === targetTenant!.ID)) 
+                        options.push({label: targetTenant!.Name, value: targetTenant as CpiTenant})
+                }
+            })
+            return options
         },
-        onTenantListChange() {
-            // remove overlaps: if tenant appears in both, keep only in IncludedTenants
-            const includedIds = new Set((this.selectedDeliveryRule.IncludedTenants || []).map(t => t.ID))
-            this.selectedDeliveryRule.ExcludedTenants = (this.selectedDeliveryRule.ExcludedTenants || []).filter(t => !includedIds.has(t.ID))
+        selectedTenants(): { label: string; value: CpiTenant }[] {
+            return this.selDeliveryRule.IncludedTenants.map(t => ({ label: t.Name, value: t }))
         }
     },
     async created() {
         await this.refresh()
-        this.tenants = await GetCpiTenants()
-        this.tenantOptions = this.tenants.map(t => ({ label: t.Name, value: t }))
+        this.CpiTenants = await GetCpiTenants()
+        this.transportRoutes = await GetTransportRoutes()
     }
 })
 </script>
