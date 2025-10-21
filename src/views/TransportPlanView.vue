@@ -1,4 +1,21 @@
 <template>
+  <!-- Modals -->
+  <!-- Flow Modal -->
+  <n-modal v-model:show="showFlowModal" preset="card" title="Delivery Flow" :closable="true" :mask-closable="true" style="width:90vw; max-width:1600px">
+    <div style="height:72vh; min-height:560px; width:100%;">
+      <VueFlow :key="showFlowModal ? 'flow-open' : 'flow-closed'" :nodes="flowNodes" :edges="flowEdges" fit-view-on-init>
+        <template #node-cpi-transport="props" >
+          <CpiTransportNode
+            v-bind="props"
+            @import-artifact="onImportArtifact"
+            @deploy-artifact="onDeployArtifact"
+            @import-all="onImportAll"
+            @deploy-all="onDeployAll"
+          />
+        </template>
+      </VueFlow>
+    </div>
+  </n-modal>
   <!-- artifact details modal -->
   <n-modal v-model:show="showArtifactDetails" preset="card" title="Artifact Details" style="max-width:560px"
     size="small" :closable="true" :close-on-esc="true" :mask-closable="true">
@@ -35,6 +52,7 @@
       </n-flex>
     </div>
   </n-modal>
+<!-- end modal -->
   <div style="margin: 0 42px">
 
     <!-- header -->
@@ -266,6 +284,8 @@
             <n-step>
               <template #title> Delivery Flow </template>
               <n-card hoverable size="medium">
+                <VueFlow :nodes="flowNodes" :edges="flowEdges" fit-view-on-init>
+                </VueFlow>
                 
               </n-card>
 
@@ -276,23 +296,6 @@
       </n-grid>
     </n-card>
   </div>
-
-  <!-- Flow Modal -->
-  <n-modal v-model:show="showFlowModal" preset="card" title="Delivery Flow" :closable="true" :mask-closable="true" style="width:90vw; max-width:1600px">
-    <div style="height:72vh; min-height:560px; width:100%;">
-      <VueFlow :key="showFlowModal ? 'flow-open' : 'flow-closed'" :nodes="flowNodes" :edges="flowEdges" fit-view-on-init>
-        <template #node-cpi-transport="props" >
-          <CpiTransportNode
-            v-bind="props"
-            @import-artifact="onImportArtifact"
-            @deploy-artifact="onDeployArtifact"
-            @import-all="onImportAll"
-            @deploy-all="onDeployAll"
-          />
-        </template>
-      </VueFlow>
-    </div>
-  </n-modal>
 </template>
 
 <script lang="ts">
@@ -569,7 +572,7 @@ export default {
     },
     flowEdges(): Edge[] {
       if (!this.deliveryRequest.SourceTenant) return []
-      const routes = (this.deliveryRequest)?.TargetRoutes || []
+      const routes = this.deliveryRequest?.TargetRoutes || []
       return routes.map((route: TransportRoute) => ({
         id: route.description || `e-${route.sourceNodeId}-to-${route.targetNodeId}`,
         source: String(route.sourceNodeId),
