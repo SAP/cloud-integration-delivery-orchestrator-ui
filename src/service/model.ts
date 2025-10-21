@@ -96,6 +96,7 @@ export interface CpiTenant {
   TransportNodeName: string
   TransportNodeDescription: string
   CpiEndpoint: ApiEndpoint
+  Group: string
 
   CreatedAt: string
   UpdatedAt: string

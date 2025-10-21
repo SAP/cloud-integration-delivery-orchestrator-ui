@@ -321,9 +321,9 @@ export const SyncStatus = (drID: number) => {
 
 
 // Cpi tenant operations mapping
-export const TenantOps = (dr: DeliveryRequest) => {
-  const tenantToOps: Record<number, Record<string, ArtifactTenantOperation>> = {}  // cpi tenant ID - map[trNumber]ArtifactTenantOperation
-  dr.ArtifactTenantOperations.forEach(op => {
+export const TenantOps = (ops: ArtifactTenantOperation[]) => {
+  const tenantToOps: {[key: number] : {[key: string]: ArtifactTenantOperation}} = {}  // cpi tenant ID - map[trNumber]ArtifactTenantOperation
+  ops.forEach(op => {
     const tenantId = op.Tenant!.ID
     tenantToOps[tenantId] = tenantToOps[tenantId] || {}
     const trNumber = (op.TransportRequestNumber ?? 0) as string

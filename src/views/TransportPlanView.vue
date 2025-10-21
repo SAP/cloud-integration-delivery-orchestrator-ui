@@ -283,9 +283,8 @@
             </n-step>
             <n-step>
               <template #title> Delivery Flow </template>
-              <n-card hoverable size="medium">
-                <VueFlow :nodes="flowNodes" :edges="flowEdges" fit-view-on-init>
-                </VueFlow>
+              <n-card hoverable size="medium" >
+                <DeliveryFlowView :delivery-request="deliveryRequest" :cpi-tenants="cpiTenants"></DeliveryFlowView>
                 
               </n-card>
 
@@ -300,7 +299,7 @@
 
 <script lang="ts">
 import {
-  GetCpiTenants,
+  GetCpiTenants as GetAllCpiTenants,
   GetDeliveryRequest,
   UpdateDeliveryRequest,
   GetPackages,
@@ -323,6 +322,7 @@ import { VueFlow, type Edge, type Node } from '@vue-flow/core'
 import CpiTransportNode from '@/components/CpiTransportNode.vue'
 import { ImportArtifactsToNode, DeployArtifactsToNode } from '@/service/api'
 import type { DeliveryRequest, CpiTenant, Package, Artifact, ArtifactVersionHistoryItem, ArtifactTenantOperation, TransportNode, TransportRoute, CpiTenantNodeData } from '@/service/model'
+import DeliveryFlowView from './DeliveryFlowView.vue'
 
 
 export default {
@@ -336,7 +336,8 @@ export default {
     IconBtn,
     Info16Regular,
     VueFlow,
-    CpiTransportNode
+    CpiTransportNode,
+    DeliveryFlowView
   },
   props: { planId: { required: true, type: Number } },
   data() {
@@ -345,7 +346,7 @@ export default {
       editing: false,
       current: 0,
       toLocalTime,
-      cpiTenantsOptions: [] as { label: string; value: CpiTenant }[],
+      cpiTenants: [] as CpiTenant[],
       packageOptions: [] as Package[],
       selectedPackages: [] as Package[],
       packageArtifacts: {} as { [key: string]: Artifact[] }, // packages to their artifacts, this is like a cache for package
@@ -563,12 +564,16 @@ export default {
       if (typeof srcTenantId === 'undefined') return []
       return ops.filter((op: ArtifactTenantOperation) => op.TenantID === srcTenantId)
     },
-    nodeTenantCache(): Record<number, CpiTenant> { // transport node ID to cpi tenant
+    nodeToTenant(): Record<number, CpiTenant> { // transport node ID to cpi tenant
       const cache: Record<number, CpiTenant> = {}
-      this.cpiTenantsOptions.forEach(opt => {
-        cache[opt.value.TransportNodeID] = opt.value
+      this.cpiTenants.forEach(opt => {
+        cache[opt.TransportNodeID] = opt
       })
       return cache
+    },
+    tenantToOps(): {[key: number] : {[key: string]: ArtifactTenantOperation}} {
+      if(!this.deliveryRequest.SourceTenant) return {}
+      return TenantOps(this.deliveryRequest.ArtifactTenantOperations) // cpi tenant ID - map[trNumber]ArtifactTenantOperation
     },
     flowEdges(): Edge[] {
       if (!this.deliveryRequest.SourceTenant) return []
@@ -583,16 +588,15 @@ export default {
     },
     flowNodes(): Node[] {      
       if(!this.deliveryRequest.SourceTenant) return []
-      const tenantToOps = TenantOps(this.deliveryRequest) // cpi tenant ID - map[trNumber]ArtifactTenantOperation
       const targetNodes: CpiTenantNodeData[] = []
       this.deliveryRequest.TargetNodes.forEach((tn: TransportNode) => {
-        const tenant = this.nodeTenantCache[tn.id]
-        const trToOp = tenantToOps[tenant.ID] || {}
+        const tenant = this.nodeToTenant[tn.id]
+        const trToOp = this.tenantToOps[tenant?.ID] || {} //trNumber - ArtifactTenantOperation
         targetNodes.push({
           NodeID: tn.id, // transport node ID
-          TenantID: tenant.ID,
+          TenantID: tenant?.ID,
           TrToOp: trToOp,
-          IsSource: tenant.ID === this.deliveryRequest.SourceTenant.ID,
+          IsSource: tenant?.ID === this.deliveryRequest.SourceTenant.ID,
           Tenant: tenant
         })
       })
@@ -601,7 +605,7 @@ export default {
       const sourceNode: CpiTenantNodeData = {
         NodeID: sourceNodeID,
         TenantID: sourceTenantID,
-        TrToOp: tenantToOps[sourceTenantID] || {},
+        TrToOp: this.tenantToOps[sourceTenantID] || {},
         IsSource: true,
         Tenant: this.deliveryRequest.SourceTenant
       }
@@ -612,11 +616,8 @@ export default {
   },
   async created() {
     await this.refresh()
-    const cpiTenants = await GetCpiTenants()
-    this.cpiTenantsOptions = cpiTenants.map((tenant: CpiTenant) => ({ label: tenant.Name, value: tenant }))
-    if (this.deliveryRequest.SourceTenant) {
-      await this.fetchPackagesForTenant(this.deliveryRequest.SourceTenant.CpiEndpoint.name)
-    }
+    this.cpiTenants = await GetAllCpiTenants()
+    await this.fetchPackagesForTenant(this.deliveryRequest.SourceTenant.CpiEndpoint.name)
   }
 }
 </script>
