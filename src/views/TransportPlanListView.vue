@@ -5,7 +5,7 @@
     </template>
     Name:
     <n-input v-model:value="selectedDeliveryRequest.Name" placeholder="Delivery Plan Name" />
-    Description:
+    JIRA Link:
     <n-input v-model:value="selectedDeliveryRequest.JiraLink" placeholder="Jira Link" />
     Delivery Rule:
     <n-select
@@ -14,7 +14,7 @@
       placeholder="Select Delivery Rule"
       clearable
     />
-    <div v-for="v in selectedDeliveryRequest.DeliveryRule.IncludedTenants" :key="v.ID">
+    <div v-for="v in selectedDeliveryRequest.DeliveryRule?.IncludedTenants" :key="v.ID">
       {{ v.Name }}
     </div>
     <template #action>

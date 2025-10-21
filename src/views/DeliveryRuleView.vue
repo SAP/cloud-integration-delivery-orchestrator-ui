@@ -129,13 +129,8 @@ export default defineComponent({
                 tr => this.selDeliveryRule.IncludedTenants.some(t => t.TransportNodeID === tr.sourceNodeId)
             )
             this.tenantOptions.forEach(opt => {
-                opt.disabled = !(include.some(tr => tr.targetNodeId === opt.value.TransportNodeID) ?? false)
+                opt.disabled = !include.some(tr => tr.targetNodeId === opt.value.TransportNodeID)
             })
-        }
-    },
-    computed: {
-        selectedTenants(): { label: string; value: CpiTenant }[] {
-            return this.selDeliveryRule.IncludedTenants.map(t => ({ label: t.Name, value: t }))
         }
     },
     async created() {

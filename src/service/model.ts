@@ -1,4 +1,4 @@
-import type { RequestState, ImportState, DeployState } from "./statuses"
+import type { RequestState, ImportState, DeployState, AggregateStatus } from "./statuses"
 
 // Represents the per-tenant lifecycle operation of an artifact within a delivery request.
 export interface ArtifactTenantOperation {
@@ -37,8 +37,9 @@ export interface ArtifactTenantOperation {
 export interface DeliveryRequest {
   ID:             number;
   Name:           string;
+  Description:    string;
   JiraLink:       string;
-  Status:         string;  // overall status
+  AggregateStatus:         AggregateStatus;  // overall status
   ArtifactTenantOperations:      ArtifactTenantOperation[];
   SourceTenant:   CpiTenant;   // mandatory
   DeliveryRule:   DeliveryRule;

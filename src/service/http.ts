@@ -29,7 +29,7 @@ service.interceptors.response.use(
     return res.result
   },
   (error) => {
-    const content = error.response.data.msg ??  error.response.data.error ?? error.message
+    const content = error.response.data.msg ?? error.response.data.error ?? error.message
     window.$message.error(
       content,
       {

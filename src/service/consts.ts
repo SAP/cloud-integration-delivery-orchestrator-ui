@@ -791,17 +791,17 @@ export const deliveryRequestColumns: DataTableColumns<DeliveryRequest> = [
     resizable: true,
     render(row: DeliveryRequest) {
       const type =
-        row.Status === 'Error'
+        row.AggregateStatus === 'Error'
           ? 'error'
-          : row.Status === 'Success' || row.Status === 'Completed'
+          : row.AggregateStatus === 'DEPLOYED'
             ? 'success'
-            : row.Status === 'Draft'
+            : row.AggregateStatus === 'PENDING'
               ? 'default'
               : 'info'
       return h(
         NTag,
         { type },
-        { default: () => row.Status }
+        { default: () => row.AggregateStatus }
       )
     }
   },

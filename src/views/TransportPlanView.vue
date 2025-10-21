@@ -46,20 +46,24 @@
             <n-input class="ui5-title-root" v-model:value="deliveryRequest.Name" placeholder="Delivery Request Name"
               clearable autofocus v-if="editing" />
             <span class="ui5-title-root" v-else-if="deliveryRequest.Name">
-              <n-text depth="3"> Delivery Request Name: </n-text>
+              <!-- <n-text depth="3"> Delivery Request Name: </n-text> -->
               {{ deliveryRequest.Name }}
             </span>
-            <!-- plan JIRA link -->
-            <n-input v-model:value="deliveryRequest.JiraLink" placeholder="Delivery Request Description" size="large"
-              clearable v-if="editing" />
+            
+          </n-flex>
+        </n-gi>
+        <n-gi>
+          <!-- plan JIRA link -->
+            <n-input v-model:value="deliveryRequest.JiraLink" placeholder="JIRA Link" size="large" clearable v-if="editing" />
             <n-text style="font-weight: bold" v-else-if="deliveryRequest.JiraLink">
               {{ deliveryRequest.JiraLink }}
             </n-text>
-          </n-flex>
+            <n-flex>{{ deliveryRequest.DeliveryRule?.Name }}</n-flex>
+            <n-text>{{ deliveryRequest.Description }}</n-text>
         </n-gi>
 
         <!-- Delivery Request basic information -->
-        <n-gi span="2">
+        <n-gi span="1">
           <n-flex vertical>
             <n-text depth="3" style="font-size: 12px" strong>
               Created By: {{ deliveryRequest.CreatedBy }} at
@@ -72,9 +76,10 @@
           </n-flex>
         </n-gi>
         <!-- Delivery Request status tag -->
-        <n-gi> </n-gi>
+        <n-gi> {{ deliveryRequest.AggregateStatus }} </n-gi>
         <!-- action buttions -->
         <n-gi>
+          <n-divider vertical />
           <!-- Edit button -->
           <IconBtn tip="Edit" :handler="onEdit" v-if="!editing">
             <edit16-regular />
@@ -87,7 +92,6 @@
             <Delete28Regular />
           </IconBtn>
 
-          <n-divider vertical />
         </n-gi>
       </n-grid>
     </n-card>
@@ -110,27 +114,19 @@
                     style="margin:0 0 10px 0; font-weight:600; letter-spacing:.5px">
                     Source Cpi Tenant
                   </n-divider>
-                  <n-select style="margin-top:4px; max-width:420px" @update:value="handleSelectSourceCpiTenant"
-                    :options="cpiTenantsOptions" filterable />
 
                   <!-- cpi tenants selection -->
                   <n-flex vertical v-if="deliveryRequest.SourceTenant" style="gap:8px">
                     <div>
-                      <n-text depth="3" strong>Tenant:</n-text>
-                      <n-tag type="info" :bordered="false" style="margin-left:6px">
-                        #{{ deliveryRequest.SourceTenant.ID}} {{deliveryRequest.SourceTenant.Name }}
-                      </n-tag>
+                      <n-text depth="3" strong>Tenant: #{{ deliveryRequest.SourceTenant.ID}} {{deliveryRequest.SourceTenant.Name }}</n-text>
                     </div>
                     <div v-if="deliveryRequest.SourceTenant.TransportNodeID">
-                      <n-text depth="3" strong>Transport Node:</n-text>
-                      <n-tag type="success" :bordered="false" style="margin-left:6px">
-                        #{{deliveryRequest.SourceTenant.TransportNodeID }} {{deliveryRequest.SourceTenant.TransportNodeName }} - {{deliveryRequest.SourceTenant.TransportNodeDescription }}</n-tag>
+                      <n-text depth="3" strong>
+                        Transport Node: #{{deliveryRequest.SourceTenant.TransportNodeID }} {{deliveryRequest.SourceTenant.TransportNodeName }} - {{deliveryRequest.SourceTenant.TransportNodeDescription }}
+                      </n-text>
                     </div>
                     <div v-if="deliveryRequest.SourceTenant.CpiEndpoint">
-                      <n-text depth="3" strong>CPI Endpoint:</n-text>
-                      <n-tag type="warning" :bordered="false" style="margin-left:6px">
-                        {{deliveryRequest.SourceTenant.CpiEndpoint.name}} ({{ deliveryRequest.SourceTenant.CpiEndpoint.url }})
-                      </n-tag>
+                      <n-text depth="3" strong>CPI Endpoint: {{deliveryRequest.SourceTenant.CpiEndpoint.name}} - {{ deliveryRequest.SourceTenant.CpiEndpoint.url }}</n-text>
                     </div>
                     <n-divider dashed title-placement="center"
                       style="margin:0 0 10px 0; font-weight:600; letter-spacing:.5px">
@@ -259,13 +255,19 @@
                 </n-flex>
               </n-card>
             </n-step>
+
             <n-step>
               <template #title> Approve </template>
+              <n-card hoverable size="medium">
+                
+              </n-card>
 
             </n-step>
             <n-step>
               <template #title> Delivery Flow </template>
-              
+              <n-card hoverable size="medium">
+                
+              </n-card>
 
             </n-step>
           </n-steps>
