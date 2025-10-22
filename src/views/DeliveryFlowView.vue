@@ -3,7 +3,13 @@
         :nodes="nodes"
         :edges="edges"
         style="width: 100%; height: 600px; border: 1px solid #ccc;"
-    />
+        :nodes-draggable="false"
+        :pan-on-drag="false"
+        :zoom-on-scroll="false" 
+        :zoom-on-pinch="false"
+        fit-view
+    >
+    </VueFlow>
 
 </template>
 
@@ -12,7 +18,7 @@
 import { defineComponent } from 'vue';
 import { VueFlow, type Edge, type Node } from '@vue-flow/core'
 import type { ArtifactTenantOperation, CpiTenant, DeliveryRequest, TransportNode, TransportRoute } from '@/service/model';
-import { TenantOps } from '@/service/api';
+import { layoutNodes, TenantOps } from '@/service/api';
 
 export default defineComponent({
     name: 'DeliveryFlowView',
@@ -44,7 +50,7 @@ export default defineComponent({
         },
         toGroupNode(): {[key: number]: Node} { // transport node ID - (group) node
             const childNodes: {[key: number]: number[]} = {} // parentNodeId - childNodeIds[]
-            this.deliveryRequest?.TargetRoutes.forEach(tRoute =>{
+            this.deliveryRequest?.TargetRoutes?.forEach(tRoute =>{
                 const {targetNodeId, sourceNodeId} = tRoute
                 if(!childNodes[sourceNodeId]) childNodes[sourceNodeId] = []
                 childNodes[sourceNodeId].push(targetNodeId)
@@ -58,15 +64,17 @@ export default defineComponent({
                 const node: Node = {
                     id: childKey,
                     data: { label: groupLabel, sourceNodeId: pNodeId, tenants: childNodeIds.map(nId => this.nodeToTenant[nId]) },
-                    position: { x: 100, y: 100 }, // Placeholder position
+                    position: { x: 0, y: 0 }, // Placeholder position
                 }
                 childNodeIds.forEach(id => groupNodeMap[id] = node)
             })
-            const sourceTenant = this.deliveryRequest.SourceTenant
-            groupNodeMap[sourceTenant.TransportNodeID] = {
-                id: `n-source-${sourceTenant.TransportNodeID}`,
-                data: { label: sourceTenant.Name, sourceNodeId: sourceTenant.TransportNodeID, tenants: [sourceTenant] },
-                position: { x: 0, y: 0 }, // Placeholder position
+            const sourceTenant = this.deliveryRequest?.SourceTenant
+            if (sourceTenant?.TransportNodeID) {
+                groupNodeMap[sourceTenant.TransportNodeID] = {
+                    id: `n-source-${sourceTenant.TransportNodeID}`,
+                    data: { label: sourceTenant.Name, sourceNodeId: sourceTenant.TransportNodeID, tenants: [sourceTenant] },
+                    position: { x: 0, y: 0 }, // Placeholder position
+                }
             }
             return groupNodeMap
         },
@@ -90,7 +98,8 @@ export default defineComponent({
             return edgeMap
         },
         nodes(): Node[] {
-            return Object.values(this.toGroupNode)
+            const nodes = Object.values(this.toGroupNode)
+            return layoutNodes(nodes, Object.values(this.toEdge))
         },
         edges(): Edge[] {
             return Object.values(this.toEdge)
@@ -106,4 +115,5 @@ export default defineComponent({
 
     
 })
+
 </script>

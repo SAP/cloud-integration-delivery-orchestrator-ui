@@ -505,3 +505,26 @@ export const UpdateTenantGroup = (group: TenantGroup) => {
 export const DeleteTenantGroup = (groupId: number) => {
   return http.delete(`/api/v1/tenantGroup/${groupId}`)
 }
+
+import dagre from '@dagrejs/dagre'
+import {type Edge, type Node } from '@vue-flow/core'
+
+export function layoutNodes(nodes: Node[], edges: Edge[], direction: 'LR' | 'TB' = 'LR') {
+  const g = new dagre.graphlib.Graph()
+  g.setGraph({ rankdir: direction })
+  g.setDefaultEdgeLabel(() => ({}))
+
+  nodes.forEach((node) => {
+    g.setNode(node.id, { width: 150, height: 50 })
+  })
+
+  edges.forEach((edge) => {
+    g.setEdge(edge.source, edge.target)
+  })
+
+  dagre.layout(g)
+  return nodes.map(n => ({
+    ...n,
+    position: { x: g.node(n.id).x, y: g.node(n.id).y }
+  }))
+}
