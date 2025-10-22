@@ -1,17 +1,18 @@
 <template>
     <VueFlow
+        key="delivery-flow-view"
         :nodes="nodes"
         :edges="edges"
         style="width: 100%; height: 600px; border: 1px solid #ccc;"
-        :nodes-draggable="false"
-        :pan-on-drag="false"
+        :nodes-draggable="true"
+        :pan-on-drag="true"
         :zoom-on-scroll="false" 
         :zoom-on-pinch="false"
         fit-view-on-init
     >
-    <template #node-deliver-group="props">
-        <DeliverGroupNode v-bind="props" :id="props.id" :data="props.data" />
-    </template>
+        <template #node-deliver-group="props">
+            <DeliverGroupNode v-bind="props" :id="props.id" :data="props.data" />
+        </template>
     </VueFlow>
 
 </template>
@@ -69,8 +70,9 @@ export default defineComponent({
                 const childKey = this.groupKey(pNodeId, childNodeIds) // child group node key
                 const node: Node = {
                     id: childKey,
-                    data: { label: groupLabel, sourceNodeId: pNodeId, tenants: childNodeIds.map(nId => this.nodeToTenant[nId]) },
+                    data: { label: groupLabel, sourceNodeId: pNodeId, tenants: childNodeIds.map(nId => this.nodeToTenant[nId]), isSource: false },
                     position: { x: 0, y: 0 }, // Placeholder position
+                    type: 'deliver-group'
                 }
                 childNodeIds.forEach(id => groupNodeMap[id] = node)
             })
@@ -79,8 +81,9 @@ export default defineComponent({
             if (sourceTenant?.TransportNodeID) {
                 groupNodeMap[sourceTenant.TransportNodeID] = {
                     id: `n-source-${this.nodeToTenant[sourceTenant.TransportNodeID]?.Name}`,
-                    data: { label: sourceTenant.Name, sourceNodeId: sourceTenant.TransportNodeID, tenants: [sourceTenant] },
+                    data: { label: sourceTenant.Name, sourceNodeId: sourceTenant.TransportNodeID, tenants: [sourceTenant], isSource: true },
                     position: { x: 0, y: 0 }, // Placeholder position
+                    type: 'deliver-group'
                 }
             }
             return groupNodeMap
@@ -104,9 +107,9 @@ export default defineComponent({
             })
             return edgeMap
         },
+        // TODO: refine filter out logic
         nodes(): Node[] {
             const nodes = Object.values(this.toGroupNode)
-            console.log('nodes before layout:', nodes)
 
             // filter out duplicate nodes by id
             const nodeMap = new Map<string, Node>()
@@ -119,7 +122,6 @@ export default defineComponent({
         },
         edges(): Edge[] {
             const allEdges = Object.values(this.toEdge)
-            console.log('edges:', allEdges)
 
             const edgeMap = new Map<string, Edge>()
             allEdges.forEach(e => {
