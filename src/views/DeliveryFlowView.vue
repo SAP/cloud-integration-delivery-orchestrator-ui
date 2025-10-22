@@ -7,8 +7,11 @@
         :pan-on-drag="false"
         :zoom-on-scroll="false" 
         :zoom-on-pinch="false"
-        fit-view
+        fit-view-on-init
     >
+    <template #node-deliver-group="props">
+        <DeliverGroupNode v-bind="props" :id="props.id" :data="props.data" />
+    </template>
     </VueFlow>
 
 </template>
@@ -19,10 +22,10 @@ import { defineComponent } from 'vue';
 import { VueFlow, type Edge, type Node } from '@vue-flow/core'
 import type { ArtifactTenantOperation, CpiTenant, DeliveryRequest, TransportNode, TransportRoute } from '@/service/model';
 import { layoutNodes, TenantOps } from '@/service/api';
+import DeliverGroupNode from '@/components/DeliverGroupNode.vue';
 
 export default defineComponent({
-    name: 'DeliveryFlowView',
-    components: { VueFlow },
+    components: { VueFlow, DeliverGroupNode },
     props: {
         deliveryRequest: {
             type: Object as () => DeliveryRequest,
@@ -48,19 +51,22 @@ export default defineComponent({
             this.deliveryRequest.TargetRoutes.forEach(route => cache[route.targetNodeId] = route.sourceNodeId)
             return cache
         },
-        toGroupNode(): {[key: number]: Node} { // transport node ID - (group) node
-            const childNodes: {[key: number]: number[]} = {} // parentNodeId - childNodeIds[]
-            this.deliveryRequest?.TargetRoutes?.forEach(tRoute =>{
+        childNodes() { // parentNodeId - childNodeIds[]
+            const childNodes: {[key: number]: number[]} = {}
+            this.deliveryRequest?.TargetRoutes?.forEach(tRoute => {
                 const {targetNodeId, sourceNodeId} = tRoute
                 if(!childNodes[sourceNodeId]) childNodes[sourceNodeId] = []
                 childNodes[sourceNodeId].push(targetNodeId)
             })
+            return childNodes
+        },
+        toGroupNode(): {[key: number]: Node} { // transport node ID -> (group) node. group many transport nodes into one node, based on parent-child relationship
             const groupNodeMap: {[key: number]: Node} = {} // many NodeId -> Node. 
-            Object.keys(childNodes).forEach(parentNodeIdStr => {
+            Object.keys(this.childNodes).forEach(parentNodeIdStr => {
                 const pNodeId = Number(parentNodeIdStr) // parent node ID
-                const childNodeIds = childNodes[pNodeId] // group this transport nodes into one node
-                const groupLabel = this.groupLabel(childNodeIds, this.nodeToTenant)
-                const childKey = `n-group-${groupLabel}-from-${pNodeId}` // child group node key
+                const childNodeIds = this.childNodes[pNodeId] // group this transport nodes into one node
+                const groupLabel = this.groupLabel(childNodeIds)
+                const childKey = this.groupKey(pNodeId, childNodeIds) // child group node key
                 const node: Node = {
                     id: childKey,
                     data: { label: groupLabel, sourceNodeId: pNodeId, tenants: childNodeIds.map(nId => this.nodeToTenant[nId]) },
@@ -68,17 +74,18 @@ export default defineComponent({
                 }
                 childNodeIds.forEach(id => groupNodeMap[id] = node)
             })
+            // add source node
             const sourceTenant = this.deliveryRequest?.SourceTenant
             if (sourceTenant?.TransportNodeID) {
                 groupNodeMap[sourceTenant.TransportNodeID] = {
-                    id: `n-source-${sourceTenant.TransportNodeID}`,
+                    id: `n-source-${this.nodeToTenant[sourceTenant.TransportNodeID]?.Name}`,
                     data: { label: sourceTenant.Name, sourceNodeId: sourceTenant.TransportNodeID, tenants: [sourceTenant] },
                     position: { x: 0, y: 0 }, // Placeholder position
                 }
             }
             return groupNodeMap
         },
-        toEdge() {
+        toEdge() { // key: nodeid
             const edgeMap: {[key: number]: Edge} = []
             Object.keys(this.toGroupNode).forEach(nodeIDStr => {
                 const nodeID = Number(nodeIDStr)
@@ -87,7 +94,7 @@ export default defineComponent({
                 const parentGroupNode = this.toGroupNode[pNId]
                 const childGroupNode = this.toGroupNode[nodeID]
                 const edge = {
-                    id: `e-${parentGroupNode.id}-to-${childGroupNode.id}`,
+                    id: `e-(${parentGroupNode.id})-to-(${childGroupNode.id})`,
                     source: parentGroupNode.id,
                     target: childGroupNode.id,
                     animated: true,
@@ -99,17 +106,40 @@ export default defineComponent({
         },
         nodes(): Node[] {
             const nodes = Object.values(this.toGroupNode)
-            return layoutNodes(nodes, Object.values(this.toEdge))
+            console.log('nodes before layout:', nodes)
+
+            // filter out duplicate nodes by id
+            const nodeMap = new Map<string, Node>()
+            nodes.forEach(n => {
+                if (n?.id != null && !nodeMap.has(String(n.id))) nodeMap.set(String(n.id), n)
+            })
+            const uniqueNodes = Array.from(nodeMap.values())
+
+            return layoutNodes(uniqueNodes, Object.values(this.toEdge))
         },
         edges(): Edge[] {
-            return Object.values(this.toEdge)
+            const allEdges = Object.values(this.toEdge)
+            console.log('edges:', allEdges)
+
+            const edgeMap = new Map<string, Edge>()
+            allEdges.forEach(e => {
+            if (e?.id != null) edgeMap.set(String(e.id), e)
+            })
+
+            return Array.from(edgeMap.values())
         }
     },
     methods: {
-        groupLabel(childNodeIds: number[], nodeToTenant: {[key: number]: CpiTenant}): string {
-            const labelIdx = childNodeIds.findIndex(nodeID => nodeToTenant[nodeID]?.Group) // find the first group label as label
-            return labelIdx >=0 ? nodeToTenant[childNodeIds[labelIdx]].Group : `group - ${nodeToTenant[childNodeIds[0]]?.Name}`
-
+        groupLabel(childNodeIds: number[]): string {
+            if(childNodeIds.length === 1) {
+                return this.nodeToTenant[childNodeIds[0]]?.Name || `node-${childNodeIds[0]}`
+            }
+            const labelIdx = childNodeIds.findIndex(nodeID => this.nodeToTenant[nodeID]?.Group) // find the first group label as label
+            return labelIdx >=0 ? this.nodeToTenant[childNodeIds[labelIdx]].Group : `group-${this.nodeToTenant[childNodeIds[0]]?.Name}`
+        },
+        groupKey(parentNodeID: number, childNodeIds: number[]): string {
+            const cTenants = childNodeIds.map(id => this.nodeToTenant[id]?.Name).join(', ')
+            return `n-group-${cTenants}-from-${this.nodeToTenant[parentNodeID]?.Name}`
         }
     }
 
