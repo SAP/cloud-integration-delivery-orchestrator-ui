@@ -1,12 +1,12 @@
 <template>
     <VueFlow
         key="delivery-flow-view"
-        :nodes="nodes"
-        :edges="edges"
-        style="width: 100%; height: 200px;"
-        :nodes-draggable="false"
-        :pan-on-drag="false"
-        :zoom-on-scroll="false" 
+        :nodes="graph.nodes"
+        :edges="graph.edges"
+        style="width: 100%; height: 300px;"
+        :nodes-draggable="true"
+        :pan-on-drag="true"
+        :zoom-on-scroll="true" 
         :zoom-on-pinch="false"
         fit-view-on-init
     >
@@ -24,6 +24,7 @@ import { VueFlow, type Edge, type Node } from '@vue-flow/core'
 import type { ArtifactTenantOperation, CpiTenant, DeliveryRequest, TransportNode, TransportRoute } from '@/service/model';
 import { DeployOps, ImportOps, layoutNodes } from '@/service/api';
 import DeliverGroupNode from '@/components/DeliverGroupNode.vue';
+import { layout } from '@dagrejs/dagre';
 
 export default defineComponent({
     components: { VueFlow, DeliverGroupNode },
@@ -107,28 +108,20 @@ export default defineComponent({
             })
             return edgeMap
         },
-        // TODO: refine filter out logic
-        nodes(): Node[] {
-            const nodes = Object.values(this.toGroupNode)
-
-            // filter out duplicate nodes by id
-            const nodeMap = new Map<string, Node>()
-            nodes.forEach(n => {
-                if (n?.id != null && !nodeMap.has(String(n.id))) nodeMap.set(String(n.id), n)
+        graph() {
+            const uniqueNodes: {[key: string]: Node} = {}
+            Object.values(this.toGroupNode).forEach(n => {
+                if (!(n.id in uniqueNodes)) uniqueNodes[n.id] = n
             })
-            const uniqueNodes = Array.from(nodeMap.values())
+            const nodes = Object.values(uniqueNodes)
 
-            return layoutNodes(uniqueNodes, Object.values(this.toEdge))
-        },
-        edges(): Edge[] {
-            const allEdges = Object.values(this.toEdge)
-
-            const edgeMap = new Map<string, Edge>()
-            allEdges.forEach(e => {
-            if (e?.id != null) edgeMap.set(String(e.id), e)
+            const uniqueEdges: {[key: string]: Edge} = {}
+            Object.values(this.toEdge).forEach(e => {
+                if (!(e.id in uniqueEdges)) uniqueEdges[e.id] = e
             })
+            const edges = Object.values(uniqueEdges)
+            return layoutNodes(nodes, edges)
 
-            return Array.from(edgeMap.values())
         }
     },
     methods: {

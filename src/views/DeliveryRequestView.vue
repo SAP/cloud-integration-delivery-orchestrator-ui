@@ -3,17 +3,11 @@
   <!-- Flow Modal -->
   <n-modal v-model:show="showFlowModal" preset="card" title="Delivery Flow" :closable="true" :mask-closable="true" style="width:90vw; max-width:1600px">
     <div style="height:72vh; min-height:560px; width:100%;">
-      <VueFlow :key="showFlowModal ? 'flow-open' : 'flow-closed'" :nodes="flowNodes" :edges="flowEdges" fit-view-on-init>
-        <template #node-cpi-transport="props" >
-          <CpiTransportNode
-            v-bind="props"
-            @import-artifact="onImportArtifact"
-            @deploy-artifact="onDeployArtifact"
-            @import-all="onImportAll"
-            @deploy-all="onDeployAll"
-          />
-        </template>
-      </VueFlow>
+      <CpiTransportFlowView
+        :delivery-request="deliveryRequest"
+        :cpi-tenants="cpiTenants"
+        :tenant-to-ops="tenantToOps"
+      />
     </div>
   </n-modal>
   <!-- artifact details modal -->
@@ -307,12 +301,8 @@ import {
   DeleteDeliveryRequest,
   GetArtifactVersionHistory,
   GetTransportRoutes,
-  CheckArtifactNodeStatus,
   TenantOps,
-  ImportOps,
-  DeployOps,
   SyncStatus,
-  layoutNodes,
 } from '@/service/api'
 import { toLocalTime } from '@/service/consts'
 import { Edit16Regular, Delete28Regular, Info16Regular } from '@vicons/fluent'
@@ -320,10 +310,9 @@ import { SaveAltRound, StartTwotone, CancelOutlined } from '@vicons/material'
 import IconBtn from '@/components/IconBtn.vue'
 import { VueFlow, type Edge, type Node } from '@vue-flow/core'
 import CpiTransportNode from '@/components/CpiTransportNode.vue'
-import { ImportArtifactsToNode, DeployArtifactsToNode } from '@/service/api'
-import type { DeliveryRequest, CpiTenant, Package, Artifact, ArtifactVersionHistoryItem, ArtifactTenantOperation, TransportNode, TransportRoute, CpiTenantNodeData } from '@/service/model'
+import type { DeliveryRequest, CpiTenant, Package, Artifact, ArtifactVersionHistoryItem, ArtifactTenantOperation } from '@/service/model'
 import DeliveryFlowView from './DeliveryFlowView.vue'
-
+import CpiTransportFlowView from './CpiTransportFlowView.vue'
 
 export default {
   name: 'TransportPlanView',
@@ -337,7 +326,8 @@ export default {
     Info16Regular,
     VueFlow,
     CpiTransportNode,
-    DeliveryFlowView
+    DeliveryFlowView,
+    CpiTransportFlowView,
   },
   props: { planId: { required: true, type: Number } },
   data() {
@@ -517,22 +507,7 @@ export default {
       await SyncStatus(this.deliveryRequest.ID)
       await this.refresh()
     },
-    async onImportArtifact(payload: { tenant: CpiTenant; artifactOp: ArtifactTenantOperation }) {
-      const {tenant, artifactOp} = payload
-      await ImportOps([artifactOp.ID], tenant.ID)
-    },
-    async onDeployArtifact(payload: { tenant: CpiTenant; artifactOp: ArtifactTenantOperation }) {
-      const {tenant, artifactOp} = payload
-      await DeployOps([artifactOp.ID], tenant.ID)
-    },
-    async onImportAll(payload: { tenant: CpiTenant; artifactOps: ArtifactTenantOperation[] }) {
-      const {tenant, artifactOps} = payload
-      await ImportOps(artifactOps.map(op => op.ID), tenant.ID)
-    },
-    async onDeployAll(payload: { tenant: CpiTenant; artifactOps: ArtifactTenantOperation[] }) {
-      const {tenant, artifactOps} = payload
-      await DeployOps(artifactOps.map(op => op.ID), tenant.ID)
-    }
+
   },
   watch: {
     selectedPackages(newPkgs: Package[], oldPkgs: Package[]) {
@@ -564,64 +539,10 @@ export default {
       if (typeof srcTenantId === 'undefined') return []
       return ops.filter((op: ArtifactTenantOperation) => op.TenantID === srcTenantId)
     },
-    nodeToTenant(): Record<number, CpiTenant> { // transport node ID to cpi tenant
-      const cache: Record<number, CpiTenant> = {}
-      this.cpiTenants.forEach(opt => {
-        cache[opt.TransportNodeID] = opt
-      })
-      return cache
-    },
     tenantToOps(): {[key: number] : {[key: string]: ArtifactTenantOperation}} {
       if(!this.deliveryRequest.SourceTenant) return {}
       return TenantOps(this.deliveryRequest.ArtifactTenantOperations) // cpi tenant ID - map[trNumber]ArtifactTenantOperation
     },
-    flowEdges(): Edge[] {
-      if (!this.deliveryRequest.SourceTenant) return []
-      const routes = this.deliveryRequest?.TargetRoutes || []
-      return routes.map((route: TransportRoute) => ({
-        id: route.description || `e-${route.sourceNodeId}-to-${route.targetNodeId}`,
-        source: String(route.sourceNodeId),
-        target: String(route.targetNodeId),
-        animated: true,
-        label: route.description || ''
-      }))
-    },
-    flowNodes(): Node[] {      
-      if(!this.deliveryRequest.SourceTenant) return []
-      const targetNodes: Node[] = []
-      this.deliveryRequest.TargetNodes.forEach((tn: TransportNode) => {
-        const tenant = this.nodeToTenant[tn.id]
-        const trToOp = this.tenantToOps[tenant?.ID] || {} //trNumber - ArtifactTenantOperation
-        targetNodes.push({
-          id: String(tn.id), // transport node ID
-          data: {
-            NodeID: tn.id,
-            TenantID: tenant?.ID,
-            TrToOp: trToOp,
-            IsSource: tenant?.ID === this.deliveryRequest.SourceTenant.ID,
-            Tenant: tenant
-          },
-          position: { x: 0, y: 0 },
-          type: 'cpi-transport'
-        })
-      })
-      const sourceNodeID = this.deliveryRequest.SourceTenant.TransportNodeID
-      const sourceTenantID = this.deliveryRequest.SourceTenant.ID
-      const sourceNode = {
-        id: String(sourceNodeID),
-        data: {
-          NodeID: sourceNodeID,
-          TenantID: sourceTenantID,
-          TrToOp: this.tenantToOps[sourceTenantID] || {},
-          IsSource: true,
-          Tenant: this.deliveryRequest.SourceTenant
-        },
-        position: { x: 0, y: 0 },
-        type: 'cpi-transport'
-      }
-      const all = [sourceNode, ...targetNodes]
-      return layoutNodes(all, this.flowEdges, 'TB')
-    }
   },
   async created() {
     await this.refresh()

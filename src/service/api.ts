@@ -380,18 +380,25 @@ export const DeriveNodeAgg = (nodedata: CpiTenantNodeData): AggregateStatus => {
 import dagre from '@dagrejs/dagre'
 import {type Edge, type Node } from '@vue-flow/core'
 
-export function layoutNodes(nodes: Node[], edges: Edge[], direction: 'LR' | 'TB' = 'LR') {
+export function layoutNodes(nodes: Node[], edges: Edge[], direction: 'LR' | 'TB' = 'LR'): {nodes: Node[], edges: Edge[]} {
   const g = new dagre.graphlib.Graph()
   g.setGraph({ rankdir: direction })
   g.setDefaultEdgeLabel(() => ({}))
 
-  nodes.forEach((node) => {g.setNode(node.id, { width: 200, height: 50 })})
+  nodes.forEach((node) => {g.setNode(node.id, { width: 500, height: 200 })})
 
   edges.forEach((edge) => {g.setEdge(edge.source, edge.target)})
 
   dagre.layout(g)
-  return nodes.map(n => ({
-    ...n,
-    position: { x: g.node(n.id).x, y: g.node(n.id).y }
-  }))
+  return {
+    nodes: nodes.map(n => ({
+      ...n,
+      position: { x: g.node(n.id).x, y: g.node(n.id).y }
+    })),
+    edges: edges.map(e => ({
+      ...e,
+      position: {x: g.edge(e.source, e.target).x, y: g.edge(e.source, e.target).y }
+      
+    })),
+  }
 }
