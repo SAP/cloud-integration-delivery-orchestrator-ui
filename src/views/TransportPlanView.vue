@@ -284,7 +284,7 @@
             <n-step>
               <template #title> Delivery Flow </template>
               <n-card hoverable size="medium" >
-                <DeliveryFlowView :delivery-request="deliveryRequest" :cpi-tenants="cpiTenants"></DeliveryFlowView>
+                <DeliveryFlowView :delivery-request="deliveryRequest" :cpi-tenants="cpiTenants" :tenant-to-ops="tenantToOps"></DeliveryFlowView>
                 
               </n-card>
 
@@ -309,10 +309,10 @@ import {
   GetTransportRoutes,
   CheckArtifactNodeStatus,
   TenantOps,
-  NodePosition,
   ImportOps,
   DeployOps,
   SyncStatus,
+  layoutNodes,
 } from '@/service/api'
 import { toLocalTime } from '@/service/consts'
 import { Edit16Regular, Delete28Regular, Info16Regular } from '@vicons/fluent'
@@ -588,30 +588,39 @@ export default {
     },
     flowNodes(): Node[] {      
       if(!this.deliveryRequest.SourceTenant) return []
-      const targetNodes: CpiTenantNodeData[] = []
+      const targetNodes: Node[] = []
       this.deliveryRequest.TargetNodes.forEach((tn: TransportNode) => {
         const tenant = this.nodeToTenant[tn.id]
         const trToOp = this.tenantToOps[tenant?.ID] || {} //trNumber - ArtifactTenantOperation
         targetNodes.push({
-          NodeID: tn.id, // transport node ID
-          TenantID: tenant?.ID,
-          TrToOp: trToOp,
-          IsSource: tenant?.ID === this.deliveryRequest.SourceTenant.ID,
-          Tenant: tenant
+          id: String(tn.id), // transport node ID
+          data: {
+            NodeID: tn.id,
+            TenantID: tenant?.ID,
+            TrToOp: trToOp,
+            IsSource: tenant?.ID === this.deliveryRequest.SourceTenant.ID,
+            Tenant: tenant
+          },
+          position: { x: 0, y: 0 },
+          type: 'cpi-transport'
         })
       })
       const sourceNodeID = this.deliveryRequest.SourceTenant.TransportNodeID
       const sourceTenantID = this.deliveryRequest.SourceTenant.ID
-      const sourceNode: CpiTenantNodeData = {
-        NodeID: sourceNodeID,
-        TenantID: sourceTenantID,
-        TrToOp: this.tenantToOps[sourceTenantID] || {},
-        IsSource: true,
-        Tenant: this.deliveryRequest.SourceTenant
+      const sourceNode = {
+        id: String(sourceNodeID),
+        data: {
+          NodeID: sourceNodeID,
+          TenantID: sourceTenantID,
+          TrToOp: this.tenantToOps[sourceTenantID] || {},
+          IsSource: true,
+          Tenant: this.deliveryRequest.SourceTenant
+        },
+        position: { x: 0, y: 0 },
+        type: 'cpi-transport'
       }
       const all = [sourceNode, ...targetNodes]
-      const tRoutes = this.deliveryRequest.TargetRoutes
-      return NodePosition(sourceNodeID, all, tRoutes)
+      return layoutNodes(all, this.flowEdges, 'TB')
     }
   },
   async created() {

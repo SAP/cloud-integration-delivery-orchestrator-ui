@@ -1,9 +1,11 @@
 <template>
-    <div> {{ props.data.label }}</div>
-    
-    <n-text v-for="t in props.data.tenants">{{ t.Name }}</n-text>
+    <n-card :title="props.data.label" size="small" style="margin-bottom: 4px;">
+        <n-tag v-for="t in props.data.tenants">{{ t?.Name }}</n-tag>
 
-
+        <n-click @click="handleDeliver">deliver</n-click>
+        <n-click @click="handleImportOnly"> import only</n-click>
+        <n-click @click="handleDeployOnly"> deploy only</n-click>
+    </n-card>
 
     <Handle type="source" :position="Position.Right"/>
     <Handle v-if="!props.data.isSource" type="target" :position="Position.Left"/>
@@ -24,13 +26,20 @@ const props = defineProps<{
     }
 }>()
 
+const emit = defineEmits<{
+  (e: 'deliver', payload: { tenantIDs: number[] }): void
+  (e: 'import-only', payload: { tenantIDs: number[] }): void
+  (e: 'deploy-only', payload: { tenantIDs: number[] }): void
+}>()
 
-const handlerType = computed(() => {
-    return props.data.isSource ? 'source' : 'target'
-})
-
-const handlerPosition = computed(() => {
-    return props.data.isSource ? Position.Right : Position.Left
-})
+function handleDeliver() {
+  emit('deliver', {tenantIDs: props.data.tenants.map(t => t.ID)})
+}
+function handleImportOnly() {
+  emit('import-only', {tenantIDs: props.data.tenants.map(t => t.ID)})
+}
+function handleDeployOnly() {
+  emit('deploy-only',{tenantIDs: props.data.tenants.map(t => t.ID)})
+}
 
 </script>

@@ -379,113 +379,6 @@ export const DeriveNodeAgg = (nodedata: CpiTenantNodeData): AggregateStatus => {
 
 
 
-export const NodePosition = (
-  sourceNodeID: number,
-  nodesData: CpiTenantNodeData[],
-  routes: TransportRoute[],
-  options?: { horizontalSpacing?: number; verticalSpacing?: number; layerCenterX?: number }
-): {id: string, data: CpiTenantNodeData, position:{x: number, y: number}, type: string}[] => {
-  // Layout algorithm:
-  // 1. Build adjacency map from routes (directed edges sourceNodeId -> targetNodeId).
-  // 2. BFS from sourceNodeID to assign each reachable node a layer (source = 0).
-  // 3. Any nodes not reached by BFS are placed after the deepest layer (maintaining stable order).
-  // 4. For each layer, distribute nodes horizontally with constant spacing.
-  // 5. Return array in layer order (ascending layer then NodeID) with the shape expected by Vue Flow.
-
-  const { horizontalSpacing = 240, verticalSpacing = 220, layerCenterX = 0 } = options || {}
-  const baseX = 80
-  const baseY = 40
-
-  if (!nodesData || nodesData.length === 0) return []
-
-  // Map NodeID -> data for quick lookup.
-  const nodeMap: Record<number, CpiTenantNodeData> = {}
-  nodesData.forEach(nd => { nodeMap[nd.NodeID] = nd })
-
-  // If source node is not part of nodesData, just fall back to simple grid.
-  if (!nodeMap[sourceNodeID]) {
-    return nodesData.map((entry, idx) => {
-      const col = idx % 3
-      const row = Math.floor(idx / 3)
-      return {
-        id: String(entry.NodeID),
-        data: entry,
-        position: { x: baseX + col * horizontalSpacing, y: baseY + row * verticalSpacing },
-        type: 'cpi-transport'
-      }
-    })
-  }
-
-  // Build adjacency list.
-  const adj: Record<number, number[]> = {}
-  routes.forEach(r => {
-    if (!adj[r.sourceNodeId]) adj[r.sourceNodeId] = []
-    adj[r.sourceNodeId].push(r.targetNodeId)
-  })
-
-  // BFS to assign layers.
-  const layer: Record<number, number> = {}
-  const visited: Set<number> = new Set()
-  const queue: number[] = []
-  layer[sourceNodeID] = 0
-  visited.add(sourceNodeID)
-  queue.push(sourceNodeID)
-
-  while (queue.length) {
-    const current = queue.shift()!
-    const nexts = adj[current] || []
-    nexts.forEach(nid => {
-      if (!visited.has(nid) && nodeMap[nid]) { // only consider nodes we actually render
-        visited.add(nid)
-        layer[nid] = layer[current] + 1
-        queue.push(nid)
-      }
-    })
-  }
-
-  // Collect unreached nodes (present in nodesData but not visited)
-  const reachedNodeIDs = new Set(Object.keys(layer).map(k => Number(k)))
-  const unreached: number[] = nodesData
-    .map(nd => nd.NodeID)
-    .filter(id => !reachedNodeIDs.has(id))
-
-  // Assign unreached nodes layers after the max layer.
-  const maxLayer = Object.values(layer).reduce((m, v) => Math.max(m, v), 0)
-  unreached.forEach((nid, idx) => { layer[nid] = maxLayer + 1 + idx })
-
-  // Group nodes by layer.
-  const layerGroups: Record<number, number[]> = {}
-  Object.entries(layer).forEach(([nidStr, lyr]) => {
-    const nid = Number(nidStr)
-    layerGroups[lyr] = layerGroups[lyr] || []
-    layerGroups[lyr].push(nid)
-  })
-
-  // Sort node IDs in each layer for deterministic output.
-  Object.values(layerGroups).forEach(arr => arr.sort((a, b) => a - b))
-
-  // Determine positions.
-  const result: {id: string, data: CpiTenantNodeData, position:{x: number, y: number}, type: string}[] = []
-  const sortedLayers = Object.keys(layerGroups).map(n => Number(n)).sort((a, b) => a - b)
-  sortedLayers.forEach(lyr => {
-    const ids = layerGroups[lyr]
-    ids.forEach((nid, idx) => {
-      const x = baseX + idx * horizontalSpacing + layerCenterX
-      const y = baseY + lyr * verticalSpacing
-      result.push({
-        id: String(nid),
-        data: nodeMap[nid],
-        position: { x, y },
-        type: 'cpi-transport'
-      })
-    })
-  })
-
-  return result
-
-}
-
-
 export const GetTenantGroupByID = async (groupId: number) => {
   return http.get(`/api/v1/tenantGroup/${groupId}`) as Promise<TenantGroup>
 }
@@ -514,13 +407,9 @@ export function layoutNodes(nodes: Node[], edges: Edge[], direction: 'LR' | 'TB'
   g.setGraph({ rankdir: direction })
   g.setDefaultEdgeLabel(() => ({}))
 
-  nodes.forEach((node) => {
-    g.setNode(node.id, { width: 150, height: 50 })
-  })
+  nodes.forEach((node) => {g.setNode(node.id, { width: 200, height: 50 })})
 
-  edges.forEach((edge) => {
-    g.setEdge(edge.source, edge.target)
-  })
+  edges.forEach((edge) => {g.setEdge(edge.source, edge.target)})
 
   dagre.layout(g)
   return nodes.map(n => ({

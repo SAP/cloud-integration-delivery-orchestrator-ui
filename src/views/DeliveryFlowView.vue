@@ -3,15 +3,15 @@
         key="delivery-flow-view"
         :nodes="nodes"
         :edges="edges"
-        style="width: 100%; height: 600px; border: 1px solid #ccc;"
-        :nodes-draggable="true"
-        :pan-on-drag="true"
+        style="width: 100%; height: 200px;"
+        :nodes-draggable="false"
+        :pan-on-drag="false"
         :zoom-on-scroll="false" 
         :zoom-on-pinch="false"
         fit-view-on-init
     >
         <template #node-deliver-group="props">
-            <DeliverGroupNode v-bind="props" :id="props.id" :data="props.data" />
+            <DeliverGroupNode v-bind="props" :id="props.id" :data="props.data" @deliver="onDeliver" @import-only="onImportOnly" @deploy-only="onDeployOnly"/>
         </template>
     </VueFlow>
 
@@ -22,7 +22,7 @@
 import { defineComponent } from 'vue';
 import { VueFlow, type Edge, type Node } from '@vue-flow/core'
 import type { ArtifactTenantOperation, CpiTenant, DeliveryRequest, TransportNode, TransportRoute } from '@/service/model';
-import { layoutNodes, TenantOps } from '@/service/api';
+import { DeployOps, ImportOps, layoutNodes } from '@/service/api';
 import DeliverGroupNode from '@/components/DeliverGroupNode.vue';
 
 export default defineComponent({
@@ -35,13 +35,13 @@ export default defineComponent({
         cpiTenants: { // all cpi tenants
             type: Array as () => CpiTenant[],
             required: true
+        },
+        tenantToOps: { // map[tenantID]map[trNumber]ArtifactTenantOperation
+            type: Object as () => {[key: number] : {[key: string]: ArtifactTenantOperation}},
+            required: true
         }
     },
     computed: {
-        tenantToOps(): {[key: number] : {[key: string]: ArtifactTenantOperation}} { // cpi tenant ID - map[trNumber]ArtifactTenantOperation
-            if(!this.deliveryRequest.SourceTenant) return {}
-            return TenantOps(this.deliveryRequest.ArtifactTenantOperations) 
-        },
         nodeToTenant(): {[key: number]: CpiTenant} { // transport node ID to cpi tenant
             const cache: {[key: number]: CpiTenant} = {}
             this.cpiTenants.forEach(opt => cache[opt.TransportNodeID] = opt)
@@ -142,6 +142,26 @@ export default defineComponent({
         groupKey(parentNodeID: number, childNodeIds: number[]): string {
             const cTenants = childNodeIds.map(id => this.nodeToTenant[id]?.Name).join(', ')
             return `n-group-${cTenants}-from-${this.nodeToTenant[parentNodeID]?.Name}`
+        },
+        async onDeliver(payload: { tenantIDs: number[] }) {
+            await this.onImportOnly(payload)
+            await this.onDeployOnly(payload)
+        },
+        async onImportOnly(payload: { tenantIDs: number[] }) {
+            const tasks: Promise<any>[] = []
+            payload.tenantIDs.forEach(tID => {
+                const ops = Object.values(this.tenantToOps[tID]).map(op => op.ID)
+                tasks.push(ImportOps(ops, tID))
+            })
+            await Promise.all(tasks)
+        },
+        async onDeployOnly(payload: { tenantIDs: number[] }) {
+            const tasks: Promise<any>[] = []
+            payload.tenantIDs.forEach(tID => {
+                const ops = Object.values(this.tenantToOps[tID]).map(op => op.ID)
+                tasks.push(DeployOps(ops, tID))
+            })
+            await Promise.all(tasks)
         }
     }
 
