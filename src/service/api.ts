@@ -2,7 +2,7 @@ import axios from 'axios'
 import { clientId, clientSecret, tokenEndpoint, userInfoEndpoint } from './consts'
 import http from './http'
 import { defineStore } from 'pinia'
-import type { ApiEndpoint, Artifact, ArtifactTenantOperation, ArtifactVersionHistoryItem, CpiTenant, CpiTenantNodeData, DeliverOpRequest, DeliveryRequest, DeliveryRule, Job, NodeTransportRequest, Package, RuntimeArtifact, Step, TransportGroup, TransportNode, TransportPlan, TransportRoute, UserInfo, TenantGroup } from './model'
+import type { ApiEndpoint, Artifact, ArtifactTenantOperation, ArtifactVersionHistoryItem, CpiTenant, CpiTenantNodeData, DeliverOpRequest, DeliveryRequest, DeliveryRule, Job, NodeTransportRequest, Package, RuntimeArtifact, Step, TransportGroup, TransportNode, TransportPlan, TransportRoute, UserInfo } from './model'
 import type { AggregateStatus, DeployState, ImportState, RequestState } from './statuses'
 // validate if a step can be modified
 export const validate = (step: Step) => {
@@ -375,28 +375,6 @@ export const DeriveNodeAgg = (nodedata: CpiTenantNodeData): AggregateStatus => {
   if (any(requestStates, ['REQUESTING', 'NOT_REQUESTED'])) return 'PENDING'
 
   return 'UNKNOWN'
-}
-
-
-
-export const GetTenantGroupByID = async (groupId: number) => {
-  return http.get(`/api/v1/tenantGroup/${groupId}`) as Promise<TenantGroup>
-}
-
-export const GetTenantGroups = () => {
-  return http.get('/api/v1/tenantGroups') as Promise<TenantGroup[]>
-}
-
-export const CreateTenantGroup = (group: TenantGroup) => {
-  return http.post('/api/v1/tenantGroup', group) as Promise<TenantGroup>
-}
-
-export const UpdateTenantGroup = (group: TenantGroup) => {
-  return http.put('/api/v1/tenantGroup', group) as Promise<TenantGroup>
-}
-
-export const DeleteTenantGroup = (groupId: number) => {
-  return http.delete(`/api/v1/tenantGroup/${groupId}`)
 }
 
 import dagre from '@dagrejs/dagre'

@@ -12,56 +12,30 @@ const router = createRouter({
     },
     {
       path: '/jobs',
-      name: 'Jobs of Cloud Integration and Transport',
+      name: 'Cloud Integration Delployment and Transport',
       children: [
         {
-          path: 'import',
-          name: 'Import',
-          component: () => import('@/views/ImportJobView.vue')
+          path: 'delivery-request-list',
+          name: 'Delivery Requests',
+          component: () => import('@/views/DeliveryRequestListView.vue')
         },
-        {
-          path: 'deploy',
-          name: 'Delivery',
-          component: () => import('@/views/DeployJobView.vue')
-        }
       ]
     },
     {
-      path: '/tools',
+      path: '/config',
       name: 'Delivery Configurations',
       children: [
         {
-          path: 'parse',
-          name: 'Transport Plan',
-          component: () => import('@/views/TransportPlanListView.vue')
-        },
-        {
-          path: 'transportGroup',
-          name: 'Transport Group',
-          component: () => import('@/views/TransportGroupListView.vue')
-        },
-        {
-          path: 'tenantGroup',
-          name: 'Tenant Group',
-          component: () => import('@/views/TenantGroupListView.vue')
-        },
-        {
-          path: 'cpiTenants',
+          path: 'cpi-tenants',
           name: 'CPI Tenants',
           component: () => import('@/views/CpiTenantsView.vue')
         },
         {
-          path: 'deliveryRule',
+          path: 'delivery-rule',
           name: 'Delivery Rule',
           component: () => import('@/views/DeliveryRuleView.vue')
         }
       ]
-    },
-    {
-      path: '/flow/:jobId',
-      name: 'Job Flow',
-      component: () => import('@/views/FlowView.vue'),
-      props: true
     },
     {
       path: '/callback',
@@ -69,9 +43,9 @@ const router = createRouter({
       component: () => import('@/views/LoginCallback.vue'),
     },
     {
-      path: '/transportplan/:planId',
-      name: 'Transport&Delivery Plan',
-      component: () => import('@/views/TransportPlanView.vue'),
+      path: '/delivery-request/:planId',
+      name: 'Maintain Delivery Request',
+      component: () => import('@/views/DeliveryRequestView.vue'),
       props: route => ({ planId: Number(route.params.planId) })
     }
   ]

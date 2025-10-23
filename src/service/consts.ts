@@ -307,7 +307,7 @@ export const transportGroupColums: DataTableColumns<TransportGroup> = [
 
 export const transportPlanColumns = (router: Router) => {
   const handleRouter = (row: TransportPlan) => {
-    router.push({ path: `/transportplan/${row.ID}` })
+    router.push({ path: `/delivery-request/${row.ID}` })
   }
   return [
     {
@@ -439,7 +439,7 @@ export const transportPlanColumns = (router: Router) => {
             style: { width: '18px', height: '18px' },
             onClick: () => {
               router.push({
-                path: `/transportplan/${row.ID}`
+                path: `/delivery-request/${row.ID}`
               })
             }
           },

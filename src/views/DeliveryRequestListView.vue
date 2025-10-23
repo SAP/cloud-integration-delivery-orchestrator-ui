@@ -58,7 +58,7 @@ export default defineComponent({
   },
   methods: {
     handleRowClick(row: DeliveryRequest) {
-      this.$router.push({ path: `/transportplan/${row.ID}` })
+      this.$router.push({ path: `/delivery-request/${row.ID}` })
     },
     async loadDeliveryRequests() {
       const deliveryRequests = await GetDeliveryRequests()
