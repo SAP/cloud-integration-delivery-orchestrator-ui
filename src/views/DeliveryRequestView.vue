@@ -1,14 +1,12 @@
 <template>
   <!-- Modals -->
   <!-- Flow Modal -->
-  <n-modal v-model:show="showFlowModal" preset="card" title="Delivery Flow" :closable="true" :mask-closable="true" style="width:90vw; max-width:1600px">
-    <div style="height:72vh; min-height:560px; width:100%;">
+  <n-modal v-model:show="showFlowModal" preset="card" title="Delivery Flow" :closable="true" :mask-closable="true" style="width:80%; height: 100%;">
       <CpiTransportFlowView
         :delivery-request="deliveryRequest"
         :cpi-tenants="cpiTenants"
         :tenant-to-ops="tenantToOps"
       />
-    </div>
   </n-modal>
   <!-- artifact details modal -->
   <n-modal v-model:show="showArtifactDetails" preset="card" title="Artifact Details" style="max-width:560px"

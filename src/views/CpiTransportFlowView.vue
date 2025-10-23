@@ -1,5 +1,5 @@
 <template>
-    <VueFlow :nodes="graph.nodes" :edges="graph.edges" fit-view-on-init>
+    <VueFlow :nodes="graph.nodes" :edges="graph.edges" fit-view-on-init :style="{height:graph.height+'px'}" >
         <template #node-cpi-transport="props" >
           <CpiTransportNode
             v-bind="props"
