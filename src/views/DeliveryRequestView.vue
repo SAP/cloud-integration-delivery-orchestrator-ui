@@ -1,12 +1,9 @@
 <template>
   <!-- Modals -->
   <!-- Flow Modal -->
-  <n-modal v-model:show="showFlowModal" preset="card" title="Delivery Flow" :closable="true" :mask-closable="true" style="width:80%; height: 100%;">
-      <CpiTransportFlowView
-        :delivery-request="deliveryRequest"
-        :cpi-tenants="cpiTenants"
-        :tenant-to-ops="tenantToOps"
-      />
+  <n-modal v-model:show="showFlowModal" preset="card" title="Delivery Flow" :closable="true" :mask-closable="true"
+    style="width:80%; height: 100%;">
+    <CpiTransportFlowView :delivery-request="deliveryRequest" :cpi-tenants="cpiTenants" :tenant-to-ops="tenantToOps" />
   </n-modal>
   <!-- artifact details modal -->
   <n-modal v-model:show="showArtifactDetails" preset="card" title="Artifact Details" style="max-width:560px"
@@ -44,7 +41,7 @@
       </n-flex>
     </div>
   </n-modal>
-<!-- end modal -->
+  <!-- end modal -->
   <div style="margin: 0 42px">
 
     <!-- header -->
@@ -59,17 +56,18 @@
               <!-- <n-text depth="3"> Delivery Request Name: </n-text> -->
               {{ deliveryRequest.Name }}
             </span>
-            
+
           </n-flex>
         </n-gi>
         <n-gi>
           <!-- plan JIRA link -->
-            <n-input v-model:value="deliveryRequest.JiraLink" placeholder="JIRA Link" size="large" clearable v-if="editing" />
-            <n-text style="font-weight: bold" v-else-if="deliveryRequest.JiraLink">
-              {{ deliveryRequest.JiraLink }}
-            </n-text>
-            <n-flex>{{ deliveryRequest.DeliveryRule?.Name }}</n-flex>
-            <n-text>{{ deliveryRequest.Description }}</n-text>
+          <n-input v-model:value="deliveryRequest.JiraLink" placeholder="JIRA Link" size="large" clearable
+            v-if="editing" />
+          <n-text style="font-weight: bold" v-else-if="deliveryRequest.JiraLink">
+            {{ deliveryRequest.JiraLink }}
+          </n-text>
+          <n-flex>{{ deliveryRequest.DeliveryRule?.Name }}</n-flex>
+          <n-text>{{ deliveryRequest.Description }}</n-text>
         </n-gi>
 
         <!-- Delivery Request basic information -->
@@ -128,15 +126,21 @@
                   <!-- cpi tenants selection -->
                   <n-flex vertical v-if="deliveryRequest.SourceTenant" style="gap:8px">
                     <div>
-                      <n-text depth="3" strong>Tenant: #{{ deliveryRequest.SourceTenant.ID}} {{deliveryRequest.SourceTenant.Name }}</n-text>
+                      <n-text depth="3" strong>Tenant: #{{ deliveryRequest.SourceTenant.ID }}
+                        {{ deliveryRequest.SourceTenant.Name
+                        }}</n-text>
                     </div>
                     <div v-if="deliveryRequest.SourceTenant.TransportNodeID">
                       <n-text depth="3" strong>
-                        Transport Node: #{{deliveryRequest.SourceTenant.TransportNodeID }} {{deliveryRequest.SourceTenant.TransportNodeName }} - {{deliveryRequest.SourceTenant.TransportNodeDescription }}
+                        Transport Node: #{{ deliveryRequest.SourceTenant.TransportNodeID }}
+                        {{ deliveryRequest.SourceTenant.TransportNodeName }} -
+                        {{ deliveryRequest.SourceTenant.TransportNodeDescription
+                        }}
                       </n-text>
                     </div>
                     <div v-if="deliveryRequest.SourceTenant.CpiEndpoint">
-                      <n-text depth="3" strong>CPI Endpoint: {{deliveryRequest.SourceTenant.CpiEndpoint.name}} - {{ deliveryRequest.SourceTenant.CpiEndpoint.url }}</n-text>
+                      <n-text depth="3" strong>CPI Endpoint: {{ deliveryRequest.SourceTenant.CpiEndpoint.name }} - {{
+                        deliveryRequest.SourceTenant.CpiEndpoint.url }}</n-text>
                     </div>
                     <n-divider dashed title-placement="center"
                       style="margin:0 0 10px 0; font-weight:600; letter-spacing:.5px">
@@ -234,8 +238,10 @@
                         Selected Artifacts ({{ selectedArtifacts.length }})
                       </n-divider>
                       <n-flex wrap>
-                        <n-tag v-for="(artOp, i) in selectedArtifacts" :key="'sel-' + i + '-' + artOp.ArtifactTechID + '@' + artOp.ArtifactVersion"
-                          type="info" size="small" :bordered="false">
+                        <n-tag 
+                          v-for="(artOp, i) in selectedArtifacts"
+                          :key="'sel-' + i + '-' + artOp.ArtifactTechID + '@' + artOp.ArtifactVersion" type="info"
+                          size="small" :bordered="false">
                           {{ artOp.ArtifactTechID }}@{{ artOp.ArtifactVersion }}
                           <n-tooltip trigger="hover" placement="top">
                             <template #trigger>
@@ -246,14 +252,10 @@
                             Show Details
                           </n-tooltip>
                           <n-divider vertical />
-                            TR Number:
-                            <n-input
-                            v-model:value="artOp.TransportRequestNumber" size="tiny" placeholder="TR Number"
-                            style="width:90px; margin-left:4px"
-                            @click.stop
-                            :status="!artOp.TransportRequestNumber ? 'warning' : 'info'"
-                            />
-                            
+                          TR Number:
+                          <n-input v-model:value="artOp.TransportRequestNumber" size="tiny" placeholder="TR Number"
+                            style="width:80px; margin-left:4px" @click.stop
+                            :status="!artOp.TransportRequestNumber ? 'warning' : 'info'" />
                         </n-tag>
                       </n-flex>
                     </n-flex>
@@ -269,17 +271,16 @@
             <n-step>
               <template #title> Approve </template>
               <n-card hoverable size="medium">
-                
+
               </n-card>
 
             </n-step>
             <n-step>
               <template #title> Delivery Flow </template>
-              <n-card hoverable size="medium" >
-                <DeliveryFlowView :delivery-request="deliveryRequest" :cpi-tenants="cpiTenants" :tenant-to-ops="tenantToOps"></DeliveryFlowView>
-                
+              <n-card hoverable size="medium">
+                <DeliveryFlowView :delivery-request="deliveryRequest" :cpi-tenants="cpiTenants"
+                  :tenant-to-ops="tenantToOps" />
               </n-card>
-
             </n-step>
           </n-steps>
         </n-gi>
@@ -340,7 +341,7 @@ export default {
       packageArtifacts: {} as { [key: string]: Artifact[] }, // packages to their artifacts, this is like a cache for package
       loadingPackages: {} as { [key: string]: boolean },
       expandedPackages: [] as string[],
-      artifactSelections: {} as { [key: string]: Artifact[] },  // selected artifacts within each package, [package id, array of artifact keys (id@version)]
+      artifactSelections: {} as { [key: string]: Artifact[] },  // selected artifacts within each package, [package id, array of artifact]
       packagesLoading: false,
       packagesLoadError: '' as string,
       artifactSearch: {} as { [key: string]: string },
@@ -360,6 +361,21 @@ export default {
     async refresh() {
       this.editing = false
       this.deliveryRequest = await GetDeliveryRequest(this.planId)
+      this.deliveryRequest.ArtifactTenantOperations.forEach(op => {
+        if (!this.artifactSelections[op.Artifact.PackageID]) {
+          this.artifactSelections[op.Artifact.PackageID] = []
+        }
+        const selPackageArtifacts = this.artifactSelections[op.Artifact.PackageID]
+        const findIdx = selPackageArtifacts?.findIndex(a =>
+          a.TechID === op.ArtifactTechID && 
+          a.Version === op.ArtifactVersion && 
+          op.TenantID === this.deliveryRequest.SourceTenant.ID // ensure the op is for the source tenant
+        )
+        if (findIdx < 0) selPackageArtifacts.push(op.Artifact)
+        console.log(this.artifactSelections[op.Artifact.PackageID])
+      })
+      this.updateArtifactsFromSelection()
+      
     },
     async handleDelete() {
       await DeleteDeliveryRequest(this.planId)
@@ -367,20 +383,6 @@ export default {
     },
     handleCurrent(current: number) {
       this.current = current
-    },
-    async handleSelectSourceCpiTenant(tenant: CpiTenant) {
-      this.deliveryRequest.SourceTenant = tenant
-      this.resetPackageState()
-      await this.fetchPackagesForTenant(tenant.CpiEndpoint.name)
-    },
-    resetPackageState() {
-      this.selectedPackages = []
-      this.packageOptions = []
-      this.packageArtifacts = {}
-      this.expandedPackages = []
-      this.artifactSelections = {}
-      this.packagesLoadError = ''
-      this.updateArtifactsFromSelection()
     },
     async fetchPackagesForTenant(tenantKey: string) {
       this.packagesLoading = true
@@ -403,8 +405,8 @@ export default {
         window.$message?.warning?.('Please select a source CPI tenant')
         return
       }
-      for(const a of this.deliveryRequest.ArtifactTenantOperations) {
-        if(!a.TransportRequestNumber || !a.TransportRequestNumber.trim()) {
+      for (const a of this.deliveryRequest.ArtifactTenantOperations) {
+        if (!a.TransportRequestNumber || !a.TransportRequestNumber.trim()) {
           window.$message?.warning?.(`Please provide TR Number for artifact ${a.ArtifactTechID}@${a.ArtifactVersion}`)
           return
         }
@@ -414,12 +416,12 @@ export default {
       const routes = await GetTransportRoutes()
     },
     async loadPackageArtifacts(pkgId: string) {
-      if (!this.deliveryRequest.SourceTenant) return
-      if (this.packageArtifacts[pkgId]) return // already loaded
-      const tenantKey = this.deliveryRequest.SourceTenant.CpiEndpoint.name
+      if (this.packageArtifacts[pkgId]) return this.packageArtifacts[pkgId] // already loaded
+      const cpiDest = this.deliveryRequest?.SourceTenant?.CpiEndpoint.name
+      if (!cpiDest) return []
       this.loadingPackages[pkgId] = true
       try {
-        this.packageArtifacts[pkgId] = await GetPackageArtifacts(tenantKey, pkgId)
+        this.packageArtifacts[pkgId] = await GetPackageArtifacts(cpiDest, pkgId)
         if (!this.artifactSelections[pkgId]) { // clear selected artifacts within the package, if reload the package artifacts
           this.artifactSelections[pkgId] = []
         }
@@ -432,7 +434,9 @@ export default {
     updateArtifactsFromSelection() {
       const artifOp: Partial<ArtifactTenantOperation>[] = []
       Object.entries(this.artifactSelections).forEach(([pkgId, keys]) => { // loop selected artifacts
+        this.loadPackageArtifacts(pkgId)
         const pkgArts = this.packageArtifacts[pkgId] || []
+        if (this.packageArtifacts[pkgId]?.length === 0) return // no artifacts in this package
         keys.forEach(k => {
           const found = pkgArts.find(a => a.TechID === k.TechID && a.Version === k.Version)
           const existID = this.deliveryRequest.ArtifactTenantOperations?.find(op =>
@@ -471,10 +475,10 @@ export default {
     isArtifactSelected(pkgId: string, a: Artifact) {
       return (this.artifactSelections[pkgId] || []).findIndex(x => x.TechID == a.TechID && x.Version == a.Version) >= 0
     },
-    toggleArtifact(pkgId: string, a: Artifact) {
+    toggleArtifact(pkgId: string, a: Artifact) { // toggle selection of an artifact within a package
       if (!this.artifactSelections[pkgId]) this.artifactSelections[pkgId] = []
       const arr = this.artifactSelections[pkgId]
-      
+
       const foundIdx = arr.findIndex(x => x.TechID == a.TechID && x.Version == a.Version)
       if (foundIdx >= 0) arr.splice(foundIdx, 1)
       else arr.push(a)
@@ -491,17 +495,17 @@ export default {
     },
     async openArtifactDetails(a: Artifact) {
       this.artifactDetail = a
-      this.artifactDetailPkgId = a.PackageId
+      this.artifactDetailPkgId = a.PackageID
       this.artifactRawJson = JSON.stringify(a, null, 2)
       this.showArtifactDetails = true
 
       const cpiTenantUrl = this.deliveryRequest.SourceTenant.CpiEndpoint.url
       const baseUrl = new URL(cpiTenantUrl)
-      this.artifactVersionHistory = await GetArtifactVersionHistory(`${baseUrl.protocol}//${baseUrl.host}`, a.PackageId, a.TechID)
+      this.artifactVersionHistory = await GetArtifactVersionHistory(`${baseUrl.protocol}//${baseUrl.host}`, a.PackageID, a.TechID)
       console.log(this.artifactVersionHistory)
     },
     async onSyncDrStatus() {
-      if(!this.deliveryRequest.ID) return
+      if (!this.deliveryRequest.ID) return
       await SyncStatus(this.deliveryRequest.ID)
       await this.refresh()
     },
@@ -537,8 +541,8 @@ export default {
       if (typeof srcTenantId === 'undefined') return []
       return ops.filter((op: ArtifactTenantOperation) => op.TenantID === srcTenantId)
     },
-    tenantToOps(): {[key: number] : {[key: string]: ArtifactTenantOperation}} {
-      if(!this.deliveryRequest.SourceTenant) return {}
+    tenantToOps(): { [key: number]: { [key: string]: ArtifactTenantOperation } } {
+      if (!this.deliveryRequest.SourceTenant) return {}
       return TenantOps(this.deliveryRequest.ArtifactTenantOperations) // cpi tenant ID - map[trNumber]ArtifactTenantOperation
     },
   },

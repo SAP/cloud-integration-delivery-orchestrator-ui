@@ -23,7 +23,7 @@
     :columns="artifactColumns"
     :row-key="(row: Artifact) => row.TechID"
     @update:check-rows="handleArtifacts"
-    :default-checked-row-keys="step.Artifacts.filter((art) => art.PackageId === selectedPackage.Id).map((art) => art.TechID)"
+    :default-checked-row-keys="step.Artifacts.filter((art) => art.PackageID === selectedPackage.Id).map((art) => art.TechID)"
     :loading="!artifactOptions || !artifactOptions.length"
     :key="selectedPackage.Id"
   />
@@ -94,10 +94,10 @@ export default defineComponent({
     handleArtifacts(selectedArtifacts: Artifact[]) {
       if (!validate(this.step)) return
       this.step.Status = 'Draft'
-      selectedArtifacts.forEach((artifact) => {artifact.PackageId = this.selectedPackage.Id})
+      selectedArtifacts.forEach((artifact) => {artifact.PackageID = this.selectedPackage.Id})
       if (!this.step.Artifacts) this.step.Artifacts = []
       // filter out artifacts in the selectedPackage, so that packaged within that package can be re-added
-      this.step.Artifacts = this.step.Artifacts.filter((art) => art.PackageId !== this.selectedPackage.Id)
+      this.step.Artifacts = this.step.Artifacts.filter((art) => art.PackageID !== this.selectedPackage.Id)
       this.step.Artifacts.push(...selectedArtifacts)
     }
   }

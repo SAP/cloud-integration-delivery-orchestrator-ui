@@ -40,8 +40,8 @@ export default defineComponent({
       // group artifacts by package
       const pkgsMap: { [key: string]: Artifact[] } = {}
       for (const artifact of this.step.Artifacts) {
-        if (!pkgsMap[artifact.PackageId]) pkgsMap[artifact.PackageId] = []
-        pkgsMap[artifact.PackageId].push(artifact)
+        if (!pkgsMap[artifact.PackageID]) pkgsMap[artifact.PackageID] = []
+        pkgsMap[artifact.PackageID].push(artifact)
       }
       return pkgsMap
     }

@@ -252,7 +252,7 @@ export interface Package {
 export interface Artifact {
   TechID: string
   Version: string
-  PackageId: string
+  PackageID: string
   Name: string
   Type: string
   Description: string
