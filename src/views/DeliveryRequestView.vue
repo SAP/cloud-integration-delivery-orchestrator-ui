@@ -151,7 +151,7 @@
                       <n-alert v-if="packagesLoadError" type="error" closable @close="packagesLoadError = ''"
                         style="max-width:420px">
                         {{ packagesLoadError }}
-                        <n-button size="tiny" text type="primary" @click.stop="retryFetchPackages"
+                        <n-button size="tiny" text type="primary" @click.stop="fetchPackagesForTenant"
                           style="margin-left:8px">Retry</n-button>
                       </n-alert>
                       <!-- Loading Skeleton -->
@@ -162,10 +162,10 @@
                       </div>
                       <!-- Packages Select -->
                       <div v-else>
-                        <n-select v-model:value="selectedPackages" :options="packagesOptions" multiple clearable
+                        <n-select v-model:value="selectedPackages" :options="packageOptions" multiple clearable
                           filterable placeholder="Select packages from this tenant" style="width: 420px"
-                          :disabled="!packagesOptions.length" />
-                        <div v-if="!packagesOptions.length" style="margin-top:6px">
+                          :disabled="!packageOptions.length" />
+                        <div v-if="!packageOptions.length" style="margin-top:6px">
                           <n-text depth="3" type="warning">No packages found for this tenant.</n-text>
                         </div>
                       </div>
@@ -196,7 +196,7 @@
                                 <n-button tertiary size="tiny" @click="selectAllFiltered(pkg.Id)"
                                   :disabled="!filteredArtifacts(pkg.Id).length">Select All Filtered</n-button>
                                 <n-button tertiary size="tiny" @click="clearSelections(pkg.Id)"
-                                  :disabled="!(artifactSelections[pkg.Id] || []).length">Clear Selected</n-button>
+                                  :disabled="!(pkgArtifactSelections[pkg.Id] || []).length">Clear Selected</n-button>
                                 <n-text depth="1" type="info" style="font-size:12px; margin-left:auto">
                                   Hint: click Info16Regular icon on an artifact tag to view details
                                 </n-text>
@@ -336,12 +336,12 @@ export default {
       current: 0,
       toLocalTime,
       cpiTenants: [] as CpiTenant[],
-      packageOptions: [] as Package[],
+      tenantPkgs: [] as Package[],
       selectedPackages: [] as Package[],
       packageArtifacts: {} as { [key: string]: Artifact[] }, // packages to their artifacts, this is like a cache for package
       loadingPackages: {} as { [key: string]: boolean },
       expandedPackages: [] as string[],
-      artifactSelections: {} as { [key: string]: Artifact[] },  // selected artifacts within each package, [package id, array of artifact]
+      pkgArtifactSelections: {} as { [key: string]: Artifact[] },  // selected artifacts within each package, [package id, array of artifact]
       packagesLoading: false,
       packagesLoadError: '' as string,
       artifactSearch: {} as { [key: string]: string },
@@ -362,17 +362,17 @@ export default {
       this.editing = false
       this.deliveryRequest = await GetDeliveryRequest(this.planId)
       this.deliveryRequest.ArtifactTenantOperations.forEach(op => {
-        if (!this.artifactSelections[op.Artifact.PackageID]) {
-          this.artifactSelections[op.Artifact.PackageID] = []
+        if (!this.pkgArtifactSelections[op.Artifact.PackageID]) {
+          this.pkgArtifactSelections[op.Artifact.PackageID] = []
         }
-        const selPackageArtifacts = this.artifactSelections[op.Artifact.PackageID]
+        const selPackageArtifacts = this.pkgArtifactSelections[op.Artifact.PackageID]
         const findIdx = selPackageArtifacts?.findIndex(a =>
           a.TechID === op.ArtifactTechID && 
           a.Version === op.ArtifactVersion && 
           op.TenantID === this.deliveryRequest.SourceTenant.ID // ensure the op is for the source tenant
         )
         if (findIdx < 0) selPackageArtifacts.push(op.Artifact)
-        console.log(this.artifactSelections[op.Artifact.PackageID])
+        console.log(this.pkgArtifactSelections[op.Artifact.PackageID])
       })
       this.updateArtifactsFromSelection()
       
@@ -384,21 +384,18 @@ export default {
     handleCurrent(current: number) {
       this.current = current
     },
-    async fetchPackagesForTenant(tenantKey: string) {
+    async fetchPackagesForTenant() {
+      const tenant = this.deliveryRequest.SourceTenant.CpiEndpoint.name
+      if (!tenant) return
       this.packagesLoading = true
       this.packagesLoadError = ''
       try {
-        const pkgs = await GetPackages(tenantKey)
-        this.packageOptions = pkgs
+        this.tenantPkgs = await GetPackages(tenant)
       } catch (e: any) {
         this.packagesLoadError = 'Failed to load packages.'
       } finally {
         this.packagesLoading = false
       }
-    },
-    async retryFetchPackages() {
-      if (!this.deliveryRequest.SourceTenant) return
-      await this.fetchPackagesForTenant(this.deliveryRequest.SourceTenant.CpiEndpoint.name)
     },
     async handleUpdate() {
       if (!this.deliveryRequest.SourceTenant) {
@@ -422,8 +419,8 @@ export default {
       this.loadingPackages[pkgId] = true
       try {
         this.packageArtifacts[pkgId] = await GetPackageArtifacts(cpiDest, pkgId)
-        if (!this.artifactSelections[pkgId]) { // clear selected artifacts within the package, if reload the package artifacts
-          this.artifactSelections[pkgId] = []
+        if (!this.pkgArtifactSelections[pkgId]) { // clear selected artifacts within the package, if reload the package artifacts
+          this.pkgArtifactSelections[pkgId] = []
         }
       } catch (e) {
         window.$message?.warning?.(`Artifacts fetch failed for package ${pkgId}`)
@@ -433,7 +430,7 @@ export default {
     },
     updateArtifactsFromSelection() {
       const artifOp: Partial<ArtifactTenantOperation>[] = []
-      Object.entries(this.artifactSelections).forEach(([pkgId, keys]) => { // loop selected artifacts
+      Object.entries(this.pkgArtifactSelections).forEach(([pkgId, keys]) => { // loop selected artifacts
         this.loadPackageArtifacts(pkgId)
         const pkgArts = this.packageArtifacts[pkgId] || []
         if (this.packageArtifacts[pkgId]?.length === 0) return // no artifacts in this package
@@ -473,11 +470,11 @@ export default {
       )
     },
     isArtifactSelected(pkgId: string, a: Artifact) {
-      return (this.artifactSelections[pkgId] || []).findIndex(x => x.TechID == a.TechID && x.Version == a.Version) >= 0
+      return (this.pkgArtifactSelections[pkgId] || []).findIndex(x => x.TechID == a.TechID && x.Version == a.Version) >= 0
     },
     toggleArtifact(pkgId: string, a: Artifact) { // toggle selection of an artifact within a package
-      if (!this.artifactSelections[pkgId]) this.artifactSelections[pkgId] = []
-      const arr = this.artifactSelections[pkgId]
+      if (!this.pkgArtifactSelections[pkgId]) this.pkgArtifactSelections[pkgId] = []
+      const arr = this.pkgArtifactSelections[pkgId]
 
       const foundIdx = arr.findIndex(x => x.TechID == a.TechID && x.Version == a.Version)
       if (foundIdx >= 0) arr.splice(foundIdx, 1)
@@ -486,11 +483,11 @@ export default {
     },
     selectAllFiltered(pkgId: string) {
       const keys = this.filteredArtifacts(pkgId)
-      this.artifactSelections[pkgId] = keys
+      this.pkgArtifactSelections[pkgId] = keys
       this.updateArtifactsFromSelection()
     },
     clearSelections(pkgId: string) {
-      this.artifactSelections[pkgId] = []
+      this.pkgArtifactSelections[pkgId] = []
       this.updateArtifactsFromSelection()
     },
     async openArtifactDetails(a: Artifact) {
@@ -516,7 +513,7 @@ export default {
       const removed = (oldPkgs || []).filter(p => !newPkgs.includes(p))
       removed.forEach(p => {
         delete this.packageArtifacts[p.Id]
-        delete this.artifactSelections[p.Id]
+        delete this.pkgArtifactSelections[p.Id]
         this.expandedPackages = this.expandedPackages.filter(id => id !== p.Id)
       })
       this.updateArtifactsFromSelection()
@@ -532,13 +529,12 @@ export default {
     
   },
   computed: {
-    packagesOptions() {
-      return this.packageOptions.map(pkg => ({ label: `${pkg.Name} @ ${pkg.Version}`, value: pkg }))
+    packageOptions() {
+      return this.tenantPkgs.map(pkg => ({ label: `${pkg.Name} @ ${pkg.Version}`, value: pkg }))
     },
     selectedArtifacts(): ArtifactTenantOperation[] {
       const ops = this.deliveryRequest.ArtifactTenantOperations || []
-      const srcTenantId = this.deliveryRequest.SourceTenant ? this.deliveryRequest.SourceTenant.ID : undefined
-      if (typeof srcTenantId === 'undefined') return []
+      const srcTenantId = this.deliveryRequest?.SourceTenant.ID
       return ops.filter((op: ArtifactTenantOperation) => op.TenantID === srcTenantId)
     },
     tenantToOps(): { [key: number]: { [key: string]: ArtifactTenantOperation } } {
@@ -549,7 +545,7 @@ export default {
   async created() {
     await this.refresh()
     this.cpiTenants = await GetAllCpiTenants()
-    await this.fetchPackagesForTenant(this.deliveryRequest.SourceTenant.CpiEndpoint.name)
+    await this.fetchPackagesForTenant()
   }
 }
 </script>
