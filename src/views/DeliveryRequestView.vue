@@ -482,9 +482,12 @@ export default {
       added.forEach(id => this.loadPackageArtifacts(id))
     },
     selPkgArtifacts: {
-      handler(newVal: { [key: string]: Artifact[] }, oldVal: { [key: string]: Artifact[] }) {
+      handler(newVal: { [key: string]: Artifact[] }) {
         const newArtis = Object.values(newVal || {}).flat()
-        const oldArtis = Object.values(oldVal || {}).flat()
+        const oldArtis = this.deliveryRequest.ArtifactTenantOperations
+          .filter(op => op.TenantID === this.deliveryRequest.SourceTenant?.ID)
+          .map(op => op.Artifact)
+
         const added = newArtis.filter(a => !oldArtis.find(o => o.TechID === a.TechID && o.Version === a.Version))
         const removed = oldArtis.filter(a => !newArtis.find(n => n.TechID === a.TechID && n.Version === a.Version))
 
@@ -493,30 +496,27 @@ export default {
         ) || []
         const all = this.deliveryRequest.ArtifactTenantOperations
 
-        const remove = removed
+        const removeIdx = removed
           .filter(a => {
             const op = sourceOps.find(op => op.ArtifactTechID === a.TechID && op.ArtifactVersion === a.Version) || {} as ArtifactTenantOperation
             return op.RequestState === 'NOT_REQUESTED' // can only remove not requested artifacts. Other states are in delivery process
           })
-          .map(a => all.find(op => op.ArtifactTechID === a.TechID && op.ArtifactVersion === a.Version)?.ID ?? 0) // NOTE: if remove, should also remove target tenant ops meanwhile
+          .map(a => all.findIndex(op => op.ArtifactTechID === a.TechID && op.ArtifactVersion === a.Version)) // NOTE: if remove, should also remove target tenant ops meanwhile
           .filter(i => i>0)  // removed operations IDs
-
-        this.deliveryRequest.ArtifactTenantOperations = this.deliveryRequest.ArtifactTenantOperations.filter(op => !remove.includes(op.ID))
+        
+        this.deliveryRequest.ArtifactTenantOperations = this.deliveryRequest.ArtifactTenantOperations.filter((_, i) => !removeIdx.includes(i))
 
         const add = added
-        .filter(a => 
-          !sourceOps.find(op => op.ArtifactTechID === a.TechID && op.ArtifactVersion === a.Version) // only add if not exists
-        )
-        .map(a => ({  // add new operation
-            ID: 0,
-            DeliveryRequestID: this.deliveryRequest.ID,
-            ArtifactTechID: a.TechID,
-            ArtifactVersion: a.Version,
-            Artifact: a,
-            TenantID: this.deliveryRequest.SourceTenant.ID,
-            Tenant: this.deliveryRequest.SourceTenant,
-            RequestState: "NOT_REQUESTED",
-          } as ArtifactTenantOperation))
+          .map(a => ({  // add new operation
+              ID: 0,
+              DeliveryRequestID: this.deliveryRequest.ID,
+              ArtifactTechID: a.TechID,
+              ArtifactVersion: a.Version,
+              Artifact: a,
+              TenantID: this.deliveryRequest.SourceTenant.ID,
+              Tenant: this.deliveryRequest.SourceTenant,
+              RequestState: "NOT_REQUESTED",
+            } as ArtifactTenantOperation))
         this.deliveryRequest.ArtifactTenantOperations.push(...add)
       },
       deep: true,
