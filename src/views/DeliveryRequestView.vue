@@ -196,7 +196,7 @@
                                 <n-button tertiary size="tiny" @click="selectAllFiltered(pkg.Id)"
                                   :disabled="!filteredArtifacts(pkg.Id).length">Select All Filtered</n-button>
                                 <n-button tertiary size="tiny" @click="clearSelections(pkg.Id)"
-                                  :disabled="!(pkgArtifactSelections[pkg.Id] || []).length">Clear Selected</n-button>
+                                  :disabled="!(selPkgArtifacts[pkg.Id] || []).length">Clear Selected</n-button>
                                 <n-text depth="1" type="info" style="font-size:12px; margin-left:auto">
                                   Hint: click Info16Regular icon on an artifact tag to view details
                                 </n-text>
@@ -232,14 +232,14 @@
                       </n-collapse>
                     </div>
                     <!-- selected Artifacts list -->
-                    <n-flex vertical v-if="selectedArtifacts.length" style="margin-top:18px">
+                    <n-flex vertical v-if="selArtifactOps.length" style="margin-top:18px">
                       <n-divider dashed title-placement="center"
                         style="margin:0 0 10px 0; font-weight:600; letter-spacing:.5px">
-                        Selected Artifacts ({{ selectedArtifacts.length }})
+                        Selected Artifacts ({{ selArtifactOps.length }})
                       </n-divider>
                       <n-flex wrap>
                         <n-tag 
-                          v-for="(artOp, i) in selectedArtifacts"
+                          v-for="(artOp, i) in selArtifactOps"
                           :key="'sel-' + i + '-' + artOp.ArtifactTechID + '@' + artOp.ArtifactVersion" type="info"
                           size="small" :bordered="false">
                           {{ artOp.ArtifactTechID }}@{{ artOp.ArtifactVersion }}
@@ -341,7 +341,7 @@ export default {
       packageArtifacts: {} as { [key: string]: Artifact[] }, // packages to their artifacts, this is like a cache for package
       loadingPackages: {} as { [key: string]: boolean },
       expandedPackages: [] as string[],
-      pkgArtifactSelections: {} as { [key: string]: Artifact[] },  // selected artifacts within each package, [package id, array of artifact]
+      selPkgArtifacts: {} as { [key: string]: Artifact[] },  // selected artifacts within each package, [package id, array of artifact]
       packagesLoading: false,
       packagesLoadError: '' as string,
       artifactSearch: {} as { [key: string]: string },
@@ -361,21 +361,20 @@ export default {
     async refresh() {
       this.editing = false
       this.deliveryRequest = await GetDeliveryRequest(this.planId)
-      this.deliveryRequest.ArtifactTenantOperations.forEach(op => {
-        if (!this.pkgArtifactSelections[op.Artifact.PackageID]) {
-          this.pkgArtifactSelections[op.Artifact.PackageID] = []
+      const sourceOps = this.deliveryRequest.ArtifactTenantOperations.filter(op => op.TenantID === this.deliveryRequest.SourceTenant.ID)
+      await Promise.all( // load all artifacts for selected packages
+        sourceOps.map(op => this.loadPackageArtifacts(op.Artifact.PackageID))
+      )
+      sourceOps.map(op => {
+        const packageId = op.Artifact.PackageID
+        if (!this.selPkgArtifacts[packageId]) this.selPkgArtifacts[packageId] = []
+
+        const findIdx = this.packageArtifacts[packageId]?.findIndex(a => a.TechID === op.ArtifactTechID && a.Version === op.ArtifactVersion)
+        if (findIdx < 0) {
+          // TODO: handle artifact not found in package, may be deleted or invalid version
         }
-        const selPackageArtifacts = this.pkgArtifactSelections[op.Artifact.PackageID]
-        const findIdx = selPackageArtifacts?.findIndex(a =>
-          a.TechID === op.ArtifactTechID && 
-          a.Version === op.ArtifactVersion && 
-          op.TenantID === this.deliveryRequest.SourceTenant.ID // ensure the op is for the source tenant
-        )
-        if (findIdx < 0) selPackageArtifacts.push(op.Artifact)
-        console.log(this.pkgArtifactSelections[op.Artifact.PackageID])
+        this.selPkgArtifacts[packageId].push(op.Artifact)
       })
-      this.updateArtifactsFromSelection()
-      
     },
     async handleDelete() {
       await DeleteDeliveryRequest(this.planId)
@@ -413,48 +412,12 @@ export default {
       const routes = await GetTransportRoutes()
     },
     async loadPackageArtifacts(pkgId: string) {
-      if (this.packageArtifacts[pkgId]) return this.packageArtifacts[pkgId] // already loaded
+      if (this.packageArtifacts[pkgId]) return // already loaded
       const cpiDest = this.deliveryRequest?.SourceTenant?.CpiEndpoint.name
-      if (!cpiDest) return []
+      if (!cpiDest) return
       this.loadingPackages[pkgId] = true
-      try {
-        this.packageArtifacts[pkgId] = await GetPackageArtifacts(cpiDest, pkgId)
-        if (!this.pkgArtifactSelections[pkgId]) { // clear selected artifacts within the package, if reload the package artifacts
-          this.pkgArtifactSelections[pkgId] = []
-        }
-      } catch (e) {
-        window.$message?.warning?.(`Artifacts fetch failed for package ${pkgId}`)
-      } finally {
-        this.loadingPackages[pkgId] = false
-      }
-    },
-    updateArtifactsFromSelection() {
-      const artifOp: Partial<ArtifactTenantOperation>[] = []
-      Object.entries(this.pkgArtifactSelections).forEach(([pkgId, keys]) => { // loop selected artifacts
-        this.loadPackageArtifacts(pkgId)
-        const pkgArts = this.packageArtifacts[pkgId] || []
-        if (this.packageArtifacts[pkgId]?.length === 0) return // no artifacts in this package
-        keys.forEach(k => {
-          const found = pkgArts.find(a => a.TechID === k.TechID && a.Version === k.Version)
-          const existID = this.deliveryRequest.ArtifactTenantOperations?.find(op =>
-            op.ArtifactTechID === k.TechID &&
-            op.ArtifactVersion === k.Version &&
-            op.TenantID === this.deliveryRequest.SourceTenant?.ID
-          )?.ID ?? 0
-          if (found) artifOp.push({
-            ID: existID,
-            DeliveryRequestID: this.deliveryRequest.ID,
-            // for quick access, save value in field Artifact.
-            ArtifactTechID: found.TechID,
-            ArtifactVersion: found.Version,
-            Artifact: found,
-            TenantID: this.deliveryRequest.SourceTenant.ID,
-            Tenant: this.deliveryRequest.SourceTenant,
-            ImportState: 'NOT_STARTED',
-          })
-        })
-      })
-      this.deliveryRequest.ArtifactTenantOperations = artifOp as ArtifactTenantOperation[]
+      this.packageArtifacts[pkgId] = await GetPackageArtifacts(cpiDest, pkgId)
+      this.loadingPackages[pkgId] = false
     },
     packageLabel(pkg: Package) {
       return `${pkg.Name} @ ${pkg.Version}`
@@ -470,25 +433,22 @@ export default {
       )
     },
     isArtifactSelected(pkgId: string, a: Artifact) {
-      return (this.pkgArtifactSelections[pkgId] || []).findIndex(x => x.TechID == a.TechID && x.Version == a.Version) >= 0
+      return (this.selPkgArtifacts[pkgId] || []).findIndex(x => x.TechID == a.TechID && x.Version == a.Version) >= 0
     },
     toggleArtifact(pkgId: string, a: Artifact) { // toggle selection of an artifact within a package
-      if (!this.pkgArtifactSelections[pkgId]) this.pkgArtifactSelections[pkgId] = []
-      const arr = this.pkgArtifactSelections[pkgId]
+      if (!this.selPkgArtifacts[pkgId]) this.selPkgArtifacts[pkgId] = []
+      const arr = this.selPkgArtifacts[pkgId]
 
       const foundIdx = arr.findIndex(x => x.TechID == a.TechID && x.Version == a.Version)
-      if (foundIdx >= 0) arr.splice(foundIdx, 1)
-      else arr.push(a)
-      this.updateArtifactsFromSelection()
+      if (foundIdx >= 0) arr.splice(foundIdx, 1) // clear selection
+      else arr.push(a) // select
     },
     selectAllFiltered(pkgId: string) {
       const keys = this.filteredArtifacts(pkgId)
-      this.pkgArtifactSelections[pkgId] = keys
-      this.updateArtifactsFromSelection()
+      this.selPkgArtifacts[pkgId] = keys
     },
     clearSelections(pkgId: string) {
-      this.pkgArtifactSelections[pkgId] = []
-      this.updateArtifactsFromSelection()
+      this.selPkgArtifacts[pkgId] = []
     },
     async openArtifactDetails(a: Artifact) {
       this.artifactDetail = a
@@ -513,31 +473,65 @@ export default {
       const removed = (oldPkgs || []).filter(p => !newPkgs.includes(p))
       removed.forEach(p => {
         delete this.packageArtifacts[p.Id]
-        delete this.pkgArtifactSelections[p.Id]
+        delete this.selPkgArtifacts[p.Id]
         this.expandedPackages = this.expandedPackages.filter(id => id !== p.Id)
       })
-      this.updateArtifactsFromSelection()
     },
     expandedPackages(newVal: string[], oldVal: string[]) {
       const added = newVal.filter(id => !(oldVal || []).includes(id))
       added.forEach(id => this.loadPackageArtifacts(id))
     },
-    artifactSelections: {
+    selPkgArtifacts: {
+      handler(newVal: { [key: string]: Artifact[] }, oldVal: { [key: string]: Artifact[] }) {
+        const newArtis = Object.values(newVal || {}).flat()
+        const oldArtis = Object.values(oldVal || {}).flat()
+        const added = newArtis.filter(a => !oldArtis.find(o => o.TechID === a.TechID && o.Version === a.Version))
+        const removed = oldArtis.filter(a => !newArtis.find(n => n.TechID === a.TechID && n.Version === a.Version))
+
+        const sourceOps = this.deliveryRequest.ArtifactTenantOperations?.filter(op =>
+          op.TenantID === this.deliveryRequest.SourceTenant?.ID
+        ) || []
+        const all = this.deliveryRequest.ArtifactTenantOperations
+
+        const remove = removed
+          .filter(a => {
+            const op = sourceOps.find(op => op.ArtifactTechID === a.TechID && op.ArtifactVersion === a.Version) || {} as ArtifactTenantOperation
+            return op.RequestState === 'NOT_REQUESTED' // can only remove not requested artifacts. Other states are in delivery process
+          })
+          .map(a => all.find(op => op.ArtifactTechID === a.TechID && op.ArtifactVersion === a.Version)?.ID ?? 0) // NOTE: if remove, should also remove target tenant ops meanwhile
+          .filter(i => i>0)  // removed operations IDs
+
+        this.deliveryRequest.ArtifactTenantOperations = this.deliveryRequest.ArtifactTenantOperations.filter(op => !remove.includes(op.ID))
+
+        const add = added
+        .filter(a => 
+          !sourceOps.find(op => op.ArtifactTechID === a.TechID && op.ArtifactVersion === a.Version) // only add if not exists
+        )
+        .map(a => ({  // add new operation
+            ID: 0,
+            DeliveryRequestID: this.deliveryRequest.ID,
+            ArtifactTechID: a.TechID,
+            ArtifactVersion: a.Version,
+            Artifact: a,
+            TenantID: this.deliveryRequest.SourceTenant.ID,
+            Tenant: this.deliveryRequest.SourceTenant,
+            RequestState: "NOT_REQUESTED",
+          } as ArtifactTenantOperation))
+        this.deliveryRequest.ArtifactTenantOperations.push(...add)
+      },
       deep: true,
-      handler() { this.updateArtifactsFromSelection() }
-    },
-    
+    }
   },
   computed: {
     packageOptions() {
       return this.tenantPkgs.map(pkg => ({ label: `${pkg.Name} @ ${pkg.Version}`, value: pkg }))
     },
-    selectedArtifacts(): ArtifactTenantOperation[] {
+    selArtifactOps(): ArtifactTenantOperation[] {
       const ops = this.deliveryRequest.ArtifactTenantOperations || []
       const srcTenantId = this.deliveryRequest?.SourceTenant.ID
       return ops.filter((op: ArtifactTenantOperation) => op.TenantID === srcTenantId)
     },
-    tenantToOps(): { [key: number]: { [key: string]: ArtifactTenantOperation } } {
+    tenantToOps(): { [key: number]: { [key: string]: ArtifactTenantOperation } } { // only used in delivert flow view
       if (!this.deliveryRequest.SourceTenant) return {}
       return TenantOps(this.deliveryRequest.ArtifactTenantOperations) // cpi tenant ID - map[trNumber]ArtifactTenantOperation
     },
