@@ -147,15 +147,8 @@
                       Packages({{ selectedPackages.length }})
                     </n-divider>
                     <div style="margin-top:6px">
-                      <!-- Error State -->
-                      <n-alert v-if="packagesLoadError" type="error" closable @close="packagesLoadError = ''"
-                        style="max-width:420px">
-                        {{ packagesLoadError }}
-                        <n-button size="tiny" text type="primary" @click.stop="fetchPackagesForTenant"
-                          style="margin-left:8px">Retry</n-button>
-                      </n-alert>
                       <!-- Loading Skeleton -->
-                      <div v-else-if="packagesLoading" style="max-width:420px">
+                      <div v-if="packagesLoading" style="max-width:420px">
                         <n-skeleton text style="width: 60%" :repeat="1" />
                         <n-skeleton text style="width: 80%; margin-top:8px" :repeat="1" />
                         <n-skeleton text style="width: 40%; margin-top:8px" :repeat="1" />
@@ -312,6 +305,7 @@ import CpiTransportNode from '@/components/CpiTransportNode.vue'
 import type { DeliveryRequest, CpiTenant, Package, Artifact, ArtifactVersionHistoryItem, ArtifactTenantOperation } from '@/service/model'
 import DeliveryFlowView from './DeliveryFlowView.vue'
 import CpiTransportFlowView from './CpiTransportFlowView.vue'
+import { i } from 'node_modules/vite/dist/node/types.d-aGj9QkWt'
 
 export default {
   name: 'TransportPlanView',
@@ -343,7 +337,6 @@ export default {
       expandedPackages: [] as string[],
       selPkgArtifacts: {} as { [key: string]: Artifact[] },  // selected artifacts within each package, [package id, array of artifact]
       packagesLoading: false,
-      packagesLoadError: '' as string,
       artifactSearch: {} as { [key: string]: string },
       // artifact details state
       showArtifactDetails: false,
@@ -361,6 +354,12 @@ export default {
     async refresh() {
       this.editing = false
       this.deliveryRequest = await GetDeliveryRequest(this.planId)
+
+      // load packages in this cpi tenant
+      const cpiEndpoint = this.deliveryRequest.SourceTenant.CpiEndpoint.name
+      this.packagesLoading = true
+      if(!this.tenantPkgs.length) this.tenantPkgs = await GetPackages(cpiEndpoint)
+
       const sourceOps = this.deliveryRequest.ArtifactTenantOperations.filter(op => op.TenantID === this.deliveryRequest.SourceTenant.ID)
       await Promise.all( // load all artifacts for selected packages
         sourceOps.map(op => this.loadPackageArtifacts(op.Artifact.PackageID))
@@ -374,7 +373,10 @@ export default {
           // TODO: handle artifact not found in package, may be deleted or invalid version
         }
         this.selPkgArtifacts[packageId].push(op.Artifact)
+        const pkg = this.tenantPkgs.find(p => p.Id === packageId)
+        if (pkg && !this.selectedPackages.find(p => p.Id === pkg.Id)) this.selectedPackages.push(pkg)
       })
+      this.packagesLoading = false
     },
     async handleDelete() {
       await DeleteDeliveryRequest(this.planId)
@@ -382,19 +384,6 @@ export default {
     },
     handleCurrent(current: number) {
       this.current = current
-    },
-    async fetchPackagesForTenant() {
-      const tenant = this.deliveryRequest.SourceTenant.CpiEndpoint.name
-      if (!tenant) return
-      this.packagesLoading = true
-      this.packagesLoadError = ''
-      try {
-        this.tenantPkgs = await GetPackages(tenant)
-      } catch (e: any) {
-        this.packagesLoadError = 'Failed to load packages.'
-      } finally {
-        this.packagesLoading = false
-      }
     },
     async handleUpdate() {
       if (!this.deliveryRequest.SourceTenant) {
@@ -409,7 +398,6 @@ export default {
       }
       await UpdateDeliveryRequest(this.deliveryRequest)
       await this.refresh()
-      const routes = await GetTransportRoutes()
     },
     async loadPackageArtifacts(pkgId: string) {
       if (this.packageArtifacts[pkgId]) return // already loaded
@@ -494,6 +482,7 @@ export default {
         const sourceOps = this.deliveryRequest.ArtifactTenantOperations?.filter(op =>
           op.TenantID === this.deliveryRequest.SourceTenant?.ID
         ) || []
+        console.log('sourceOps',sourceOps)
         const all = this.deliveryRequest.ArtifactTenantOperations
 
         const removeIdx = removed
@@ -502,7 +491,7 @@ export default {
             return op.RequestState === 'NOT_REQUESTED' // can only remove not requested artifacts. Other states are in delivery process
           })
           .map(a => all.findIndex(op => op.ArtifactTechID === a.TechID && op.ArtifactVersion === a.Version)) // NOTE: if remove, should also remove target tenant ops meanwhile
-          .filter(i => i>0)  // removed operations IDs
+          .filter(i => i > -1)  // removed operations IDs
         
         this.deliveryRequest.ArtifactTenantOperations = this.deliveryRequest.ArtifactTenantOperations.filter((_, i) => !removeIdx.includes(i))
 
@@ -539,7 +528,6 @@ export default {
   async created() {
     await this.refresh()
     this.cpiTenants = await GetAllCpiTenants()
-    await this.fetchPackagesForTenant()
   }
 }
 </script>
