@@ -7,7 +7,7 @@
         <n-click @click="handleDeployOnly"> deploy only</n-click>
     </n-card>
 
-    <Handle type="source" :position="Position.Right"/>
+    <Handle v-if="!props.data.isTail" type="source" :position="Position.Right"/>
     <Handle v-if="!props.data.isSource" type="target" :position="Position.Left"/>
 
 </template>
@@ -22,7 +22,8 @@ const props = defineProps<{
         label: string
         sourceNodeId: number
         tenants: CpiTenant[]
-        isSource: boolean
+        isSource: boolean,
+        isTail: boolean
     }
 }>()
 

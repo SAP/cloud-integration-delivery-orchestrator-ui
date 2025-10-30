@@ -47,11 +47,6 @@ export default defineComponent({
             this.cpiTenants.forEach(opt => cache[opt.TransportNodeID] = opt)
             return cache
         },
-        toParentNode(): {[key: number]: number} { // source node id to parent node id
-            const cache: {[key: number]: number} = {}
-            this.deliveryRequest.TargetRoutes.forEach(route => cache[route.targetNodeId] = route.sourceNodeId)
-            return cache
-        },
         childNodes() { // parentNodeId - childNodeIds[]
             const childNodes: {[key: number]: number[]} = {}
             this.deliveryRequest?.TargetRoutes?.forEach(tRoute => {
@@ -63,7 +58,9 @@ export default defineComponent({
         },
         toGroupNode(): {[key: number]: Node} { // transport node ID -> (group) node. group many transport nodes into one node, based on parent-child relationship
             const tenantGroups: {[key: string]: CpiTenant[]} = {} // group label -> tenants[]
-            this.cpiTenants.forEach(t => {
+            this.deliveryRequest?.TargetNodes?.forEach(n => {
+                const t = this.nodeToTenant[n.id]
+                if(!t) return
                 const groupLabel = t.Group || t.Name
                 if(!tenantGroups[groupLabel]) tenantGroups[groupLabel] = []
                 tenantGroups[groupLabel].push(t)
@@ -71,9 +68,10 @@ export default defineComponent({
             const groupNodeMap: {[key: number]: Node} = {} // many NodeId -> Node. 
             Object.entries(tenantGroups).forEach(([groupLabel, tenants]) => {
                 const isSource = tenants.some(t => this.deliveryRequest?.SourceTenant && t.ID === this.deliveryRequest.SourceTenant.ID)
+                const isTail = tenants.map(t => !this.childNodes[t.TransportNodeID] || this.childNodes[t.TransportNodeID].length === 0).every(v => v)
                 const groupNode: Node = {
                     id: `n-group-${groupLabel}`,
-                    data: { label: groupLabel, sourceNodeId: 0, tenants: tenants, isSource: isSource },
+                    data: { label: groupLabel, sourceNodeId: 0, tenants: tenants, isSource: isSource, isTail },
                     position: { x: 0, y: 0 }, // Placeholder position
                     type: 'deliver-group'
                 }
@@ -81,7 +79,7 @@ export default defineComponent({
             })
             return groupNodeMap
         },
-        toEdge() { // key: nodeid
+        toEdge() { // key: group node id: `e-(${pGroupNode.id})-to-(${cGrouNpde.id})`. value: Edge
             const edgeMap: {[key: string]: Edge} = {}
             Object.keys(this.toGroupNode).forEach(nodeIDStr => {
                 const pNodeID = Number(nodeIDStr)
