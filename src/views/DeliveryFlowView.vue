@@ -24,7 +24,6 @@ import { VueFlow, type Edge, type Node } from '@vue-flow/core'
 import type { ArtifactTenantOperation, CpiTenant, DeliveryRequest, TransportNode, TransportRoute } from '@/service/model';
 import { DeployOps, ImportOps, layoutNodes } from '@/service/api';
 import DeliverGroupNode from '@/components/DeliverGroupNode.vue';
-import { layout } from '@dagrejs/dagre';
 
 export default defineComponent({
     components: { VueFlow, DeliverGroupNode },
@@ -63,48 +62,42 @@ export default defineComponent({
             return childNodes
         },
         toGroupNode(): {[key: number]: Node} { // transport node ID -> (group) node. group many transport nodes into one node, based on parent-child relationship
-            const groupNodeMap: {[key: number]: Node} = {} // many NodeId -> Node. 
-            Object.keys(this.childNodes).forEach(parentNodeIdStr => {
-                const pNodeId = Number(parentNodeIdStr) // parent node ID
-                const childNodeIds = this.childNodes[pNodeId] // group this transport nodes into one node
-                const groupLabel = this.groupLabel(childNodeIds)
-                const childKey = this.groupKey(pNodeId, childNodeIds) // child group node key
-                const node: Node = {
-                    id: childKey,
-                    data: { label: groupLabel, sourceNodeId: pNodeId, tenants: childNodeIds.map(nId => this.nodeToTenant[nId]), isSource: false },
-                    position: { x: 0, y: 0 }, // Placeholder position
-                    type: 'deliver-group'
-                }
-                childNodeIds.forEach(id => groupNodeMap[id] = node)
+            const tenantGroups: {[key: string]: CpiTenant[]} = {} // group label -> tenants[]
+            this.cpiTenants.forEach(t => {
+                const groupLabel = t.Group || t.Name
+                if(!tenantGroups[groupLabel]) tenantGroups[groupLabel] = []
+                tenantGroups[groupLabel].push(t)
             })
-            // add source node
-            const sourceTenant = this.deliveryRequest?.SourceTenant
-            if (sourceTenant?.TransportNodeID) {
-                groupNodeMap[sourceTenant.TransportNodeID] = {
-                    id: `n-source-${this.nodeToTenant[sourceTenant.TransportNodeID]?.Name}`,
-                    data: { label: sourceTenant.Name, sourceNodeId: sourceTenant.TransportNodeID, tenants: [sourceTenant], isSource: true },
+            const groupNodeMap: {[key: number]: Node} = {} // many NodeId -> Node. 
+            Object.entries(tenantGroups).forEach(([groupLabel, tenants]) => {
+                const isSource = tenants.some(t => this.deliveryRequest?.SourceTenant && t.ID === this.deliveryRequest.SourceTenant.ID)
+                const groupNode: Node = {
+                    id: `n-group-${groupLabel}`,
+                    data: { label: groupLabel, sourceNodeId: 0, tenants: tenants, isSource: isSource },
                     position: { x: 0, y: 0 }, // Placeholder position
                     type: 'deliver-group'
                 }
-            }
+                tenants.forEach(t => {groupNodeMap[t.TransportNodeID] = groupNode})
+            })
             return groupNodeMap
         },
         toEdge() { // key: nodeid
-            const edgeMap: {[key: number]: Edge} = []
+            const edgeMap: {[key: string]: Edge} = {}
             Object.keys(this.toGroupNode).forEach(nodeIDStr => {
-                const nodeID = Number(nodeIDStr)
-                const pNId = this.toParentNode[nodeID]
-                if (!pNId) return // skip if no parent
-                const parentGroupNode = this.toGroupNode[pNId]
-                const childGroupNode = this.toGroupNode[nodeID]
-                const edge = {
-                    id: `e-(${parentGroupNode.id})-to-(${childGroupNode.id})`,
-                    source: parentGroupNode.id,
-                    target: childGroupNode.id,
-                    animated: true,
-                }
-                if (!edgeMap[nodeID]) edgeMap[nodeID] = edge
-                if (!edgeMap[pNId]) edgeMap[pNId] = edge
+                const pNodeID = Number(nodeIDStr)
+                const childNodeIDs = this.childNodes[pNodeID] || []
+                const pGroupNode = this.toGroupNode[pNodeID]
+                childNodeIDs.forEach(childNodeID => {
+                    const cGrouNpde = this.toGroupNode[childNodeID]
+                    const id = `e-(${pGroupNode.id})-to-(${cGrouNpde.id})`
+                    if (edgeMap[id]) return // skip if edge already exists
+                    edgeMap[id] = {
+                        id: id,
+                        source: pGroupNode.id,
+                        target: cGrouNpde.id,
+                        animated: true,
+                    }
+                })
             })
             return edgeMap
         },
