@@ -347,7 +347,7 @@ export default {
       artifactRawJson: '' as string,
       artifactVersionHistory: [] as ArtifactVersionHistoryItem[],
       showFlowModal: false,
-      deleteOpsID: [] as number[], // indexes of operations to be deleted
+      deleteOps: [] as ArtifactTenantOperation[], // indexes of operations to be deleted
       addOps: [] as ArtifactTenantOperation[],
     }
   },
@@ -400,11 +400,11 @@ export default {
         }
       }
       const update = UpdateDeliveryRequest(this.deliveryRequest)
-      const delOps = DeleteOps(this.deleteOpsID)
+      const delOps = DeleteOps(this.deleteOps.map(op => op.ID))
       const insertOps = InsertOps(this.deliveryRequest.ID, this.addOps)
       await Promise.all([update, delOps, insertOps])
-      this.deleteOpsID = []
-      this.addOps = []
+      // this.deleteOps = []
+      // this.addOps = []
       await this.refresh()
     },
     async loadPackageArtifacts(pkgId: string) {
@@ -495,13 +495,8 @@ export default {
           })
           .map(a => this.allOps.findIndex(op => op.ArtifactTechID === a.TechID && op.ArtifactVersion === a.Version)) // NOTE: if remove, should also remove all target tenant ops meanwhile
           .filter(i => i > -1)  // removed operations IDs of all tenants
+        this.deleteOps = removeIdx.map(i => this.allOps[i]) // operations to be deleted
         
-        // db ID of operations to be deleted
-        this.deleteOpsID.push(...this.allOps.filter((_, i) => removeIdx.includes(i)).map(op => op.ID))
-        this.deleteOpsID = Array.from(new Set(this.deleteOpsID))
-        
-        
-
         const add = added
           .map(a => ({  // add new operation
               ID: 0,
@@ -532,7 +527,7 @@ export default {
       return this.tenantPkgs.map(pkg => ({ label: `${pkg.Name} @ ${pkg.Version}`, value: pkg }))
     },
     selArtifactOps(): ArtifactTenantOperation[] {
-      return [...this.sourceOps.filter(op => !this.deleteOpsID.includes(op.ID)), ...this.addOps]
+      return [...this.sourceOps.filter(op => this.deleteOps.findIndex(d => d.ID === op.ID) < 0), ...this.addOps]
     },
     tenantToOps(): { [key: number]: { [key: string]: ArtifactTenantOperation } } { // only used in delivert flow view
       return TenantOps(this.allOps) || {} // cpi tenant ID - map[trNumber]ArtifactTenantOperation
