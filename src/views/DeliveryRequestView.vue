@@ -364,11 +364,10 @@ export default {
       this.packagesLoading = true
       if(!this.tenantPkgs.length) this.tenantPkgs = await GetPackages(cpiEndpoint)
 
-      const sourceOps = this.deliveryRequest.ArtifactTenantOperations.filter(op => op.TenantID === this.deliveryRequest.SourceTenant.ID)
       await Promise.all( // load all artifacts for selected packages
-        sourceOps.map(op => this.loadPackageArtifacts(op.Artifact.PackageID))
+        this.sourceOps.map(op => this.loadPackageArtifacts(op.Artifact.PackageID))
       )
-      sourceOps.map(op => {
+      this.sourceOps.map(op => {
         const packageId = op.Artifact.PackageID
         if (!this.selPkgArtifacts[packageId]) this.selPkgArtifacts[packageId] = []
 
@@ -394,7 +393,7 @@ export default {
         window.$message?.warning?.('Please select a source CPI tenant')
         return
       }
-      for (const a of this.deliveryRequest.ArtifactTenantOperations) {
+      for (const a of this.selArtifactOps) {
         if (!a.TransportRequestNumber || !a.TransportRequestNumber.trim()) {
           window.$message?.warning?.(`Please provide TR Number for artifact ${a.ArtifactTechID}@${a.ArtifactVersion}`)
           return
@@ -481,36 +480,27 @@ export default {
     selPkgArtifacts: {
       handler(newVal: { [key: string]: Artifact[] }) {
         const newArtis = Object.values(newVal || {}).flat()
-        const oldArtis = this.deliveryRequest.ArtifactTenantOperations
-          .filter(op => op.TenantID === this.deliveryRequest.SourceTenant?.ID)
-          .map(op => op.Artifact)
+        const oldArtis = this.sourceOps.map(op => op.Artifact)
 
         const added = newArtis.filter(a => !oldArtis.find(o => o.TechID === a.TechID && o.Version === a.Version))
         const removed = oldArtis.filter(a => !newArtis.find(n => n.TechID === a.TechID && n.Version === a.Version))
 
-        const sourceOps = this.deliveryRequest.ArtifactTenantOperations?.filter(op =>
-          op.TenantID === this.deliveryRequest.SourceTenant?.ID
-        ) || []
-        console.log('sourceOps',sourceOps)
-        const all = this.deliveryRequest.ArtifactTenantOperations
 
         const removeIdx = removed
           .filter(a => {
-            const op = sourceOps.find(op => op.ArtifactTechID === a.TechID && op.ArtifactVersion === a.Version) || {} as ArtifactTenantOperation
-            if (op.RequestState !== 'NOT_REQUESTED') {
+            const op = this.sourceOps.find(op => op.ArtifactTechID === a.TechID && op.ArtifactVersion === a.Version) || {} as ArtifactTenantOperation
+            if (op.RequestState !== 'NOT_REQUESTED') 
               window.$message?.warning?.(`Cannot remove artifact ${a.TechID}@${a.Version} as its request state is ${op.RequestState}`)
-            }
             return op.RequestState === 'NOT_REQUESTED' // can only remove not requested artifacts. Other states are in delivery process
           })
-          .map(a => all.findIndex(op => op.ArtifactTechID === a.TechID && op.ArtifactVersion === a.Version)) // NOTE: if remove, should also remove target tenant ops meanwhile
-          .filter(i => i > -1)  // removed operations IDs
+          .map(a => this.allOps.findIndex(op => op.ArtifactTechID === a.TechID && op.ArtifactVersion === a.Version)) // NOTE: if remove, should also remove all target tenant ops meanwhile
+          .filter(i => i > -1)  // removed operations IDs of all tenants
         
         // db ID of operations to be deleted
-        this.deleteOpsID.push(...this.deliveryRequest.ArtifactTenantOperations.filter((_, i) => removeIdx.includes(i)).map(op => op.ID))
+        this.deleteOpsID.push(...this.allOps.filter((_, i) => removeIdx.includes(i)).map(op => op.ID))
         this.deleteOpsID = Array.from(new Set(this.deleteOpsID))
         
         
-        // this.deliveryRequest.ArtifactTenantOperations = this.deliveryRequest.ArtifactTenantOperations.filter((_, i) => !removeIdx.includes(i))
 
         const add = added
           .map(a => ({  // add new operation
@@ -525,7 +515,6 @@ export default {
               ImportState: 'NOT_STARTED',
               DeployState: 'NOT_STARTED',
             } as ArtifactTenantOperation))
-        // this.deliveryRequest.ArtifactTenantOperations.push(...add)
         // cache ops that will be added
         this.addOps = add
       },
@@ -533,17 +522,20 @@ export default {
     }
   },
   computed: {
+    allOps(): ArtifactTenantOperation[] { //will not change unless refresh
+      return this.deliveryRequest.ArtifactTenantOperations || []
+    },
+    sourceOps(): ArtifactTenantOperation[] { // existing operations for source tenant. will not change unless refresh
+      return (this.deliveryRequest.ArtifactTenantOperations || []).filter(op => op.TenantID === this.deliveryRequest.SourceTenant.ID)
+    },
     packageOptions() {
       return this.tenantPkgs.map(pkg => ({ label: `${pkg.Name} @ ${pkg.Version}`, value: pkg }))
     },
     selArtifactOps(): ArtifactTenantOperation[] {
-      const ops = this.deliveryRequest.ArtifactTenantOperations || []
-      const srcTenantId = this.deliveryRequest?.SourceTenant.ID
-      return ops.filter((op: ArtifactTenantOperation) => op.TenantID === srcTenantId)
+      return [...this.sourceOps.filter(op => !this.deleteOpsID.includes(op.ID)), ...this.addOps]
     },
     tenantToOps(): { [key: number]: { [key: string]: ArtifactTenantOperation } } { // only used in delivert flow view
-      if (!this.deliveryRequest.SourceTenant) return {}
-      return TenantOps(this.deliveryRequest.ArtifactTenantOperations) // cpi tenant ID - map[trNumber]ArtifactTenantOperation
+      return TenantOps(this.allOps) || {} // cpi tenant ID - map[trNumber]ArtifactTenantOperation
     },
   },
   async created() {
