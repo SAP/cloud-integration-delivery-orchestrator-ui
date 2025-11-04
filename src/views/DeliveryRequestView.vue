@@ -295,6 +295,8 @@ import {
   GetTransportRoutes,
   TenantOps,
   SyncStatus,
+  DeleteOps,
+  InsertOps,
 } from '@/service/api'
 import { toLocalTime } from '@/service/consts'
 import { Edit16Regular, Delete28Regular, Info16Regular } from '@vicons/fluent'
@@ -344,7 +346,9 @@ export default {
       artifactDetailPkgId: '' as string,
       artifactRawJson: '' as string,
       artifactVersionHistory: [] as ArtifactVersionHistoryItem[],
-      showFlowModal: false
+      showFlowModal: false,
+      deleteOpsID: [] as number[], // indexes of operations to be deleted
+      addOps: [] as ArtifactTenantOperation[],
     }
   },
   methods: {
@@ -396,7 +400,12 @@ export default {
           return
         }
       }
-      await UpdateDeliveryRequest(this.deliveryRequest)
+      const update = UpdateDeliveryRequest(this.deliveryRequest)
+      const delOps = DeleteOps(this.deleteOpsID)
+      const insertOps = InsertOps(this.deliveryRequest.ID, this.addOps)
+      await Promise.all([update, delOps, insertOps])
+      this.deleteOpsID = []
+      this.addOps = []
       await this.refresh()
     },
     async loadPackageArtifacts(pkgId: string) {
@@ -488,12 +497,20 @@ export default {
         const removeIdx = removed
           .filter(a => {
             const op = sourceOps.find(op => op.ArtifactTechID === a.TechID && op.ArtifactVersion === a.Version) || {} as ArtifactTenantOperation
+            if (op.RequestState !== 'NOT_REQUESTED') {
+              window.$message?.warning?.(`Cannot remove artifact ${a.TechID}@${a.Version} as its request state is ${op.RequestState}`)
+            }
             return op.RequestState === 'NOT_REQUESTED' // can only remove not requested artifacts. Other states are in delivery process
           })
           .map(a => all.findIndex(op => op.ArtifactTechID === a.TechID && op.ArtifactVersion === a.Version)) // NOTE: if remove, should also remove target tenant ops meanwhile
           .filter(i => i > -1)  // removed operations IDs
         
-        this.deliveryRequest.ArtifactTenantOperations = this.deliveryRequest.ArtifactTenantOperations.filter((_, i) => !removeIdx.includes(i))
+        // db ID of operations to be deleted
+        this.deleteOpsID.push(...this.deliveryRequest.ArtifactTenantOperations.filter((_, i) => removeIdx.includes(i)).map(op => op.ID))
+        this.deleteOpsID = Array.from(new Set(this.deleteOpsID))
+        
+        
+        // this.deliveryRequest.ArtifactTenantOperations = this.deliveryRequest.ArtifactTenantOperations.filter((_, i) => !removeIdx.includes(i))
 
         const add = added
           .map(a => ({  // add new operation
@@ -505,8 +522,12 @@ export default {
               TenantID: this.deliveryRequest.SourceTenant.ID,
               Tenant: this.deliveryRequest.SourceTenant,
               RequestState: "NOT_REQUESTED",
+              ImportState: 'NOT_STARTED',
+              DeployState: 'NOT_STARTED',
             } as ArtifactTenantOperation))
-        this.deliveryRequest.ArtifactTenantOperations.push(...add)
+        // this.deliveryRequest.ArtifactTenantOperations.push(...add)
+        // cache ops that will be added
+        this.addOps = add
       },
       deep: true,
     }

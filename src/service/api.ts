@@ -315,6 +315,16 @@ export const DeployOps = (opIDs: number[], tenant: number) => {
   return http.post(`/api/v1/deliveryRequest/deploy`, req)
 }
 
+export const DeleteOps = (opIDs: number[]) => {
+  if (opIDs.length === 0) return
+  return http.post(`/api/v1/deliveryRequest/deleteOps`, {opIDs: opIDs})
+}
+
+export const InsertOps = (drID: number, ops: ArtifactTenantOperation[]) => {
+  if (ops.length === 0) return
+  return http.post(`/api/v1/deliveryRequest/insertOps`, {ops: ops, deliveryRequestID: drID})
+}
+
 export const SyncStatus = (drID: number) => {
   return http.post(`/api/v1/deliveryRequest/syncState/${drID}`)
 }

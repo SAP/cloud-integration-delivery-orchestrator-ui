@@ -287,6 +287,12 @@ export interface DeliveryRule {
   VersionPattern: string
   IncludedTenants: CpiTenant[]
   ExcludedTenants: CpiTenant[]
+  SourceTenantID: CpiTenant
+  SourceTenan:   CpiTenant
+
+  TargetNodes: TransportNode[]
+  TargetRoutes: TransportRoute[]
+  
   Active: boolean
   CreatedBy: string
   UpdatedBy: string
