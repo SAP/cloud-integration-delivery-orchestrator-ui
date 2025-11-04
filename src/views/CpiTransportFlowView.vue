@@ -37,7 +37,7 @@ const props = defineProps({
 const nodes = computed<Node[]>(() => {
     if(!props.deliveryRequest.SourceTenant) return []
     const targetNodes: Node[] = []
-    props.deliveryRequest.TargetNodes.forEach((tn: TransportNode) => {
+    props.deliveryRequest.DeliveryRule.TargetNodes.forEach((tn: TransportNode) => {
     const tenant = nodeToTenant.value[tn.id]
     const trToOp = props.tenantToOps[tenant?.ID] || {} //trNumber - ArtifactTenantOperation
     targetNodes.push({
@@ -73,7 +73,7 @@ const nodes = computed<Node[]>(() => {
 
 const edges = computed<Edge[]>(() => {
     if (!props.deliveryRequest.SourceTenant) return []
-    const routes = props.deliveryRequest?.TargetRoutes || []
+    const routes = props.deliveryRequest?.DeliveryRule.TargetRoutes || []
     return routes.map((route: TransportRoute) => ({
     id: route.description || `e-${route.sourceNodeId}-to-${route.targetNodeId}`,
     source: String(route.sourceNodeId),

@@ -43,12 +43,11 @@ export interface DeliveryRequest {
   ArtifactTenantOperations:      ArtifactTenantOperation[];
   SourceTenant:   CpiTenant;   // mandatory
   DeliveryRule:   DeliveryRule;
-  TargetNodes:    TransportNode[];
-  TargetRoutes:   TransportRoute[];
-  DeliveredTo:    CpiTenant[]; 
+  ApprovedBy:     string;
+  ApprovedAt:     string;
   CreatedBy:      string;
   UpdatedBy:      string;
-  CreatedAt:      string;      // ISO 字符串
+  CreatedAt:      string;
   UpdatedAt:      string;
 }
 

@@ -49,7 +49,7 @@ export default defineComponent({
         },
         childNodes() { // parentNodeId - childNodeIds[]
             const childNodes: {[key: number]: number[]} = {}
-            this.deliveryRequest?.TargetRoutes?.forEach(tRoute => {
+            this.deliveryRequest?.DeliveryRule.TargetRoutes?.forEach(tRoute => {
                 const {targetNodeId, sourceNodeId} = tRoute
                 if(!childNodes[sourceNodeId]) childNodes[sourceNodeId] = []
                 childNodes[sourceNodeId].push(targetNodeId)
@@ -58,7 +58,7 @@ export default defineComponent({
         },
         toGroupNode(): {[key: number]: Node} { // transport node ID -> (group) node. group many transport nodes into one node, based on parent-child relationship
             const tenantGroups: {[key: string]: CpiTenant[]} = {} // group label -> tenants[]
-            this.deliveryRequest?.TargetNodes?.forEach(n => {
+            this.deliveryRequest?.DeliveryRule?.TargetNodes?.forEach(n => {
                 const t = this.nodeToTenant[n.id]
                 if(!t) return
                 const groupLabel = t.Group || t.Name
