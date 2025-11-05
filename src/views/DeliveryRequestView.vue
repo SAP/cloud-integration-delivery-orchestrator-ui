@@ -35,13 +35,24 @@
         <div>
           <n-text depth="3" strong>Version History</n-text>
           <n-button @click="loadVersionHistory">Load</n-button>
-          {{ artifactVersionHistory ?? '' }}
+          <div v-if="loadingArtifactHistory">
+            <n-skeleton text style="width: 60%; margin-top:8px" :repeat="3" />
+          </div>
+          <div v-else v-for="h in artifactVersionHistory">
+            {{ h. comment}} - {{ h.createdBy }} - {{ h.semanticVersion }} - {{ h.createdDate }}
+          </div>
         </div>
+        <div v-if="isArtifactSelected(artifactDetail.PackageID, artifactDetail)">
+          <n-text>Delivery Detail</n-text><p/>
+          <n-text>Transport Request Number</n-text>: {{ artifactOpDetial.TransportRequestNumber }}
+          
+          
+        </div>
+
         <div style="display:flex; gap:8px">
-          <n-button size="small" type="primary" @click="toggleArtifact(artifactDetailPkgId, artifactDetail)">
-            {{ isArtifactSelected(artifactDetailPkgId, artifactDetail) ? 'Unselect' : 'Select' }}
+          <n-button size="small" type="primary" @click="toggleArtifact(artifactDetail.PackageID, artifactDetail)">
+            {{ isArtifactSelected(artifactDetail.PackageID, artifactDetail) ? 'Unselect' : 'Select' }}
           </n-button>
-          <n-button size="small" secondary @click="showArtifactDetails = false">Close</n-button>
         </div>
       </n-flex>
     </div>
@@ -346,7 +357,7 @@ export default {
       // artifact details state
       showArtifactDetails: false,
       artifactDetail: {} as Artifact,
-      artifactDetailPkgId: '' as string,
+      artifactOpDetial: {} as ArtifactTenantOperation,
       artifactVersionHistory: [] as ArtifactVersionHistoryItem[],
       loadingArtifactHistory: false,
       showFlowModal: false,
@@ -459,8 +470,12 @@ export default {
     },
     openArtifactDetails(a: Artifact) {
       this.artifactDetail = a
-      this.artifactDetailPkgId = a.PackageID
       this.showArtifactDetails = true
+      this.artifactVersionHistory = []
+      if(this.isArtifactSelected(a.PackageID, a)) {
+        // load delivery detail if selected
+        this.artifactOpDetial = this.selArtifactOps.find(op => op.ArtifactTechID === a.TechID && op.ArtifactVersion === a.Version) || {} as ArtifactTenantOperation
+      }
     },
     async onSyncDrStatus() {
       if (!this.deliveryRequest.ID) return
