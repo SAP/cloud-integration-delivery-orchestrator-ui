@@ -12,6 +12,10 @@
       <n-flex vertical style="gap:12px">
         <div style="display:flex; gap:16px; flex-wrap:wrap">
           <div>
+            <n-text depth="3" strong>Package</n-text>
+            <div style="margin-top:4px">{{ artifactDetail.PackageID }}</div>
+          </div>
+          <div>
             <n-text depth="3" strong>ID</n-text>
             <div style="margin-top:4px">{{ artifactDetail.TechID }}</div>
           </div>
@@ -23,14 +27,15 @@
             <n-text depth="3" strong>Type</n-text>
             <div style="margin-top:4px">{{ artifactDetail.Type }}</div>
           </div>
-        </div>
-        <div>
-          <n-text depth="3" strong>Raw JSON</n-text>
-          <n-code :code="artifactRawJson" language="json" style="margin-top:6px; max-height:260px; overflow:auto" />
+          <div>
+            <n-text depth="3" strong>Description</n-text>
+            <div style="margin-top:4px">{{ artifactDetail.Description }}</div>
+          </div>
         </div>
         <div>
           <n-text depth="3" strong>Version History</n-text>
-          {{ artifactVersionHistory }}
+          <n-button @click="loadVersionHistory">Load</n-button>
+          {{ artifactVersionHistory ?? '' }}
         </div>
         <div style="display:flex; gap:8px">
           <n-button size="small" type="primary" @click="toggleArtifact(artifactDetailPkgId, artifactDetail)">
@@ -292,7 +297,6 @@ import {
   GetPackageArtifacts,
   DeleteDeliveryRequest,
   GetArtifactVersionHistory,
-  GetTransportRoutes,
   TenantOps,
   SyncStatus,
   DeleteOps,
@@ -302,12 +306,11 @@ import { toLocalTime } from '@/service/consts'
 import { Edit16Regular, Delete28Regular, Info16Regular } from '@vicons/fluent'
 import { SaveAltRound, StartTwotone, CancelOutlined } from '@vicons/material'
 import IconBtn from '@/components/IconBtn.vue'
-import { VueFlow, type Edge, type Node } from '@vue-flow/core'
+import { VueFlow } from '@vue-flow/core'
 import CpiTransportNode from '@/components/CpiTransportNode.vue'
 import type { DeliveryRequest, CpiTenant, Package, Artifact, ArtifactVersionHistoryItem, ArtifactTenantOperation } from '@/service/model'
 import DeliveryFlowView from './DeliveryFlowView.vue'
 import CpiTransportFlowView from './CpiTransportFlowView.vue'
-import { i } from 'node_modules/vite/dist/node/types.d-aGj9QkWt'
 
 export default {
   name: 'TransportPlanView',
@@ -342,10 +345,10 @@ export default {
       artifactSearch: {} as { [key: string]: string },
       // artifact details state
       showArtifactDetails: false,
-      artifactDetail: {} as Artifact | null,
+      artifactDetail: {} as Artifact,
       artifactDetailPkgId: '' as string,
-      artifactRawJson: '' as string,
       artifactVersionHistory: [] as ArtifactVersionHistoryItem[],
+      loadingArtifactHistory: false,
       showFlowModal: false,
       deleteOps: [] as ArtifactTenantOperation[], // indexes of operations to be deleted
       addOps: [] as ArtifactTenantOperation[],
@@ -446,16 +449,18 @@ export default {
     clearSelections(pkgId: string) {
       this.selPkgArtifacts[pkgId] = []
     },
-    async openArtifactDetails(a: Artifact) {
+    async loadVersionHistory() {
+      const baseUrl = new URL(this.deliveryRequest.SourceTenant.CpiEndpoint.url)
+      this.loadingArtifactHistory = true
+      const {PackageID, TechID} = this.artifactDetail || {}
+      this.artifactVersionHistory = await GetArtifactVersionHistory(`${baseUrl.protocol}//${baseUrl.host}`, PackageID, TechID)
+      console.log(this.artifactVersionHistory)
+      this.loadingArtifactHistory = false
+    },
+    openArtifactDetails(a: Artifact) {
       this.artifactDetail = a
       this.artifactDetailPkgId = a.PackageID
-      this.artifactRawJson = JSON.stringify(a, null, 2)
       this.showArtifactDetails = true
-
-      const cpiTenantUrl = this.deliveryRequest.SourceTenant.CpiEndpoint.url
-      const baseUrl = new URL(cpiTenantUrl)
-      this.artifactVersionHistory = await GetArtifactVersionHistory(`${baseUrl.protocol}//${baseUrl.host}`, a.PackageID, a.TechID)
-      console.log(this.artifactVersionHistory)
     },
     async onSyncDrStatus() {
       if (!this.deliveryRequest.ID) return
