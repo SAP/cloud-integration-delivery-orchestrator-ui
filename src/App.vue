@@ -2,7 +2,7 @@
 import { defineComponent } from 'vue'
 import { IosArrowBack } from '@vicons/ionicons4'
 import MessageItem from '@/components/MessageComp.vue'
-import { useUserInfoStore, type UserInfo } from './service/api'
+import { useUserInfoStore } from './service/api'
 export default defineComponent({
   components: {
     IosArrowBack,
