@@ -83,7 +83,7 @@ export default defineComponent({
     },
     methods: {
         async refresh() {
-            this.rules = await GetDeliveryRules()
+            this.rules = await GetDeliveryRules() || []
             this.rules.sort((a, b) => (a.Name || '').localeCompare(b.Name || ''))
             this.showModal = false
         },
@@ -135,7 +135,7 @@ export default defineComponent({
     },
     async created() {
         await this.refresh()
-        this.cpiTenants = await GetCpiTenants()
+        this.cpiTenants = await GetCpiTenants() || []
         this.transportRoutes = await GetTransportRoutes()
         this.tenantOptions = this.cpiTenants.map(t => ({ label: t.Name, value: t, disabled:false }) )
     }

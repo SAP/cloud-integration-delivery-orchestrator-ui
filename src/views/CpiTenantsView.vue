@@ -63,7 +63,7 @@ export default defineComponent({
             await this.refresh()
         },
         async refresh() {
-            this.cpiTenants = await GetCpiTenants()
+            this.cpiTenants = await GetCpiTenants() || []
             this.showModal = false
             this.cpiTenants.sort((a, b) => (a.Name || '').localeCompare(b.Name || ''))
         },
@@ -87,8 +87,8 @@ export default defineComponent({
     },
     async created() {
         await this.refresh()
-        this.transportNodes = await GetTransportNodes()
-        this.cpiEndpoints = await GetCPIApiEndpoints()
+        this.transportNodes = await GetTransportNodes() || []
+        this.cpiEndpoints = await GetCPIApiEndpoints() || []
         this.transportNodesOptions = this.transportNodes.map(node => ({ label: `${node.name}(${node.description})`, value: node }))
         this.CpiEndpointsOptions = this.cpiEndpoints.map(ep => ({ label: `${ep.name}(${ep.url})`, value: ep }))
     }
