@@ -6,7 +6,6 @@ import vueJsx from '@vitejs/plugin-vue-jsx'
 
 // https://vitejs.dev/config/
 export default defineConfig(({mode}) => {
-  const env = loadEnv(mode, process.cwd());
   return {
     base: '/',
     plugins: [vue(), vueJsx()],

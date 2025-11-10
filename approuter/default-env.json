@@ -22,8 +22,5 @@
     }
   ],
   "PORT": "8844",
-  "NODE_TLS_REJECT_UNAUTHORIZED": "0",
-  "loc": "http://localhost:8080",
-  "rem": "https://com-sap-cd-maco-mmt-srv-testauto-ci.cfapps.sap.hana.ondemand.com/api",
-  "rm": "https://com-sap-cd-maco-mmt-srv-common-dev.cfapps.sap.hana.ondemand.com/"
+  "NODE_TLS_REJECT_UNAUTHORIZED": "0"
 }
