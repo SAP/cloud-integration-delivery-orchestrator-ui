@@ -2,7 +2,6 @@
 import { defineComponent } from 'vue'
 import { IosArrowBack } from '@vicons/ionicons4'
 import MessageItem from '@/components/MessageComp.vue'
-import { useUserInfoStore } from './service/api'
 export default defineComponent({
   components: {
     IosArrowBack,
@@ -29,18 +28,11 @@ export default defineComponent({
       return this.$router.currentRoute.value.path !== '/'
     },
     avartarSrc() {
-      const user = useUserInfoStore().user
-      if (!user) return '?'
       // eg. doug.liu@sap.com => DL
-      const emailParts = user.email.split('.')
-      if (emailParts.length >= 2) {
-        return (emailParts[0][0] + emailParts[1][0]).toUpperCase()
-      }
+      return 'TEMP'
     },
     userEmail() {
-      const user = useUserInfoStore().user
-      if (!user) return ''
-      return user.email
+      return 'TEMP'
     }
   }
 })

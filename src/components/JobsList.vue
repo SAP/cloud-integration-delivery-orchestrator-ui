@@ -22,7 +22,7 @@
 
 <script lang="ts">
 import { defineComponent, h, ref } from 'vue'
-import { CopyJob, DeleteJob, GetJobs, NewJob, useUserInfoStore } from '@/service/api'
+import { CopyJob, DeleteJob, GetJobs, NewJob } from '@/service/api'
 import { type ToolBar } from '@/service/consts'
 import { NTag, type DataTableColumns, type DataTableRowKey } from 'naive-ui'
 import DataTable from '@/components/DataTable.vue'
@@ -92,7 +92,6 @@ export default defineComponent({
   data() {
     const columns: DataTableColumns<Job> = createJobColums(this.$router, NTag)
     var jobList: Job[] = []
-    const userInfo = useUserInfoStore().user
     const customToolBars: ToolBar[] = [
       {
         text: 'Delete',

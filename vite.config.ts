@@ -16,28 +16,7 @@ export default defineConfig(({mode}) => {
       }
     },
     server: {
-      proxy: {
-        '^/api/v1/.*': {
-          target: env.VITE_BE_URL,
-          changeOrigin: true, // changes the origin of the host header to the target URL
-          secure: false,
-          // ws: true,
-          // rewrite: (path) => path.replace(/^\/api/, '')
-        },
-        '^/user/.*': {
-          target: env.VITE_TARGET_URL,
-          rewrite: (path) => path.replace(/^\/user/, ''),
-          secure: false,
-          changeOrigin: true,
-        },
-        '^/cpi-cookie-service/.*': {
-          target: env.VITE_CPI_COOKIE_SERVICE_URL,
-          rewrite: (path) => path.replace(/^\/cpi-cookie-service/, ''),
-          secure: false,
-          changeOrigin: true,
-        }
-      },
-      port: parseInt(env.VITE_PORT),
+      port: 5173,
       host: true,
       cors: true
     }

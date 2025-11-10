@@ -1,8 +1,7 @@
 import axios from 'axios'
-import { clientId, clientSecret, tokenEndpoint, userInfoEndpoint } from './consts'
 import http from './http'
 import { defineStore } from 'pinia'
-import type { ApiEndpoint, Artifact, ArtifactTenantOperation, ArtifactVersionHistoryItem, CpiTenant, CpiTenantNodeData, DeliverOpRequest, DeliveryRequest, DeliveryRule, Job, NodeTransportRequest, Package, RuntimeArtifact, Step, TransportGroup, TransportNode, TransportPlan, TransportRoute, UserInfo } from './model'
+import type { ApiEndpoint, Artifact, ArtifactTenantOperation, ArtifactVersionHistoryItem, CpiTenant, CpiTenantNodeData, DeliverOpRequest, DeliveryRequest, DeliveryRule, Job, NodeTransportRequest, Package, RuntimeArtifact, Step, TransportGroup, TransportNode, TransportPlan, TransportRoute } from './model'
 import type { AggregateStatus, DeployState, ImportState, RequestState } from './statuses'
 // validate if a step can be modified
 export const validate = (step: Step) => {
@@ -15,29 +14,6 @@ export const validate = (step: Step) => {
     return false
   }
   return true
-}
-export const Login = (code: string, state: string, redirectUri: string) => {
-  const instance = axios.create({headers: {'Accept': 'application/json'}})
-  instance.defaults.headers['Content-Type'] = 'application/x-www-form-urlencoded'
-  return instance.post(tokenEndpoint, {
-    grant_type: 'authorization_code',
-    client_id: clientId,
-    code: code,
-    redirect_uri: redirectUri
-  }, {
-    auth: {
-      username: clientId,
-      password: clientSecret
-    }
-  }).then((res) => {
-    const token = res.data.access_token
-    instance.defaults.headers['Authorization'] = `Bearer ${token}`
-    return instance.get(userInfoEndpoint)
-  }).then(res => {
-    return res.data
-  }).catch((err) => {
-    window.$message.error(`Login failed: ${err.response}`)
-  })
 }
 
 // returns Job instance
@@ -167,33 +143,6 @@ export const GetRuntimeArtifacts = (tenantId: string) => {
     params: { tenant: tenantId }
   }) as Promise<RuntimeArtifact[]>
 }
-export const useUserInfoStore = defineStore('userInfo', {
-  state: () => ({
-    userInfo: null as UserInfo | null
-  }),
-  actions: {
-    isLogged() {
-      return this.user !== null
-    },
-    setUser(user: UserInfo) {
-      this.userInfo = user
-      window.localStorage.setItem('userInfo', JSON.stringify(user))
-    }
-  },
-  getters: {
-    user: (state) => { // return a UserInfo object from this store or localsotrage
-      if (state.userInfo) {
-        return state.userInfo
-      }
-      const item = window.localStorage.getItem('userInfo')
-      if (item) {
-        return JSON.parse(item) as UserInfo
-      }
-      return null
-    }
-  }
-})
-
 
 export const GetCpiTenants = () => {
   return http.get('/api/v1/cpiTenant') as Promise<CpiTenant[]>

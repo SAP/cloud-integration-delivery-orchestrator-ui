@@ -4,18 +4,6 @@ import { h } from 'vue'
 import type { Router } from 'vue-router'
 import { IosArrowForward } from '@vicons/ionicons4'
 
-// uase maco.account400 Cloud Identity Service: https://maco.accounts400.ondemand.com/admin/#/applications/668667c6474e930344d2f375
-// document: https://help.sap.com/docs/cloud-identity-services/cloud-identity-services/configure-client-to-call-identity-authentication-token-endpoint-for-authorization-code-flow
-
-export const clientId = '74653741-4458-4cc6-902a-4681533d1509'
-export const clientSecret = "REDACTED"
-
-export const callbackUrl = import.meta.env.VITE_CALLBACK_URL
-
-export const authUrl = `https://maco.accounts400.ondemand.com/oauth2/authorize?client_id=${clientId}&redirect_uri=${callbackUrl}&response_type=code&state=123&scope=email`
-export const tokenEndpoint = '/user/oauth2/token'
-export const userInfoEndpoint = '/user/oauth2/userinfo'
-
 
 export const apiEndpointColums: DataTableColumns<ApiEndpoint> = [
   {

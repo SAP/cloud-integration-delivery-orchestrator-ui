@@ -1,5 +1,3 @@
-import { useUserInfoStore } from '@/service/api'
-import { authUrl } from '@/service/consts'
 import { createRouter, createWebHistory } from 'vue-router'
 
 const router = createRouter({
@@ -38,11 +36,6 @@ const router = createRouter({
       ]
     },
     {
-      path: '/callback',
-      name: 'Oauth',
-      component: () => import('@/views/LoginCallback.vue'),
-    },
-    {
       path: '/delivery-request/:planId',
       name: 'Maintain Delivery Request',
       component: () => import('@/views/DeliveryRequestView.vue'),
@@ -52,12 +45,6 @@ const router = createRouter({
 })
 
 router.beforeEach((to, from) => {
-  const isLogged = useUserInfoStore().isLogged()
-  if (!isLogged && to.path !== '/callback') {
-    window.$message.info('Redirect to login')
-    window.location.href = authUrl
-    return false
-  }
   return true
 })
 
