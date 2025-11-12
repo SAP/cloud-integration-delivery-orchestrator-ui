@@ -6,9 +6,12 @@
     <CpiTransportFlowView :delivery-request="deliveryRequest" :cpi-tenants="cpiTenants" :tenant-to-ops="tenantToOps" />
   </n-modal>
   <!-- artifact details modal -->
-  <n-modal v-model:show="showArtifactDetails" preset="card" title="Artifact Details" style="max-width:560px"
-    size="small" :closable="true" :close-on-esc="true" :mask-closable="true">
-    <div v-if="artifactDetail">
+  <n-modal v-model:show="showArtifactDetails" preset="card" title="Artifact Details" 
+    style="max-width:560px"
+    size="small" 
+    :closable="true" 
+    :close-on-esc="true" 
+    :mask-closable="true">
       <n-flex vertical style="gap:12px">
         <div style="display:flex; gap:16px; flex-wrap:wrap">
           <div>
@@ -32,30 +35,54 @@
             <div style="margin-top:4px">{{ artifactDetail.Description }}</div>
           </div>
         </div>
-        <div>
+        <!-- Version history -->
+        <n-flex vertical>
           <n-text depth="3" strong>Version History</n-text>
-          <n-button @click="loadVersionHistory">Load</n-button>
+          <n-button type="info" ghost v-if="!loadingArtifactHistory && !artifactVersionHistory.length" @click="loadVersionHistory">Load</n-button>
           <div v-if="loadingArtifactHistory">
             <n-skeleton text style="width: 60%; margin-top:8px" :repeat="3" />
           </div>
           <div v-else v-for="h in artifactVersionHistory">
             {{ h. comment}} - {{ h.createdBy }} - {{ h.semanticVersion }} - {{ h.createdDate }}
           </div>
-        </div>
-        <div v-if="isArtifactSelected(artifactDetail.PackageID, artifactDetail)">
-          <n-text>Delivery Detail</n-text><p/>
-          <n-text>Transport Request Number</n-text>: {{ artifactOpDetial.TransportRequestNumber }}
-          
-          
-        </div>
+        </n-flex>
+        <n-divider :style="{margin: 5+'px'}" dashed/>
+        <!-- ops details -->
+        <n-flex vertical v-if='isArtifactSelected(artifactDetail.PackageID, artifactDetail)'>
+          <n-flex>
+            <div>
+              <n-text depth="3" strong>Request State</n-text>
+              <div style="margin-top:4px">{{ artifactOpDetial.RequestState }}</div>
+            </div>
+            <div>
+              <n-text depth="3" strong>Import State</n-text>
+              <div style="margin-top:4px">{{ artifactOpDetial.ImportState }}</div>
+            </div>
+            <div>
+              <n-text depth="3" strong>Deploy State</n-text>
+              <div style="margin-top:4px">{{ artifactOpDetial.DeployState }}</div>
+            </div>
+          </n-flex>
+          <n-flex vertical>
+            <n-text depth="3" strong>Transport Request Number</n-text>
+            <n-text>
+              {{ artifactOpDetial.TransportRequestNumber }}
+              <n-button tertiary round type="info">edit</n-button>
+              <n-button tertiary round type="info">auto generate</n-button>
+            </n-text>
+          </n-flex>
 
-        <div style="display:flex; gap:8px">
-          <n-button size="small" type="primary" @click="toggleArtifact(artifactDetail.PackageID, artifactDetail)">
+        </n-flex>
+
+        <n-flex inline>
+          <n-button size="small" type="info" secondary @click="toggleArtifact(artifactDetail.PackageID, artifactDetail)">
             {{ isArtifactSelected(artifactDetail.PackageID, artifactDetail) ? 'Unselect' : 'Select' }}
           </n-button>
-        </div>
+          <n-button size="small" type="info" secondary>
+            Disable
+          </n-button>
+        </n-flex>
       </n-flex>
-    </div>
   </n-modal>
   <!-- end modal -->
   <div style="margin: 0 42px">
@@ -249,22 +276,22 @@
                       <n-flex wrap>
                         <n-tag 
                           v-for="(artOp, i) in selArtifactOps"
-                          :key="'sel-' + i + '-' + artOp.ArtifactTechID + '@' + artOp.ArtifactVersion" type="info"
-                          size="small" :bordered="false">
+                          :key="'sel-' + i + '-' + artOp.ArtifactTechID + '@' + artOp.ArtifactVersion" :type="stateType(artOp)"
+                          size="medium" :bordered="false" strong>
+                          
                           {{ artOp.ArtifactTechID }}@{{ artOp.ArtifactVersion }}
-                          <n-tooltip trigger="hover" placement="top">
+                          <n-divider vertical />
+
+                          TR: {{ artOp.TransportRequestNumber }}
+                          
+                          <n-popover trigger="hover" placement="top">
                             <template #trigger>
                               <n-icon size="18" @click.stop="openArtifactDetails(artOp.Artifact)">
-                                <Info16Regular />
+                                <Info16Regular :size="30"/>
                               </n-icon>
                             </template>
                             Show Details
-                          </n-tooltip>
-                          <n-divider vertical />
-                          TR Number:
-                          <n-input v-model:value="artOp.TransportRequestNumber" size="tiny" placeholder="TR Number"
-                            style="width:80px; margin-left:4px" @click.stop
-                            :status="!artOp.TransportRequestNumber ? 'warning' : 'info'" />
+                          </n-popover>
                         </n-tag>
                       </n-flex>
                     </n-flex>
@@ -482,6 +509,11 @@ export default {
       await SyncStatus(this.deliveryRequest.ID)
       await this.refresh()
     },
+    stateType(op: ArtifactTenantOperation) {
+      // op request state to tag type mapping('default' | 'primary' | 'info' | 'success' | 'warning' | 'error')
+      if (op.RequestState === 'NOT_REQUESTED') return 'default'
+      return 'info'
+    }
 
   },
   watch: {

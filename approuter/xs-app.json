@@ -15,6 +15,13 @@
       "authenticationType": "xsuaa"
     },
     {
+      "source": ".*/cpi-cookie-service/(.*)$",
+      "target": "$1",
+      "destination": "cpi-cookie-service",
+      "authenticationType": "xsuaa",
+      "csrfProtection": false
+    },
+    {
       "source": "^/(.*)$",
       "target": "$1",
       "destination": "vite-dev-server"

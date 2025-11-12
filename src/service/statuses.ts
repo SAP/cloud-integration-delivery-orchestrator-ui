@@ -9,6 +9,7 @@ export type RequestState =
 export type ImportState =
   | 'NOT_STARTED'
   | 'QUEUED'
+  | 'IMPORT_DISABLED'
   | 'IN_PROGRESS'
   | 'FAILED'
   | 'COMPLETE';        // (You can drop PARTIAL if you remove it in Go)
@@ -17,6 +18,7 @@ export type ImportState =
 export type DeployState =
   | 'NOT_STARTED'
   | 'QUEUED'
+  | 'DEPLOY_DISABLED'
   | 'IN_PROGRESS'
   | 'FAILED'
   | 'COMPLETE'
