@@ -32,7 +32,6 @@ export default defineComponent({
   },
   async created() {
     this.counts = await GetJobCounts()
-    console.log(this.counts)
   }
 })
 </script>

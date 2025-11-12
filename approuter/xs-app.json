@@ -1,6 +1,12 @@
 {
   "authenticationMethod": "route",
   "routes": [
+        {
+      "source": "^/user-api(.*)",
+      "target": "$1",
+      "service": "sap-approuter-userapi",
+      "authenticationType": "xsuaa"
+    },
     {
       "source": ".*/api/v1/(.*)$",
       "target": "$1",
@@ -13,5 +19,8 @@
       "target": "$1",
       "destination": "vite-dev-server"
     }
-  ]
+  ],
+  "logout": {
+    "logoutEndpoint": "/logout"
+  }
 }

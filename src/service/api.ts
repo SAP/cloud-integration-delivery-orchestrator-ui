@@ -16,6 +16,10 @@ export const validate = (step: Step) => {
   return true
 }
 
+export const UserInfo = async () => {
+  const { data } = await axios.get('/user-api/currentUser')
+  return data
+}
 // returns Job instance
 export const FetchJob = (jobId: number | string) => {
   return http.get(`/api/v1/job/${jobId}`) as Promise<Job>
