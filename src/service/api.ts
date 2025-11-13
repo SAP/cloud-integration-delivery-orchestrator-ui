@@ -268,6 +268,7 @@ export const DeployOps = (opIDs: number[], tenant: number) => {
   return http.post(`/api/v1/deliveryRequest/deploy`, req)
 }
 
+// batch delete, avoid to use delete method, since there is no body support in delete method
 export const DeleteOps = (opIDs: number[]) => {
   if (opIDs.length === 0) return
   return http.post(`/api/v1/deliveryRequest/deleteOps`, {opIDs: opIDs})
@@ -277,7 +278,9 @@ export const InsertOps = (drID: number, ops: ArtifactTenantOperation[]) => {
   if (ops.length === 0) return
   return http.post(`/api/v1/deliveryRequest/insertOps`, {ops: ops, deliveryRequestID: drID})
 }
-
+export const UpdateOp = (drID: number, ops: ArtifactTenantOperation[]) => {
+  return http.put(`/api/v1/deliveryRequest/updateOps`, {ops: ops, deliveryRequestID: drID})
+}
 export const SyncStatus = (drID: number) => {
   return http.post(`/api/v1/deliveryRequest/syncState/${drID}`)
 }

@@ -63,11 +63,22 @@
               <div style="margin-top:4px">{{ artifactOpDetial.DeployState }}</div>
             </div>
           </n-flex>
+          <!-- Transport Request Number -->
           <n-flex vertical>
             <n-text depth="3" strong>Transport Request Number</n-text>
             <n-text>
               {{ artifactOpDetial.TransportRequestNumber }}
-              <n-button tertiary round type="info">edit</n-button>
+              <n-input
+                v-show="editingTr"
+                v-model:value="artifactOpDetial.TransportRequestNumber"
+                size="small"
+                style="width:140px; margin:0 6px"
+                placeholder="TR number"
+                @keyup.enter="saveTr(artifactOpDetial)"
+              />
+              <n-button tertiary round type="info" v-if="!editingTr" @click="editingTr = true" aria-label="Edit TR">edit</n-button>
+              <n-button tertiary round type="info" v-else @click="saveTr(artifactOpDetial)">save</n-button>
+              <n-divider vertical/>
               <n-button tertiary round type="info">auto generate</n-button>
             </n-text>
           </n-flex>
@@ -139,7 +150,7 @@
             <CancelOutlined />
           </IconBtn>
           <!-- Delete button -->
-          <IconBtn tip="Delete" :handler="handleDelete" v-if="!editing" color="#df423a">
+          <IconBtn tip="Delete" :handler="deleteDr" v-if="!editing" color="#df423a">
             <Delete28Regular />
           </IconBtn>
 
@@ -296,7 +307,7 @@
                       </n-flex>
                     </n-flex>
                   </n-flex>
-                  <n-button type="primary" secondary @click="handleUpdate">Save</n-button>
+                  <n-button type="primary" secondary @click="updateDr">Save</n-button>
                   <n-button size="small" tertiary @click="showFlowModal = true">Show Delivery Flow</n-button>
                   <n-button size="small" tertiary @click="onSyncDrStatus">Sync Status</n-button>
 
@@ -339,6 +350,7 @@ import {
   SyncStatus,
   DeleteOps,
   InsertOps,
+  UpdateOp,
 } from '@/service/api'
 import { toLocalTime } from '@/service/consts'
 import { Edit16Regular, Delete28Regular, Info16Regular } from '@vicons/fluent'
@@ -372,6 +384,7 @@ export default {
       editing: false,
       current: 0,
       toLocalTime,
+      editingTr: false,
       cpiTenants: [] as CpiTenant[],
       tenantPkgs: [] as Package[],
       selectedPackages: [] as Package[],
@@ -393,6 +406,9 @@ export default {
     }
   },
   methods: {
+    handleCurrent(current: number) {
+      this.current = current
+    },
     onEdit() {
       this.editing = true
     },
@@ -422,14 +438,11 @@ export default {
       })
       this.packagesLoading = false
     },
-    async handleDelete() {
+    async deleteDr() {
       await DeleteDeliveryRequest(this.planId)
       this.$router.go(-1)
     },
-    handleCurrent(current: number) {
-      this.current = current
-    },
-    async handleUpdate() {
+    async updateDr() {
       if (!this.deliveryRequest.SourceTenant) {
         window.$message?.warning?.('Please select a source CPI tenant')
         return
@@ -447,6 +460,9 @@ export default {
       // this.deleteOps = []
       // this.addOps = []
       await this.refresh()
+    },
+    async saveTr(op: ArtifactTenantOperation) {
+      await UpdateOp(this.deliveryRequest.ID, [op])
     },
     async loadPackageArtifacts(pkgId: string) {
       if (this.packageArtifacts[pkgId]) return // already loaded
