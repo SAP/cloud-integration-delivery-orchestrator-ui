@@ -48,7 +48,7 @@
         </n-flex>
         <n-divider :style="{margin: 5+'px'}" dashed/>
         <!-- ops details -->
-        <n-flex vertical v-if='isArtifactSelected(artifactDetail.PackageID, artifactDetail)'>
+        <n-flex vertical v-if='Object.keys(artifactOpDetial).length'>
           <n-flex>
             <div>
               <n-text depth="3" strong>Request State</n-text>
@@ -256,8 +256,7 @@
                                   <n-tag v-for="a in filteredArtifacts(pkg.Id)"
                                     :key="pkg.Id + '-' + a.TechID + '@' + a.Version"
                                     :type="isArtifactSelected(pkg.Id, a) ? 'success' : 'default'" :bordered="false"
-                                    size="small" @click="toggleArtifact(pkg.Id, a)">
-                                    <!-- TODO: may extract a component -->
+                                    size="medium" @click="toggleArtifact(pkg.Id, a)">
                                     <span>{{ a.TechID }}@{{ a.Version }}</span>
                                     <template v-if="isArtifactSelected(pkg.Id, a)">
                                       <span style="margin-left:2px">✔</span>
@@ -279,31 +278,19 @@
                       </n-collapse>
                     </div>
                     <!-- selected Artifacts list -->
-                    <n-flex vertical v-if="selArtifactOps.length" style="margin-top:18px">
+                    <n-flex vertical v-if="selArtifactOps.length || deleteOps.length" style="margin-top:18px">
                       <n-divider dashed title-placement="center"
                         style="margin:0 0 10px 0; font-weight:600; letter-spacing:.5px">
                         Selected Artifacts ({{ selArtifactOps.length }})
                       </n-divider>
-                      <n-flex wrap>
-                        <n-tag 
-                          v-for="(artOp, i) in selArtifactOps"
-                          :key="'sel-' + i + '-' + artOp.ArtifactTechID + '@' + artOp.ArtifactVersion" :type="stateType(artOp)"
-                          size="medium" :bordered="false" strong>
-                          
-                          {{ artOp.ArtifactTechID }}@{{ artOp.ArtifactVersion }}
-                          <n-divider vertical />
-
-                          TR: {{ artOp.TransportRequestNumber }}
-                          
-                          <n-popover trigger="hover" placement="top">
-                            <template #trigger>
-                              <n-icon size="18" @click.stop="openArtifactDetails(artOp.Artifact)">
-                                <Info16Regular :size="30"/>
-                              </n-icon>
-                            </template>
-                            Show Details
-                          </n-popover>
-                        </n-tag>
+                      <n-flex vertical>
+                        <n-flex>
+                          <ArtifactOpTag v-for="(op, i) in selArtifactOps" :i="i" :art-op="op" :stage-type="stateType(op)" @open-artifact-details="openArtifactDetails"/>
+                        </n-flex>
+                        <n-flex>
+                          <n-text>To be Deleted: </n-text>
+                          <ArtifactOpTag v-for="(op, i) in deleteOps" :i="i" :art-op="op" :stage-type="stateType(op)"/>
+                        </n-flex>
                       </n-flex>
                     </n-flex>
                   </n-flex>
@@ -361,7 +348,7 @@ import CpiTransportNode from '@/components/CpiTransportNode.vue'
 import type { DeliveryRequest, CpiTenant, Package, Artifact, ArtifactVersionHistoryItem, ArtifactTenantOperation } from '@/service/model'
 import DeliveryFlowView from './DeliveryFlowView.vue'
 import CpiTransportFlowView from './CpiTransportFlowView.vue'
-
+import ArtifactOpTag from '@/components/ArtifactOpTag.vue'
 export default {
   name: 'TransportPlanView',
   components: {
@@ -376,6 +363,7 @@ export default {
     CpiTransportNode,
     DeliveryFlowView,
     CpiTransportFlowView,
+    ArtifactOpTag,
   },
   props: { planId: { required: true, type: Number } },
   data() {
@@ -511,14 +499,11 @@ export default {
       console.log(this.artifactVersionHistory)
       this.loadingArtifactHistory = false
     },
-    openArtifactDetails(a: Artifact) {
+    openArtifactDetails(a: Artifact, op?: ArtifactTenantOperation) {
       this.artifactDetail = a
       this.showArtifactDetails = true
       this.artifactVersionHistory = []
-      if(this.isArtifactSelected(a.PackageID, a)) {
-        // load delivery detail if selected
-        this.artifactOpDetial = this.selArtifactOps.find(op => op.ArtifactTechID === a.TechID && op.ArtifactVersion === a.Version) || {} as ArtifactTenantOperation
-      }
+      this.artifactOpDetial = op || {} as ArtifactTenantOperation
     },
     async onSyncDrStatus() {
       if (!this.deliveryRequest.ID) return
@@ -527,6 +512,10 @@ export default {
     },
     stateType(op: ArtifactTenantOperation) {
       // op request state to tag type mapping('default' | 'primary' | 'info' | 'success' | 'warning' | 'error')
+      const delIndex = this.deleteOps.findIndex(delOp => delOp.ArtifactTechID === op.ArtifactTechID && delOp.ArtifactVersion === op.ArtifactVersion)
+      if (delIndex >= 0) return 'error' // to be deleted
+      const addIndex = this.addOps.findIndex(addOp => addOp.ArtifactTechID === op.ArtifactTechID && addOp.ArtifactVersion === op.ArtifactVersion)
+      if (addIndex >= 0) return 'success' // to be added
       if (op.RequestState === 'NOT_REQUESTED') return 'default'
       return 'info'
     }
