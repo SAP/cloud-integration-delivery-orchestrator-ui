@@ -223,7 +223,7 @@
                       <n-collapse v-model:expanded-names="expandedPackages" style="margin-top:6px">
                         <!-- Package Lists -->
                         <n-collapse-item v-for="pkg in selectedPackages" :key="pkg.Id" :name="pkg.Id"
-                          :title="packageLabel(pkg)">
+                          :title="`${pkg.Name} - ${pkg.Version}`">
                           <div v-if="loadingPackages[pkg.Id]" style="padding:4px 0">
                             <n-skeleton text style="width:55%" :repeat="1" />
                             <n-skeleton text style="width:70%; margin-top:6px" :repeat="1" />
@@ -305,7 +305,13 @@
             <n-step>
               <template #title> Approve </template>
               <n-card hoverable size="medium">
-
+                <n-auto-complete
+                  :options="approverOptions"
+                  :loading="searchApproverLoading"
+                  @update:value="handleSearchArrover"
+                  @select="handleSelectApprover"
+                  clearable
+                  />
               </n-card>
 
             </n-step>
@@ -338,6 +344,7 @@ import {
   DeleteOps,
   InsertOps,
   UpdateOp,
+  UaaUser,
 } from '@/service/api'
 import { toLocalTime } from '@/service/consts'
 import { Edit16Regular, Delete28Regular, Info16Regular } from '@vicons/fluent'
@@ -345,10 +352,11 @@ import { SaveAltRound, StartTwotone, CancelOutlined } from '@vicons/material'
 import IconBtn from '@/components/IconBtn.vue'
 import { VueFlow } from '@vue-flow/core'
 import CpiTransportNode from '@/components/CpiTransportNode.vue'
-import type { DeliveryRequest, CpiTenant, Package, Artifact, ArtifactVersionHistoryItem, ArtifactTenantOperation } from '@/service/model'
+import type { DeliveryRequest, CpiTenant, Package, Artifact, ArtifactVersionHistoryItem, ArtifactTenantOperation, UserInfo } from '@/service/model'
 import DeliveryFlowView from './DeliveryFlowView.vue'
 import CpiTransportFlowView from './CpiTransportFlowView.vue'
 import ArtifactOpTag from '@/components/ArtifactOpTag.vue'
+import { options } from 'node_modules/axios/index.cjs'
 export default {
   name: 'TransportPlanView',
   components: {
@@ -391,9 +399,27 @@ export default {
       showFlowModal: false,
       deleteOps: [] as ArtifactTenantOperation[], // indexes of operations to be deleted
       addOps: [] as ArtifactTenantOperation[],
+      searchApproverLoading: false,
+      approverOptions: [] as { label: string; value: UserInfo }[],
+      searchTimer: null as number | null,
     }
   },
   methods: {
+    handleSearchArrover(query: string) {
+      this.approverOptions = []
+      if (!query || !query.trim()) return
+      this.searchTimer && (clearTimeout(this.searchTimer), this.searchTimer = null)
+      this.searchTimer = setTimeout(async () => {
+        this.searchApproverLoading = true
+        const approvers = await UaaUser(query)
+        this.approverOptions = approvers.map(a => ({ label: `${a.email}(${a.userName})`, value: a }))
+        this.searchApproverLoading = false
+      }, 1000)
+    },
+    handleSelectApprover(value: UserInfo) {
+      console.log('selected approver:', value)
+      this.deliveryRequest.ApprovedBy = value.userName
+    },
     handleCurrent(current: number) {
       this.current = current
     },
@@ -459,9 +485,6 @@ export default {
       this.loadingPackages[pkgId] = true
       this.packageArtifacts[pkgId] = await GetPackageArtifacts(cpiDest, pkgId)
       this.loadingPackages[pkgId] = false
-    },
-    packageLabel(pkg: Package) {
-      return `${pkg.Name} @ ${pkg.Version}`
     },
     filteredArtifacts(pkgId: string): Artifact[] {
       const list = this.packageArtifacts[pkgId] || []
@@ -581,7 +604,7 @@ export default {
       return (this.deliveryRequest.ArtifactTenantOperations || []).filter(op => op.TenantID === this.deliveryRequest.SourceTenant.ID)
     },
     packageOptions() {
-      return this.tenantPkgs.map(pkg => ({ label: `${pkg.Name} @ ${pkg.Version}`, value: pkg }))
+      return this.tenantPkgs.map(pkg => ({ label: `${pkg.Name} - ${pkg.Version}`, value: pkg }))
     },
     selArtifactOps(): ArtifactTenantOperation[] {
       return [...this.sourceOps.filter(op => this.deleteOps.findIndex(d => d.ID === op.ID) < 0), ...this.addOps]

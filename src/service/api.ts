@@ -1,7 +1,7 @@
 import axios from 'axios'
 import http from './http'
 import { defineStore } from 'pinia'
-import type { ApiEndpoint, Artifact, ArtifactTenantOperation, ArtifactVersionHistoryItem, CpiTenant, CpiTenantNodeData, DeliverOpRequest, DeliveryRequest, DeliveryRule, Job, NodeTransportRequest, Package, RuntimeArtifact, Step, TransportGroup, TransportNode, TransportPlan, TransportRoute } from './model'
+import type { ApiEndpoint, Artifact, ArtifactTenantOperation, ArtifactVersionHistoryItem, CpiTenant, CpiTenantNodeData, DeliverOpRequest, DeliveryRequest, DeliveryRule, Job, NodeTransportRequest, Package, RuntimeArtifact, Step, TransportGroup, TransportNode, TransportPlan, TransportRoute, UserInfo } from './model'
 import type { AggregateStatus, DeployState, ImportState, RequestState } from './statuses'
 // validate if a step can be modified
 export const validate = (step: Step) => {
@@ -16,7 +16,7 @@ export const validate = (step: Step) => {
   return true
 }
 
-export const UserInfo = async () => {
+export const CurrentUser = async () => {
   const { data } = await axios.get('/user-api/currentUser')
   return data
 }
@@ -285,6 +285,9 @@ export const SyncStatus = (drID: number) => {
   return http.post(`/api/v1/deliveryRequest/syncState/${drID}`)
 }
 
+export const UaaUser = (query: string) => {
+  return http.get(`/api/v1/uaa/search/${query}`) as Promise<UserInfo[]>
+}
 
 // Cpi tenant operations mapping
 export const TenantOps = (ops: ArtifactTenantOperation[]) => {
@@ -345,6 +348,7 @@ export const DeriveNodeAgg = (nodedata: CpiTenantNodeData): AggregateStatus => {
 
 import dagre from '@dagrejs/dagre'
 import {type Edge, type Node } from '@vue-flow/core'
+
 
 export function layoutNodes(nodes: Node[], edges: Edge[], direction: 'LR' | 'TB' = 'LR'): {nodes: Node[], edges: Edge[], height: number, width: number} {
   const g = new dagre.graphlib.Graph()

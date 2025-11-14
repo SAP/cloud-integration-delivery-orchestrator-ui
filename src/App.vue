@@ -2,7 +2,7 @@
 import { defineComponent } from 'vue'
 import { IosArrowBack } from '@vicons/ionicons4'
 import MessageItem from '@/components/MessageComp.vue'
-import { UserInfo } from './service/api';
+import { CurrentUser } from './service/api';
 export default defineComponent({
   components: {
     IosArrowBack,
@@ -28,7 +28,7 @@ export default defineComponent({
   async created() {
     // {"firstname":"Doug","lastname":"Liu","email":"doug.liu@sap.com","name":"doug.liu@sap.com","displayName":"Doug Liu (doug.liu@sap.com)"
     // "scopes":["Devops!t14446.AppTestAutoCfgFValORules","Devops!t14446.TO_Write","Devops!t14446.SendEDIFACT","Devops!t14446.AppEDIEditorAHBVarGenEF"]}
-    this.userInfo = await UserInfo()
+    this.userInfo = await CurrentUser()
   },
   computed: {
     canBack() {

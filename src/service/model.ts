@@ -284,3 +284,13 @@ export interface DeliverOpRequest {
   opIDs: number[]
   targetTenant: number // target tenant ID
 }
+export interface UserInfo {
+  id: string
+  userName: string
+  email: string
+  groups: {
+    value: string
+    display: string
+    type: string
+  }[]
+}
