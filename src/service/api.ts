@@ -1,120 +1,20 @@
 import axios from 'axios'
 import http from './http'
-import { defineStore } from 'pinia'
-import type { ApiEndpoint, Artifact, ArtifactTenantOperation, ArtifactVersionHistoryItem, CpiTenant, CpiTenantNodeData, DeliverOpRequest, DeliveryRequest, DeliveryRule, Job, NodeTransportRequest, Package, RuntimeArtifact, Step, TransportGroup, TransportNode, TransportPlan, TransportRoute, UserInfo } from './model'
+import type { ApiEndpoint, Artifact, ArtifactTenantOperation, ArtifactVersionHistoryItem, CpiTenant, CpiTenantNodeData, DeliverOpRequest, DeliveryRequest, DeliveryRule, NodeTransportRequest, Package, RuntimeArtifact, TransportGroup, TransportNode, TransportRoute, UserInfo } from './model'
 import type { AggregateStatus, DeployState, ImportState, RequestState } from './statuses'
-// validate if a step can be modified
-export const validate = (step: Step) => {
-  if (
-    step.Status === 'Running' ||
-    step.Status === 'Success' ||
-    step.Status === 'Error'
-  ) {
-    window.$message.warning(`Do not modify step with status ${step.Status}`)
-    return false
-  }
-  return true
-}
 
 export const CurrentUser = async () => {
   const { data } = await axios.get('/user-api/currentUser')
   return data
 }
-// returns Job instance
-export const FetchJob = (jobId: number | string) => {
-  return http.get(`/api/v1/job/${jobId}`) as Promise<Job>
-}
-
-// type: 'Import'|'Deploy'|'Undeploy'
-export const GetJobs = (type: string) => {
-  return http.get('/api/v1/job', {
-    params: { type: type }
-  }) as Promise<Job[]>
-}
 
 export const GetJobCounts = () => {
   return http.get('/api/v1/count') as Promise<{ [key: string]: number }[]>
-}
-export const SaveJob = (job: Job) => http.put(`/api/v1/job`, job)
-
-export const ExecuteJob = (job: Job) => {
-  return http.post(`/api/v1/job/${job.ID}`)
-}
-
-export const DeleteJob = (job: Job) => {
-  return http.delete(`/api/v1/job/${job.ID}`)
-}
-
-export const NewJob = (job: Job) => {
-  return http.post('/api/v1/job', job) as Promise<Job>
-}
-
-export const CopyJob = (job: Job) => {
-  return http.post('/api/v1/job/copy/'+job.ID) as Promise<Job>
-}
-
-// transport group API
-export const GetTransportGroups = () => {
-  return http.get('/api/v1/transportGroup') as Promise<TransportGroup[]>
-}
-
-export const CreateTransportGroup = (group: TransportGroup) => {
-  return http.post('/api/v1/transportGroup', group) as Promise<TransportGroup>
-}
-
-export const DeleteTransportGroup = (groupId: number) => {
-  return http.delete('/api/v1/transportGroup', {
-    params: { id: groupId }
-  })
-}
-
-// transport plan API
-export const GetTransportPlan = async (planId: number) => {
-  return http.get(`/api/v1/transportplan/${planId}`) as Promise<TransportPlan>
-}
-
-export const GetTransportPlans = () => {
-  return http.get('/api/v1/transportplan') as Promise<TransportPlan[]>
-}
-
-export const SaveTransportPlan = (plan: TransportPlan) => {
-  return http.post(`/api/v1/transportplan`, plan)
-}
-// no need to use async here. This function directly returns a premise, and the promise result is not used inner function.
-export const DeleteTransportPlan = (planId: number) => {
-  return http.delete(`/api/v1/transportplan/${planId}`)
-}
-
-export const ParseTransportPlan = (yaml: string, transportGroupId: number, transportPlanId: number, transportGroupName: string) => {
-  return http.post('/api/v1/parse', 
-    {
-      transportGroupId: transportGroupId,
-      transportPlanId: transportPlanId,
-      yamlContent: yaml,
-      transportGroupName: transportGroupName
-    }
-  ) as Promise<TransportPlan>
-}
-
-export const GenImportJob = (planId: number) => {
-  return http.post(`/api/v1/transportplan/generate/import?transportPlanId=${planId}`)
-}
-
-export const GenDeployJob = (planId: number) => {
-  return http.post(`/api/v1/transportplan/generate/deploy?transportPlanId=${planId}`)
-}
-
-
-export const DeleteStep = (stepId: number, type: string) => {
-  return http.delete(`/api/v1/step/`, {
-    params: { id: stepId, type: type }
-  })
 }
 
 export const GetCPIApiEndpoints = () => {
   return http.get('/api/v1/destinations') as Promise<ApiEndpoint[]>
 }
-
 
 export const GetTransportNodes = () => {
   return http.get('/api/v1/tms/nodes') as Promise<TransportNode[]>
