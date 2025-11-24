@@ -39,11 +39,12 @@ export interface DeliveryRequest {
   Name:           string;
   Description:    string;
   JiraLink:       string;
-  AggregateStatus:         AggregateStatus;  // overall status
-  ArtifactTenantOperations:      ArtifactTenantOperation[];
+  AggregateStatus: AggregateStatus;  // overall status
+  ArtifactTenantOperations:ArtifactTenantOperation[];
   SourceTenant:   CpiTenant;   // mandatory
   DeliveryRule:   DeliveryRule;
-  ApprovedBy:     string;
+  Approvers:      string[]; // user_ids
+  ApprovedBy:     string; // 
   ApprovedAt:     string;
   CreatedBy:      string;
   UpdatedBy:      string;

@@ -308,10 +308,12 @@
                 <n-auto-complete
                   :options="approverOptions"
                   :loading="searchApproverLoading"
-                  @update:value="handleSearchArrover"
-                  @select="handleSelectApprover"
+                  :value="deliveryRequest.ApprovedBy"
+                  @update:value="(v:string) => { deliveryRequest.ApprovedBy = v ;handleSearchArrover(v)}"
+                  @select="(v: UserInfo) => deliveryRequest.ApprovedBy = v.userName"
                   clearable
                   />
+                <n-button @click="handleRequestApprove">Send</n-button>
               </n-card>
 
             </n-step>
@@ -345,6 +347,8 @@ import {
   InsertOps,
   UpdateOp,
   UaaUser,
+  RequestApprove,
+  Approve,
 } from '@/service/api'
 import { toLocalTime } from '@/service/consts'
 import { Edit16Regular, Delete28Regular, Info16Regular } from '@vicons/fluent'
@@ -356,7 +360,6 @@ import type { DeliveryRequest, CpiTenant, Package, Artifact, ArtifactVersionHist
 import DeliveryFlowView from './DeliveryFlowView.vue'
 import CpiTransportFlowView from './CpiTransportFlowView.vue'
 import ArtifactOpTag from '@/components/ArtifactOpTag.vue'
-import { options } from 'node_modules/axios/index.cjs'
 export default {
   name: 'TransportPlanView',
   components: {
@@ -416,9 +419,17 @@ export default {
         this.searchApproverLoading = false
       }, 1000)
     },
-    handleSelectApprover(value: UserInfo) {
-      console.log('selected approver:', value)
-      this.deliveryRequest.ApprovedBy = value.userName
+    async handleRequestApprove() {
+      if (!this.deliveryRequest.Approvers || !this.deliveryRequest.Approvers.length) {
+        window.$message?.warning?.('Please select an approver before sending approval request.')
+        return
+      }
+      RequestApprove(this.deliveryRequest.ID, this.deliveryRequest.Approvers, '')
+      window.$message?.success?.(`Approval request sent to ${this.deliveryRequest.Approvers.map(a => a).join(', ')}`)
+    },
+    async handleApprove() {
+      await Approve(this.deliveryRequest.ID, '')
+      window.$message?.success?.('Delivery Request approved.')
     },
     handleCurrent(current: number) {
       this.current = current

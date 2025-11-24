@@ -289,6 +289,18 @@ export const UaaUser = (query: string) => {
   return http.get(`/api/v1/uaa/search/${query}`) as Promise<UserInfo[]>
 }
 
+// approve delivery request
+export const RequestApprove = (drID: number, approvers: string[], comment: string|'') => {
+  return http.post(`/api/v1/deliveryRequest/requestApproval`, 
+    {approvers: approvers, deliveryRequestID: drID, comment: comment})
+}
+
+export const Approve = (drID: number, comment: string | []) => {
+  return http.post('/api/v1/deliveryRequest/approve', 
+    {deliveryRequestID: drID, comment: comment})
+
+}
+
 // Cpi tenant operations mapping
 export const TenantOps = (ops: ArtifactTenantOperation[]) => {
   const tenantToOps: {[key: number] : {[key: string]: ArtifactTenantOperation}} = {}  // cpi tenant ID - map[trNumber]ArtifactTenantOperation
