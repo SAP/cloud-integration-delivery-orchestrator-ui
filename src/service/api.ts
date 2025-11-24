@@ -184,9 +184,13 @@ export const UpdateOp = (drID: number, ops: ArtifactTenantOperation[]) => {
 export const SyncStatus = (drID: number) => {
   return http.post(`/api/v1/deliveryRequest/syncState/${drID}`)
 }
-
-export const UaaUser = (query: string) => {
+// UAA user search by email
+export const UaaEmailSearch = (query: string) => {
   return http.get(`/api/v1/uaa/search/${query}`) as Promise<UserInfo[]>
+}
+
+export const UaaUserInfo = (userId: string) => {
+  return http.get(`/api/v1/uaa/id/${userId}`) as Promise<UserInfo>
 }
 
 // approve delivery request

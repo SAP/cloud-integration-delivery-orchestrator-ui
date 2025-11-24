@@ -308,11 +308,12 @@
                 <n-auto-complete
                   :options="approverOptions"
                   :loading="searchApproverLoading"
-                  :value="deliveryRequest.ApprovedBy"
-                  @update:value="(v:string) => { deliveryRequest.ApprovedBy = v ;handleSearchArrover(v)}"
-                  @select="(v: UserInfo) => deliveryRequest.ApprovedBy = v.userName"
+                  :value="searchApprover"
+                  @update:value="(v:string) => { searchApprover = v; handleSearchArrover(v)}"
+                  @select="(v: UserInfo) => { handleSelectApprover(v) }"
                   clearable
                   />
+                  Approvers: <n-text v-for="(a, _) in deliveryRequest.Approvers">{{ a }}</n-text>
                 <n-button @click="handleRequestApprove">Send</n-button>
               </n-card>
 
@@ -346,7 +347,7 @@ import {
   DeleteOps,
   InsertOps,
   UpdateOp,
-  UaaUser,
+  UaaEmailSearch,
   RequestApprove,
   Approve,
 } from '@/service/api'
@@ -402,9 +403,12 @@ export default {
       showFlowModal: false,
       deleteOps: [] as ArtifactTenantOperation[], // indexes of operations to be deleted
       addOps: [] as ArtifactTenantOperation[],
+      // handle approvers
       searchApproverLoading: false,
       approverOptions: [] as { label: string; value: UserInfo }[],
       searchTimer: null as number | null,
+      searchApprover: '',
+      uaaUsers: {} as { [key: string]: UserInfo }, // cache of uaa user info
     }
   },
   methods: {
@@ -414,10 +418,15 @@ export default {
       this.searchTimer && (clearTimeout(this.searchTimer), this.searchTimer = null)
       this.searchTimer = setTimeout(async () => {
         this.searchApproverLoading = true
-        const approvers = await UaaUser(query)
-        this.approverOptions = approvers.map(a => ({ label: `${a.email}(${a.userName})`, value: a }))
+        const options = await UaaEmailSearch(query)
+        this.approverOptions = options.map(a => ({ label: `${a.email}(${a.userName})`, value: a }))
         this.searchApproverLoading = false
       }, 1000)
+    },
+    handleSelectApprover(user: UserInfo) {
+      if (!this.deliveryRequest.Approvers) this.deliveryRequest.Approvers = []
+      if (this.deliveryRequest.Approvers.includes(user.id)) return
+      this.deliveryRequest.Approvers.push(user.id)
     },
     async handleRequestApprove() {
       if (!this.deliveryRequest.Approvers || !this.deliveryRequest.Approvers.length) {
@@ -575,7 +584,6 @@ export default {
 
         const added = newArtis.filter(a => !oldArtis.find(o => o.TechID === a.TechID && o.Version === a.Version))
         const removed = oldArtis.filter(a => !newArtis.find(n => n.TechID === a.TechID && n.Version === a.Version))
-
 
         const removeIdx = removed
           .filter(a => {
