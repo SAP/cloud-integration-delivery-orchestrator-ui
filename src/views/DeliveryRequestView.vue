@@ -313,7 +313,10 @@
                   @select="(v: UserInfo) => { handleSelectApprover(v) }"
                   clearable
                   />
-                  Approvers: <n-text v-for="(a, _) in deliveryRequest.Approvers">{{ a }}</n-text>
+                  Approvers: 
+                  <n-text v-for="(a, _) in deliveryRequest.Approvers">
+                    {{ uaaUsers[a] ?? (uaaUsers[a] = uaaUserInfo(a), '') }}
+                  </n-text>
                 <n-button @click="handleRequestApprove">Send</n-button>
               </n-card>
 
@@ -350,6 +353,7 @@ import {
   UaaEmailSearch,
   RequestApprove,
   Approve,
+  UaaUserInfo,
 } from '@/service/api'
 import { toLocalTime } from '@/service/consts'
 import { Edit16Regular, Delete28Regular, Info16Regular } from '@vicons/fluent'
@@ -408,10 +412,16 @@ export default {
       approverOptions: [] as { label: string; value: UserInfo }[],
       searchTimer: null as number | null,
       searchApprover: '',
-      uaaUsers: {} as { [key: string]: UserInfo }, // cache of uaa user info
+      uaaUsers: {} as { [key: string]: UserInfo | Promise<UserInfo> }, // userId - userEmail
     }
   },
   methods: {
+    async uaaUserInfo(userId: string) {
+      if (this.uaaUsers[userId]) return this.uaaUsers[userId]
+      const user = await UaaUserInfo(userId)
+      this.uaaUsers[userId] = user
+      return this.uaaUsers[userId]
+    },
     handleSearchArrover(query: string) {
       this.approverOptions = []
       if (!query || !query.trim()) return
@@ -614,6 +624,7 @@ export default {
       },
       deep: true,
     }
+  
   },
   computed: {
     allOps(): ArtifactTenantOperation[] { //will not change unless refresh
@@ -630,7 +641,7 @@ export default {
     },
     tenantToOps(): { [key: number]: { [key: string]: ArtifactTenantOperation } } { // only used in delivert flow view
       return TenantOps(this.allOps) || {} // cpi tenant ID - map[trNumber]ArtifactTenantOperation
-    },
+    }
   },
   async created() {
     await this.refresh()
