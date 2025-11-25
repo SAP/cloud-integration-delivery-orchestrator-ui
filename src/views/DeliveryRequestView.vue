@@ -305,19 +305,26 @@
             <n-step>
               <template #title> Approve </template>
               <n-card hoverable size="medium">
-                <n-auto-complete
-                  :options="approverOptions"
-                  :loading="searchApproverLoading"
-                  :value="searchApprover"
-                  @update:value="(v:string) => { searchApprover = v; handleSearchArrover(v)}"
-                  @select="(v: UserInfo) => { handleSelectApprover(v) }"
-                  clearable
-                  />
-                  Approvers: 
-                  <n-text v-for="(a, _) in deliveryRequest.Approvers">
-                    {{ uaaUsers[a] ?? (uaaUsers[a] = uaaUserInfo(a), '') }}
-                  </n-text>
-                <n-button @click="handleRequestApprove">Send</n-button>
+                <n-flex vertical>
+                  <n-auto-complete
+                    :options="approverOptions"
+                    :loading="searchApproverLoading"
+                    :value="searchApprover"
+                    @update:value="(v:string) => { searchApprover = v; handleSearchArrover(v)}"
+                    @select="(v: UserInfo) => { handleSelectApprover(v) }"
+                    clearable
+                    />
+                  Approvers:
+                  <n-flex>
+                    <n-text v-for="(a, _) in deliveryRequest.Approvers">
+                      {{ uaaUsers[a]?.email ?? (uaaUserInfo(a), '') }}
+                    </n-text>
+                  </n-flex>
+
+                  <n-button @click="handleRequestApprove">Send</n-button>
+                </n-flex>
+
+
               </n-card>
 
             </n-step>
@@ -412,15 +419,13 @@ export default {
       approverOptions: [] as { label: string; value: UserInfo }[],
       searchTimer: null as number | null,
       searchApprover: '',
-      uaaUsers: {} as { [key: string]: UserInfo | Promise<UserInfo> }, // userId - userEmail
+      uaaUsers: {} as { [key: string]: UserInfo }, // userId - userEmail
     }
   },
   methods: {
     async uaaUserInfo(userId: string) {
       if (this.uaaUsers[userId]) return this.uaaUsers[userId]
-      const user = await UaaUserInfo(userId)
-      this.uaaUsers[userId] = user
-      return this.uaaUsers[userId]
+      return this.uaaUsers[userId] = await UaaUserInfo(userId)
     },
     handleSearchArrover(query: string) {
       this.approverOptions = []
@@ -431,7 +436,7 @@ export default {
         const options = await UaaEmailSearch(query)
         this.approverOptions = options.map(a => ({ label: `${a.email}(${a.userName})`, value: a }))
         this.searchApproverLoading = false
-      }, 1000)
+      }, 800)
     },
     handleSelectApprover(user: UserInfo) {
       if (!this.deliveryRequest.Approvers) this.deliveryRequest.Approvers = []
