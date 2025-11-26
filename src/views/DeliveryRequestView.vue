@@ -313,15 +313,18 @@
                     @update:value="(v:string) => { searchApprover = v; handleSearchArrover(v)}"
                     @select="(v: UserInfo) => { handleSelectApprover(v) }"
                     clearable
+                    clear-after-select
                     />
-                  Approvers:
                   <n-flex>
-                    <n-text v-for="(a, _) in deliveryRequest.Approvers">
-                      {{ uaaUsers[a]?.email ?? (uaaUserInfo(a), '') }}
-                    </n-text>
+                    Approvers:
+                    <n-tag v-for="(user_id, _) in deliveryRequest.Approvers" closable @close="handleUnselectApprover(user_id)">
+                      {{ uaaUsers[user_id]?.email ?? (uaaUserInfo(user_id), '') }}
+                    </n-tag>
+                    <n-divider vertical />
+                    <n-button @click="handleRequestApprove">Send</n-button>
                   </n-flex>
+                  <n-button>Approve</n-button>
 
-                  <n-button @click="handleRequestApprove">Send</n-button>
                 </n-flex>
 
 
@@ -423,6 +426,11 @@ export default {
     }
   },
   methods: {
+    handleUnselectApprover(user_id: string) {
+        if (!this.deliveryRequest.Approvers) return
+        const idx = this.deliveryRequest.Approvers.indexOf(user_id)
+        if (idx > -1) this.deliveryRequest.Approvers.splice(idx, 1)
+    },
     async uaaUserInfo(userId: string) {
       if (this.uaaUsers[userId]) return this.uaaUsers[userId]
       return this.uaaUsers[userId] = await UaaUserInfo(userId)
