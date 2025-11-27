@@ -174,11 +174,11 @@ export const DeleteOps = (opIDs: number[]) => {
   return http.post(`/api/v1/deliveryRequest/deleteOps`, {opIDs: opIDs})
 }
 
-export const InsertOps = (drID: number, ops: ArtifactTenantOperation[]) => {
-  if (ops.length === 0) return
+export const InsertOps = (drID: number, ops: ArtifactTenantOperation[]): Promise<ArtifactTenantOperation[]> => {
+  if (ops.length === 0) []
   return http.post(`/api/v1/deliveryRequest/insertOps`, {ops: ops, deliveryRequestID: drID})
 }
-export const UpdateOp = (drID: number, ops: ArtifactTenantOperation[]) => {
+export const UpdateOps = (drID: number, ops: ArtifactTenantOperation[]): Promise<ArtifactTenantOperation[]> => {
   return http.put(`/api/v1/deliveryRequest/updateOps`, {ops: ops, deliveryRequestID: drID})
 }
 export const SyncStatus = (drID: number) => {

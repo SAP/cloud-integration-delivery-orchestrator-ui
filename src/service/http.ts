@@ -34,7 +34,7 @@ service.interceptors.response.use(
         duration: 1000*30
       }
     )
-    return Promise.reject(error.response.data.msg)
+    return Promise.reject(content)
   }
 )
 

@@ -6,7 +6,7 @@
     <CpiTransportFlowView :delivery-request="deliveryRequest" :cpi-tenants="cpiTenants" :tenant-to-ops="tenantToOps" />
   </n-modal>
   <!-- artifact details modal -->
-  <n-modal v-model:show="showArtifactDetails" preset="card" title="Artifact Details" 
+  <n-modal v-model:show="showArtifactDetails" preset="card" :title="`Artifact Details #${artifactOpDetial.ID}`" 
     style="max-width:560px"
     size="small" 
     :closable="true" 
@@ -37,8 +37,10 @@
         </div>
         <!-- Version history -->
         <n-flex vertical>
-          <n-text depth="3" strong>Version History</n-text>
-          <n-button type="info" ghost v-if="!loadingArtifactHistory && !artifactVersionHistory.length" @click="loadVersionHistory">Load</n-button>
+          <n-flex>
+            <n-text depth="3" strong>Version History</n-text>
+            <n-button type="info" strong tertiary v-if="!loadingArtifactHistory && !artifactVersionHistory.length" @click="loadVersionHistory">Load</n-button>
+          </n-flex>
           <div v-if="loadingArtifactHistory">
             <n-skeleton text style="width: 60%; margin-top:8px" :repeat="3" />
           </div>
@@ -64,23 +66,27 @@
             </div>
           </n-flex>
           <!-- Transport Request Number -->
-          <n-flex vertical>
-            <n-text depth="3" strong>Transport Request Number</n-text>
-            <n-text>
-              {{ artifactOpDetial.TransportRequestNumber }}
-              <n-input
-                v-show="editingTr"
-                v-model:value="artifactOpDetial.TransportRequestNumber"
-                size="small"
-                style="width:140px; margin:0 6px"
-                placeholder="TR number"
-                @keyup.enter="saveTr(artifactOpDetial)"
-              />
-              <n-button tertiary round type="info" v-if="!editingTr" @click="editingTr = true" aria-label="Edit TR">edit</n-button>
-              <n-button tertiary round type="info" v-else @click="saveTr(artifactOpDetial)">save</n-button>
-              <n-divider vertical/>
-              <n-button tertiary round type="info">auto generate</n-button>
+          <n-text depth="3" strong>Transport Request Number</n-text>
+          <n-flex>
+            <n-text v-if="!isEditingTr">
+              {{ editingTrNumber || '-' }}
             </n-text>
+            <n-input
+              v-show="isEditingTr"
+              v-model:value="editingTrNumber"
+              size="small"
+              style="width:90px"
+              placeholder="TR number"
+              @keyup.enter="saveTr(artifactOpDetial)"
+            />
+            <n-button tertiary round type="info" v-show="!isEditingTr" @click="isEditingTr = true" aria-label="Edit TR">edit</n-button>
+            <n-button tertiary round type="info" :loading="savingTrLoading" v-show="isEditingTr" @click="saveTr(artifactOpDetial)">
+              save
+            </n-button>
+            <n-button tertiary round type="info" v-show="isEditingTr" @click="{isEditingTr = false; editingTrNumber = artifactOpDetial.TransportRequestNumber}">
+              cancel
+            </n-button>
+            <n-button tertiary round type="info">auto generate</n-button>
           </n-flex>
 
         </n-flex>
@@ -105,7 +111,7 @@
         <n-gi>
           <n-flex vertical>
             <n-input class="ui5-title-root" v-model:value="deliveryRequest.Name" placeholder="Delivery Request Name"
-              clearable autofocus v-if="editing" />
+              clearable autofocus v-if="isEditingDr" />
             <span class="ui5-title-root" v-else-if="deliveryRequest.Name">
               <!-- <n-text depth="3"> Delivery Request Name: </n-text> -->
               {{ deliveryRequest.Name }}
@@ -116,7 +122,7 @@
         <n-gi>
           <!-- plan JIRA link -->
           <n-input v-model:value="deliveryRequest.JiraLink" placeholder="JIRA Link" size="large" clearable
-            v-if="editing" />
+            v-if="isEditingDr" />
           <n-text style="font-weight: bold" v-else-if="deliveryRequest.JiraLink">
             {{ deliveryRequest.JiraLink }}
           </n-text>
@@ -143,14 +149,17 @@
         <n-gi>
           <n-divider vertical />
           <!-- Edit button -->
-          <IconBtn tip="Edit" :handler="onEdit" v-if="!editing">
+          <IconBtn tip="Edit" :handler="onEditDr" v-if="!isEditingDr">
             <edit16-regular />
           </IconBtn>
-          <IconBtn tip="Cancel" :handler="refresh" v-if="editing" color="#df423a">
+          <IconBtn tip="Cancel" :handler="refresh" v-if="isEditingDr" color="#df423a">
             <CancelOutlined />
-          </IconBtn>
+          </IconBtn>  
+          <n-button type="primary" @click="updateDr" v-if="isEditingDr">
+            Save
+          </n-button>
           <!-- Delete button -->
-          <IconBtn tip="Delete" :handler="deleteDr" v-if="!editing" color="#df423a">
+          <IconBtn tip="Delete" :handler="deleteDr" v-if="!isEditingDr" color="#df423a">
             <Delete28Regular />
           </IconBtn>
 
@@ -287,14 +296,17 @@
                         <n-flex>
                           <ArtifactOpTag v-for="(op, i) in selArtifactOps" :i="i" :art-op="op" :stage-type="stateType(op)" @open-artifact-details="openArtifactDetails"/>
                         </n-flex>
-                        <n-flex>
-                          <n-text>To be Deleted: </n-text>
-                          <ArtifactOpTag v-for="(op, i) in deleteOps" :i="i" :art-op="op" :stage-type="stateType(op)"/>
+                        <!-- artifacts to be deleted -->
+                        <n-flex vertical>
+                          <n-text type="error" depth="3" strong v-if="deleteOps && deleteOps.length > 0">To be Deleted: </n-text>
+                          <n-flex>
+                            <ArtifactOpTag v-for="(op, i) in deleteOps" :i="i" :art-op="op" :stage-type="stateType(op)" @open-artifact-details="openArtifactDetails"/>
+                          </n-flex>
                         </n-flex>
                       </n-flex>
                     </n-flex>
                   </n-flex>
-                  <n-button type="primary" secondary @click="updateDr">Save</n-button>
+                  <n-button type="primary" secondary @click="updateDr">Update</n-button>
                   <n-button size="small" tertiary @click="showFlowModal = true">Show Delivery Flow</n-button>
                   <n-button size="small" tertiary @click="onSyncDrStatus">Sync Status</n-button>
 
@@ -359,7 +371,7 @@ import {
   SyncStatus,
   DeleteOps,
   InsertOps,
-  UpdateOp,
+  UpdateOps,
   UaaEmailSearch,
   RequestApprove,
   Approve,
@@ -395,10 +407,10 @@ export default {
   data() {
     return {
       deliveryRequest: {} as DeliveryRequest,
-      editing: false,
+      isEditingDr: false,
       current: 0,
       toLocalTime,
-      editingTr: false,
+      isEditingTr: false,
       cpiTenants: [] as CpiTenant[],
       tenantPkgs: [] as Package[],
       selectedPackages: [] as Package[],
@@ -413,6 +425,8 @@ export default {
       artifactDetail: {} as Artifact,
       artifactOpDetial: {} as ArtifactTenantOperation,
       artifactVersionHistory: [] as ArtifactVersionHistoryItem[],
+      editingTrNumber: '' as string, // tr number being edited, will assign to artifactOpDetial when saved
+      savingTrLoading: false,
       loadingArtifactHistory: false,
       showFlowModal: false,
       deleteOps: [] as ArtifactTenantOperation[], // indexes of operations to be deleted
@@ -466,11 +480,11 @@ export default {
     handleCurrent(current: number) {
       this.current = current
     },
-    onEdit() {
-      this.editing = true
+    onEditDr() {
+      this.isEditingDr = true
     },
     async refresh() {
-      this.editing = false
+      this.isEditingDr = false
       this.deliveryRequest = await GetDeliveryRequest(this.planId)
 
       // load packages in this cpi tenant
@@ -510,16 +524,32 @@ export default {
           return
         }
       }
-      const update = UpdateDeliveryRequest(this.deliveryRequest)
+      const update = await UpdateDeliveryRequest(this.deliveryRequest)
       const delOps = DeleteOps(this.deleteOps.map(op => op.ID))
       const insertOps = InsertOps(this.deliveryRequest.ID, this.addOps)
-      await Promise.all([update, delOps, insertOps])
+      await Promise.all([delOps, insertOps])
       // this.deleteOps = []
       // this.addOps = []
       await this.refresh()
     },
     async saveTr(op: ArtifactTenantOperation) {
-      await UpdateOp(this.deliveryRequest.ID, [op])
+      this.savingTrLoading = true
+      const originalTrNumber = op.TransportRequestNumber
+      op.TransportRequestNumber = this.editingTrNumber.trim()
+      try {
+        if (!op.ID) {
+          const v = await InsertOps(this.deliveryRequest.ID, [op]) // try insert first
+          Object.assign(op, v[0]) // update op with returned value
+        }else {
+          const v = await UpdateOps(this.deliveryRequest.ID, [op])
+          Object.assign(op, v[0]) // update op with returned value
+        }
+      } catch (e) {
+        op.TransportRequestNumber = originalTrNumber // revert
+      } finally {
+        this.savingTrLoading = false
+      }
+      
     },
     async loadPackageArtifacts(pkgId: string) {
       if (this.packageArtifacts[pkgId]) return // already loaded
@@ -570,6 +600,8 @@ export default {
       this.showArtifactDetails = true
       this.artifactVersionHistory = []
       this.artifactOpDetial = op || {} as ArtifactTenantOperation
+      this.editingTrNumber = this.artifactOpDetial.TransportRequestNumber
+      this.isEditingTr = false
     },
     async onSyncDrStatus() {
       if (!this.deliveryRequest.ID) return
