@@ -189,142 +189,140 @@
             <n-step>
               <template #title> Create Delivery Plan </template>
               <n-card hoverable size="medium">
-                <n-flex vertical style="gap:12px">
-                  <n-flex vertical v-if="deliveryRequest.SourceTenant" style="gap:8px">
-                    <!-- cpi tenants selection -->
-                    <n-divider dashed title-placement="center"
-                      style="margin:0 0 10px 0; font-weight:600; letter-spacing:.5px">
-                      Source Cpi Tenant
-                    </n-divider>
+                <n-flex vertical v-if="deliveryRequest.SourceTenant" style="gap:8px">
+                  <!-- cpi tenants selection -->
+                  <n-divider dashed title-placement="center"
+                    style="margin:0 0 10px 0; font-weight:600; letter-spacing:.5px">
+                    Source Cpi Tenant
+                  </n-divider>
+                  <n-text depth="3" strong>
+                    Tenant: #{{ deliveryRequest.SourceTenant.ID }}: {{ deliveryRequest.SourceTenant.Name }}
+                  </n-text>
+                  <div v-if="deliveryRequest.SourceTenant.TransportNodeID">
                     <n-text depth="3" strong>
-                      Tenant: #{{ deliveryRequest.SourceTenant.ID }}: {{ deliveryRequest.SourceTenant.Name }}
+                      Transport Node: #{{ deliveryRequest.SourceTenant.TransportNodeID }}
+                      {{ deliveryRequest.SourceTenant.TransportNodeName }} -
+                      {{ deliveryRequest.SourceTenant.TransportNodeDescription}}
                     </n-text>
-                    <div v-if="deliveryRequest.SourceTenant.TransportNodeID">
-                      <n-text depth="3" strong>
-                        Transport Node: #{{ deliveryRequest.SourceTenant.TransportNodeID }}
-                        {{ deliveryRequest.SourceTenant.TransportNodeName }} -
-                        {{ deliveryRequest.SourceTenant.TransportNodeDescription
-                        }}
-                      </n-text>
+                  </div>
+                  <div v-if="deliveryRequest.SourceTenant.CpiEndpoint">
+                    <n-text depth="3" strong>
+                      CPI Endpoint: {{ deliveryRequest.SourceTenant.CpiEndpoint.name }} - {{deliveryRequest.SourceTenant.CpiEndpoint.url }}
+                    </n-text>
+                  </div>
+                  <!-- packages & artifacts section -->
+                  <n-divider dashed title-placement="center"
+                    style="margin:0 0 10px 0; font-weight:600; letter-spacing:.5px">
+                    Packages({{ selectedPackages.length }})
+                  </n-divider>
+                  <div style="margin-top:6px">
+                    <!-- Loading Skeleton -->
+                    <div v-if="packagesLoading" style="max-width:420px">
+                      <n-skeleton text style="width: 60%" :repeat="1" />
+                      <n-skeleton text style="width: 80%; margin-top:8px" :repeat="1" />
+                      <n-skeleton text style="width: 40%; margin-top:8px" :repeat="1" />
                     </div>
-                    <div v-if="deliveryRequest.SourceTenant.CpiEndpoint">
-                      <n-text depth="3" strong>CPI Endpoint: {{ deliveryRequest.SourceTenant.CpiEndpoint.name }} - {{
-                        deliveryRequest.SourceTenant.CpiEndpoint.url }}</n-text>
-                    </div>
-                    <!-- packages & artifacts section -->
-                    <n-divider dashed title-placement="center"
-                      style="margin:0 0 10px 0; font-weight:600; letter-spacing:.5px">
-                      Packages({{ selectedPackages.length }})
-                    </n-divider>
-                    <div style="margin-top:6px">
-                      <!-- Loading Skeleton -->
-                      <div v-if="packagesLoading" style="max-width:420px">
-                        <n-skeleton text style="width: 60%" :repeat="1" />
-                        <n-skeleton text style="width: 80%; margin-top:8px" :repeat="1" />
-                        <n-skeleton text style="width: 40%; margin-top:8px" :repeat="1" />
+                    <!-- Packages Select -->
+                    <div v-else>
+                      <n-select v-model:value="selectedPackages" :options="packageOptions" multiple clearable
+                        filterable placeholder="Select packages from this tenant" style="width: 420px"
+                        :disabled="!packageOptions.length" />
+                      <div v-if="!packageOptions.length" style="margin-top:6px">
+                        <n-text depth="3" type="warning">No packages found for this tenant.</n-text>
                       </div>
-                      <!-- Packages Select -->
-                      <div v-else>
-                        <n-select v-model:value="selectedPackages" :options="packageOptions" multiple clearable
-                          filterable placeholder="Select packages from this tenant" style="width: 420px"
-                          :disabled="!packageOptions.length" />
-                        <div v-if="!packageOptions.length" style="margin-top:6px">
-                          <n-text depth="3" type="warning">No packages found for this tenant.</n-text>
+                    </div>
+                  </div>
+                  <!-- Package & Artifacts Section -->
+                  <div v-if="selectedPackages.length" style="margin-top:16px; width:100%">
+                    <n-text depth="3" strong>Artifacts (select to include):</n-text>
+                    <n-collapse v-model:expanded-names="expandedPackages" style="margin-top:6px">
+                      <!-- Package Lists -->
+                      <n-collapse-item v-for="pkg in selectedPackages" :key="pkg.Id" :name="pkg.Id"
+                        :title="`${pkg.Name} - ${pkg.Version}`">
+                        <div v-if="loadingPackages[pkg.Id]" style="padding:4px 0">
+                          <n-skeleton text style="width:55%" :repeat="1" />
+                          <n-skeleton text style="width:70%; margin-top:6px" :repeat="1" />
+                          <div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:10px">
+                            <n-skeleton v-for="i in 6" :key="'art-skel-' + i" text style="width:92px" />
+                          </div>
                         </div>
-                      </div>
-                    </div>
-                    <!-- Package & Artifacts Section -->
-                    <div v-if="selectedPackages.length" style="margin-top:16px; width:100%">
-                      <n-text depth="3" strong>Artifacts (select to include):</n-text>
-                      <n-collapse v-model:expanded-names="expandedPackages" style="margin-top:6px">
-                        <!-- Package Lists -->
-                        <n-collapse-item v-for="pkg in selectedPackages" :key="pkg.Id" :name="pkg.Id"
-                          :title="`${pkg.Name} - ${pkg.Version}`">
-                          <div v-if="loadingPackages[pkg.Id]" style="padding:4px 0">
-                            <n-skeleton text style="width:55%" :repeat="1" />
-                            <n-skeleton text style="width:70%; margin-top:6px" :repeat="1" />
-                            <div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:10px">
-                              <n-skeleton v-for="i in 6" :key="'art-skel-' + i" text style="width:92px" />
-                            </div>
+                        <div v-else>
+                          <div v-if="(packageArtifacts[pkg.Id] || []).length === 0">
+                            <n-empty description="No artifacts" />
                           </div>
                           <div v-else>
-                            <div v-if="(packageArtifacts[pkg.Id] || []).length === 0">
-                              <n-empty description="No artifacts" />
-                            </div>
-                            <div v-else>
-                              <n-flex>
-                                <n-input v-model:value="artifactSearch[pkg.Id]" size="small"
-                                  placeholder="Filter artifacts (id / version / type)" clearable
-                                  style="max-width:320px; margin-bottom:8px" />
-                                <n-button tertiary size="tiny" @click="selectAllFiltered(pkg.Id)"
-                                  :disabled="!filteredArtifacts(pkg.Id).length">Select All Filtered</n-button>
-                                <n-button tertiary size="tiny" @click="clearSelections(pkg.Id)"
-                                  :disabled="!(selPkgArtifacts[pkg.Id] || []).length">Clear Selected</n-button>
-                                <n-text depth="1" type="info" style="font-size:12px; margin-left:auto">
-                                  Hint: click Info16Regular icon on an artifact tag to view details
-                                </n-text>
-                              </n-flex>
+                            <n-flex>
+                              <n-input v-model:value="artifactSearch[pkg.Id]" size="small"
+                                placeholder="Filter artifacts (id / version / type)" clearable
+                                style="max-width:320px; margin-bottom:8px" />
+                              <n-button tertiary size="tiny" @click="selectAllFiltered(pkg.Id)"
+                                :disabled="!filteredArtifacts(pkg.Id).length">Select All Filtered</n-button>
+                              <n-button tertiary size="tiny" @click="clearSelections(pkg.Id)"
+                                :disabled="!(selPkgArtifacts[pkg.Id] || []).length">Clear Selected</n-button>
+                              <n-text depth="1" type="info" style="font-size:12px; margin-left:auto">
+                                Hint: click Info16Regular icon on an artifact tag to view details
+                              </n-text>
+                            </n-flex>
 
-                              <!-- Artifact list section -->
-                              <n-scrollbar
-                                style="max-height:260px; border:1px solid var(--n-border-color); padding:6px; border-radius:4px">
-                                <div style="display:flex; flex-wrap:wrap; gap:6px">
-                                  <n-tag v-for="a in filteredArtifacts(pkg.Id)"
-                                    :key="pkg.Id + '-' + a.TechID + '@' + a.Version"
-                                    :type="isArtifactSelected(pkg.Id, a) ? 'success' : 'default'" :bordered="false"
-                                    size="medium" @click="toggleArtifact(pkg.Id, a)">
-                                    <span>{{ a.TechID }}@{{ a.Version }}</span>
-                                    <template v-if="isArtifactSelected(pkg.Id, a)">
-                                      <span style="margin-left:2px">✔</span>
+                            <!-- Artifact list section -->
+                            <n-scrollbar
+                              style="max-height:260px; border:1px solid var(--n-border-color); padding:6px; border-radius:4px">
+                              <div style="display:flex; flex-wrap:wrap; gap:6px">
+                                <n-tag v-for="a in filteredArtifacts(pkg.Id)"
+                                  :key="pkg.Id + '-' + a.TechID + '@' + a.Version"
+                                  :type="isArtifactSelected(pkg.Id, a) ? 'success' : 'default'" :bordered="false"
+                                  size="medium" @click="toggleArtifact(pkg.Id, a)">
+                                  <span>{{ a.TechID }}@{{ a.Version }}</span>
+                                  <template v-if="isArtifactSelected(pkg.Id, a)">
+                                    <span style="margin-left:2px">✔</span>
+                                  </template>
+                                  <n-tooltip trigger="hover" placement="top">
+                                    <template #trigger>
+                                      <n-icon size="18" @click.stop="openArtifactDetails(a)">
+                                        <Info16Regular />
+                                      </n-icon>
                                     </template>
-                                    <n-tooltip trigger="hover" placement="top">
-                                      <template #trigger>
-                                        <n-icon size="18" @click.stop="openArtifactDetails(a)">
-                                          <Info16Regular />
-                                        </n-icon>
-                                      </template>
-                                      Show Details
-                                    </n-tooltip>
-                                  </n-tag>
-                                </div>
-                              </n-scrollbar>
-                            </div>
+                                    Show Details
+                                  </n-tooltip>
+                                </n-tag>
+                              </div>
+                            </n-scrollbar>
                           </div>
-                        </n-collapse-item>
-                      </n-collapse>
-                    </div>
-                    <!-- selected Artifacts list -->
-                    <n-flex vertical v-if="selArtifactOps.length || deleteOps.length" style="margin-top:18px">
-                      <n-divider dashed title-placement="center"
-                        style="margin:0 0 10px 0; font-weight:600; letter-spacing:.5px">
-                        Selected Artifacts ({{ selArtifactOps.length }})
-                      </n-divider>
+                        </div>
+                      </n-collapse-item>
+                    </n-collapse>
+                  </div>
+                  <!-- selected Artifacts list -->
+                  <n-flex vertical v-if="selArtifactOps.length || deleteOps.length" style="margin-top:18px">
+                    <n-divider dashed title-placement="center"
+                      style="margin:0 0 10px 0; font-weight:600; letter-spacing:.5px">
+                      Selected Artifacts ({{ selArtifactOps.length }})
+                    </n-divider>
+                    <n-flex vertical>
+                      <!-- old(source) artifacts + draft source artifacts -->
+                      <n-flex>
+                        <ArtifactOpTag v-for="(op, i) in sourceOps" 
+                          :i="i" :art-op="op" :stage-type="stateType(op)" 
+                          @open-artifact-details="openArtifactDetails"/>
+                      </n-flex>
+                      <!-- artifacts to be added -->
                       <n-flex vertical>
-                        <!-- old(source) artifacts + draft source artifacts -->
+                        <n-text type="success" depth="3" strong v-if="addOps && addOps.length > 0">To be Added: </n-text>
                         <n-flex>
-                          <ArtifactOpTag v-for="(op, i) in sourceOps" 
-                            :i="i" :art-op="op" :stage-type="stateType(op)" 
-                            @open-artifact-details="openArtifactDetails"/>
+                          <ArtifactOpTag v-for="(op, i) in addOps" :i="i" :art-op="op" :stage-type="stateType(op)" @open-artifact-details="openArtifactDetails"/>
                         </n-flex>
-                        <!-- artifacts to be added -->
-                        <n-flex vertical>
-                          <n-text type="success" depth="3" strong v-if="addOps && addOps.length > 0">To be Added: </n-text>
-                          <n-flex>
-                            <ArtifactOpTag v-for="(op, i) in addOps" :i="i" :art-op="op" :stage-type="stateType(op)" @open-artifact-details="openArtifactDetails"/>
-                          </n-flex>
-                        </n-flex> 
-                        <!-- artifacts to be deleted -->
-                        <n-flex vertical>
-                          <n-text type="error" depth="3" strong v-if="deleteOps && deleteOps.length > 0">To be Deleted: </n-text>
-                          <n-flex>
-                            <ArtifactOpTag v-for="(op, i) in deleteOps" :i="i" :art-op="op" :stage-type="stateType(op)" @open-artifact-details="openArtifactDetails"/>
-                          </n-flex>
+                      </n-flex> 
+                      <!-- artifacts to be deleted -->
+                      <n-flex vertical>
+                        <n-text type="error" depth="3" strong v-if="deleteOps && deleteOps.length > 0">To be Deleted: </n-text>
+                        <n-flex>
+                          <ArtifactOpTag v-for="(op, i) in deleteOps" :i="i" :art-op="op" :stage-type="stateType(op)" @open-artifact-details="openArtifactDetails"/>
                         </n-flex>
                       </n-flex>
                     </n-flex>
-                    <n-button type="primary" secondary @click="updateDr">Update</n-button>
-
                   </n-flex>
+                  <n-button type="primary" secondary @click="updateDr">Update</n-button>
+
                 </n-flex>
               </n-card>
             </n-step>
@@ -448,7 +446,7 @@ export default {
       artifactVersionHistory: [] as ArtifactVersionHistoryItem[],
       editingTrNumber: '' as string, // tr number being edited, will assign to artifactOpDetial when saved
       checkingTrLoading: false,
-      draftSourceOps: {} as [] as {op: ArtifactTenantOperation, newTr: string, oldTr: string}[], // operations being drafted (source ops only)
+      draftSourceOps: [] as {op: ArtifactTenantOperation, newTr: string, oldTr: string}[], // operations being drafted (source ops only)
       loadingArtifactHistory: false,
       showFlowModal: false,
       deleteOps: [] as ArtifactTenantOperation[], // indexes of operations to be deleted
@@ -651,7 +649,7 @@ export default {
       if (delIndex >= 0) return 'error' // to be deleted
       const addIndex = this.addOps.findIndex(addOp => addOp.ArtifactTechID === op.ArtifactTechID && addOp.ArtifactVersion === op.ArtifactVersion)
       if (addIndex >= 0) return 'success' // to be added
-      const draftIndex = this.draftSourceOps.map(d => d.op).findIndex(draftOp => draftOp.ID === op.ID)
+      const draftIndex = this.draftSourceOps?.findIndex(draftOp => draftOp.op.ID === op.ID)
       if (draftIndex >= 0) return 'warning' // drafted
       if (op.RequestState === 'NOT_REQUESTED') return 'default'
       return 'info'
