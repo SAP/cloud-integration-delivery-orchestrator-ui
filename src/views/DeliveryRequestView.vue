@@ -190,18 +190,15 @@
               <template #title> Create Delivery Plan </template>
               <n-card hoverable size="medium">
                 <n-flex vertical style="gap:12px">
-                  <n-divider dashed title-placement="center"
-                    style="margin:0 0 10px 0; font-weight:600; letter-spacing:.5px">
-                    Source Cpi Tenant
-                  </n-divider>
-
-                  <!-- cpi tenants selection -->
                   <n-flex vertical v-if="deliveryRequest.SourceTenant" style="gap:8px">
-                    <div>
-                      <n-text depth="3" strong>Tenant: #{{ deliveryRequest.SourceTenant.ID }}
-                        {{ deliveryRequest.SourceTenant.Name
-                        }}</n-text>
-                    </div>
+                    <!-- cpi tenants selection -->
+                    <n-divider dashed title-placement="center"
+                      style="margin:0 0 10px 0; font-weight:600; letter-spacing:.5px">
+                      Source Cpi Tenant
+                    </n-divider>
+                    <n-text depth="3" strong>
+                      Tenant: #{{ deliveryRequest.SourceTenant.ID }}: {{ deliveryRequest.SourceTenant.Name }}
+                    </n-text>
                     <div v-if="deliveryRequest.SourceTenant.TransportNodeID">
                       <n-text depth="3" strong>
                         Transport Node: #{{ deliveryRequest.SourceTenant.TransportNodeID }}
@@ -214,6 +211,7 @@
                       <n-text depth="3" strong>CPI Endpoint: {{ deliveryRequest.SourceTenant.CpiEndpoint.name }} - {{
                         deliveryRequest.SourceTenant.CpiEndpoint.url }}</n-text>
                     </div>
+                    <!-- packages & artifacts section -->
                     <n-divider dashed title-placement="center"
                       style="margin:0 0 10px 0; font-weight:600; letter-spacing:.5px">
                       Packages({{ selectedPackages.length }})
@@ -324,11 +322,9 @@
                         </n-flex>
                       </n-flex>
                     </n-flex>
-                  </n-flex>
-                  <n-button type="primary" secondary @click="updateDr">Update</n-button>
-                  <n-button size="small" tertiary @click="showFlowModal = true">Show Delivery Flow</n-button>
-                  <n-button size="small" tertiary @click="onSyncDrStatus">Sync Status</n-button>
+                    <n-button type="primary" secondary @click="updateDr">Update</n-button>
 
+                  </n-flex>
                 </n-flex>
               </n-card>
             </n-step>
@@ -363,7 +359,12 @@
 
             </n-step>
             <n-step>
-              <template #title> Delivery Flow </template>
+              <template #title> 
+                Delivery Flow 
+                <n-button size="small" tertiary @click="onSyncDrStatus">Sync Status</n-button>
+                <n-button size="small" tertiary @click="showFlowModal = true">Show Detail</n-button>
+                
+              </template>
               <n-card hoverable size="medium">
                 <DeliveryFlowView :delivery-request="deliveryRequest" :cpi-tenants="cpiTenants"
                   :tenant-to-ops="tenantToOps" />
