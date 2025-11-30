@@ -189,7 +189,13 @@
             <n-step>
               <template #title> Create Delivery Plan </template>
               <n-card hoverable size="medium">
-                <n-flex vertical v-if="deliveryRequest.SourceTenant" style="gap:8px">
+                <n-flex vertical v-if="!deliveryRequest.SourceTenant">
+                  <n-skeleton text height="20px" style="width: 40%" />
+                  <n-skeleton text height="20px" style="width: 50%" />
+                  <n-skeleton text height="20px" style="width: 60%" />
+                  
+                </n-flex>
+                <n-flex vertical v-else style="gap:8px">
                   <!-- cpi tenants selection -->
                   <n-divider dashed title-placement="center"
                     style="margin:0 0 10px 0; font-weight:600; letter-spacing:.5px">
@@ -239,13 +245,10 @@
                       <!-- Package Lists -->
                       <n-collapse-item v-for="pkg in selectedPackages" :key="pkg.Id" :name="pkg.Id"
                         :title="`${pkg.Name} - ${pkg.Version}`">
-                        <div v-if="loadingPackages[pkg.Id]" style="padding:4px 0">
+                        <n-flex vertical v-if="loadingPackages[pkg.Id]" style="padding:4px 0">
                           <n-skeleton text style="width:55%" :repeat="1" />
                           <n-skeleton text style="width:70%; margin-top:6px" :repeat="1" />
-                          <div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:10px">
-                            <n-skeleton v-for="i in 6" :key="'art-skel-' + i" text style="width:92px" />
-                          </div>
-                        </div>
+                        </n-flex>
                         <div v-else>
                           <div v-if="(packageArtifacts[pkg.Id] || []).length === 0">
                             <n-empty description="No artifacts" />
@@ -335,6 +338,7 @@
                     :options="approverOptions"
                     :loading="searchApproverLoading"
                     :value="searchApprover"
+                    placeholder="Search Approvers"
                     @update:value="(v:string) => { searchApprover = v; handleSearchArrover(v)}"
                     @select="(v: UserInfo) => { handleSelectApprover(v) }"
                     clearable
