@@ -6,12 +6,20 @@
     <CpiTransportFlowView :delivery-request="deliveryRequest" :cpi-tenants="cpiTenants" :tenant-to-ops="tenantToOps" />
   </n-modal>
   <!-- artifact details modal -->
-  <n-modal v-model:show="showArtifactDetails" preset="card" :title="`Artifact Details #${artifactOpDetial.ID}`" 
+  <n-modal v-model:show="showArtifactDetails" preset="card" 
     style="max-width:560px"
     size="small" 
     :closable="true" 
     :close-on-esc="true" 
     :mask-closable="true">
+    <template #header>
+      {{ `Artifact Details #${artifactOpDetial.ID}` }}
+      <n-tag round size="small" type="warning" v-show="draftSourceOps.find(d => d.op.ID === artifactOpDetial.ID)">DRAFT</n-tag>
+      <n-tag round size="small" type="success" 
+        v-show="addOps.find(a => a.ArtifactTechID === artifactOpDetial.ArtifactTechID && a.ArtifactVersion === artifactOpDetial.ArtifactVersion)">
+        NEW
+      </n-tag>
+    </template>
       <n-flex vertical style="gap:12px">
         <div style="display:flex; gap:16px; flex-wrap:wrap">
           <div>
@@ -77,11 +85,12 @@
               size="small"
               style="width:90px"
               placeholder="TR number"
-              @keyup.enter="saveTr(artifactOpDetial)"
+              @keyup.enter="checkTr(artifactOpDetial)"
             />
             <n-button tertiary round type="info" v-show="!isEditingTr" @click="isEditingTr = true" aria-label="Edit TR">edit</n-button>
-            <n-button tertiary round type="info" :loading="savingTrLoading" v-show="isEditingTr" @click="saveTr(artifactOpDetial)">
-              save
+            <n-button tertiary round type="info" v-show="isEditingTr && draftSourceOps.find(d => d.op.ID === artifactOpDetial.ID)" @click="revertTr">revert</n-button>
+            <n-button tertiary round type="info" :loading="checkingTrLoading" v-show="isEditingTr" @click="checkTr(artifactOpDetial)">
+              check
             </n-button>
             <n-button tertiary round type="info" v-show="isEditingTr" @click="{isEditingTr = false; editingTrNumber = artifactOpDetial.TransportRequestNumber}">
               cancel
@@ -293,9 +302,19 @@
                         Selected Artifacts ({{ selArtifactOps.length }})
                       </n-divider>
                       <n-flex vertical>
+                        <!-- old(source) artifacts + draft source artifacts -->
                         <n-flex>
-                          <ArtifactOpTag v-for="(op, i) in selArtifactOps" :i="i" :art-op="op" :stage-type="stateType(op)" @open-artifact-details="openArtifactDetails"/>
+                          <ArtifactOpTag v-for="(op, i) in sourceOps" 
+                            :i="i" :art-op="op" :stage-type="stateType(op)" 
+                            @open-artifact-details="openArtifactDetails"/>
                         </n-flex>
+                        <!-- artifacts to be added -->
+                        <n-flex vertical>
+                          <n-text type="success" depth="3" strong v-if="addOps && addOps.length > 0">To be Added: </n-text>
+                          <n-flex>
+                            <ArtifactOpTag v-for="(op, i) in addOps" :i="i" :art-op="op" :stage-type="stateType(op)" @open-artifact-details="openArtifactDetails"/>
+                          </n-flex>
+                        </n-flex> 
                         <!-- artifacts to be deleted -->
                         <n-flex vertical>
                           <n-text type="error" depth="3" strong v-if="deleteOps && deleteOps.length > 0">To be Deleted: </n-text>
@@ -376,6 +395,7 @@ import {
   RequestApprove,
   Approve,
   UaaUserInfo,
+  CheckTrExistence,
 } from '@/service/api'
 import { toLocalTime } from '@/service/consts'
 import { Edit16Regular, Delete28Regular, Info16Regular } from '@vicons/fluent'
@@ -426,7 +446,8 @@ export default {
       artifactOpDetial: {} as ArtifactTenantOperation,
       artifactVersionHistory: [] as ArtifactVersionHistoryItem[],
       editingTrNumber: '' as string, // tr number being edited, will assign to artifactOpDetial when saved
-      savingTrLoading: false,
+      checkingTrLoading: false,
+      draftSourceOps: {} as [] as {op: ArtifactTenantOperation, newTr: string, oldTr: string}[], // operations being drafted (source ops only)
       loadingArtifactHistory: false,
       showFlowModal: false,
       deleteOps: [] as ArtifactTenantOperation[], // indexes of operations to be deleted
@@ -483,6 +504,14 @@ export default {
     onEditDr() {
       this.isEditingDr = true
     },
+    revertTr() {
+      const draft = this.draftSourceOps.find(d => d.op.ID === this.artifactOpDetial.ID)
+      this.artifactOpDetial.TransportRequestNumber 
+        = this.editingTrNumber 
+        = draft!.oldTr
+      this.draftSourceOps = this.draftSourceOps.filter(d => d.op.ID !== draft!.op.ID)
+      this.isEditingTr = false
+    },
     async refresh() {
       this.isEditingDr = false
       this.deliveryRequest = await GetDeliveryRequest(this.planId)
@@ -507,6 +536,7 @@ export default {
         const pkg = this.tenantPkgs.find(p => p.Id === packageId)
         if (pkg && !this.selectedPackages.find(p => p.Id === pkg.Id)) this.selectedPackages.push(pkg)
       })
+      this.draftSourceOps = []
       this.packagesLoading = false
     },
     async deleteDr() {
@@ -524,32 +554,38 @@ export default {
           return
         }
       }
-      const update = await UpdateDeliveryRequest(this.deliveryRequest)
+      await UpdateDeliveryRequest(this.deliveryRequest)
+      const draftOps = UpdateOps(this.deliveryRequest.ID, this.draftSourceOps.map(d => d.op))
       const delOps = DeleteOps(this.deleteOps.map(op => op.ID))
       const insertOps = InsertOps(this.deliveryRequest.ID, this.addOps)
-      await Promise.all([delOps, insertOps])
+      await Promise.all([delOps, insertOps, draftOps])
       // this.deleteOps = []
       // this.addOps = []
+      // TODO: check???
+      this.draftSourceOps = []
       await this.refresh()
     },
-    async saveTr(op: ArtifactTenantOperation) {
-      this.savingTrLoading = true
+    // check TR number existence
+    async checkTr(op: ArtifactTenantOperation) {
+      this.checkingTrLoading = true
       const originalTrNumber = op.TransportRequestNumber
-      op.TransportRequestNumber = this.editingTrNumber.trim()
+      const newTrNumber = this.editingTrNumber.trim() || ''
+      op.TransportRequestNumber = newTrNumber
       try {
-        if (!op.ID) {
-          const v = await InsertOps(this.deliveryRequest.ID, [op]) // try insert first
-          Object.assign(op, v[0]) // update op with returned value
-        }else {
-          const v = await UpdateOps(this.deliveryRequest.ID, [op])
-          Object.assign(op, v[0]) // update op with returned value
+        await CheckTrExistence(op, this.deliveryRequest.ID)
+        const draftOp = this.sourceOps.find(op => op.ID === this.artifactOpDetial.ID) // only ops in source(saved once) can be drafted
+        if (!draftOp || originalTrNumber === newTrNumber) return
+        const indraft = this.draftSourceOps.map(d => d.op).find(draft => draft.ID === draftOp.ID)
+        if (!indraft) {
+          this.draftSourceOps.push({op: draftOp, newTr: newTrNumber, oldTr: originalTrNumber})
+        } else {
+          indraft.TransportRequestNumber = newTrNumber
         }
-      } catch (e) {
+      } catch (_) {
         op.TransportRequestNumber = originalTrNumber // revert
       } finally {
-        this.savingTrLoading = false
+        this.checkingTrLoading = false
       }
-      
     },
     async loadPackageArtifacts(pkgId: string) {
       if (this.packageArtifacts[pkgId]) return // already loaded
@@ -614,6 +650,8 @@ export default {
       if (delIndex >= 0) return 'error' // to be deleted
       const addIndex = this.addOps.findIndex(addOp => addOp.ArtifactTechID === op.ArtifactTechID && addOp.ArtifactVersion === op.ArtifactVersion)
       if (addIndex >= 0) return 'success' // to be added
+      const draftIndex = this.draftSourceOps.map(d => d.op).findIndex(draftOp => draftOp.ID === op.ID)
+      if (draftIndex >= 0) return 'warning' // drafted
       if (op.RequestState === 'NOT_REQUESTED') return 'default'
       return 'info'
     }

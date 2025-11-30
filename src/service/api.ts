@@ -175,10 +175,11 @@ export const DeleteOps = (opIDs: number[]) => {
 }
 
 export const InsertOps = (drID: number, ops: ArtifactTenantOperation[]): Promise<ArtifactTenantOperation[]> => {
-  if (ops.length === 0) []
+  if (ops.length === 0) return Promise.resolve([])
   return http.post(`/api/v1/deliveryRequest/insertOps`, {ops: ops, deliveryRequestID: drID})
 }
 export const UpdateOps = (drID: number, ops: ArtifactTenantOperation[]): Promise<ArtifactTenantOperation[]> => {
+  if (ops.length === 0) return Promise.resolve([])
   return http.put(`/api/v1/deliveryRequest/updateOps`, {ops: ops, deliveryRequestID: drID})
 }
 export const SyncStatus = (drID: number) => {
@@ -193,6 +194,9 @@ export const UaaUserInfo = (userId: string) => {
   return http.get(`/api/v1/uaa/id/${userId}`) as Promise<UserInfo>
 }
 
+export const CheckTrExistence = (op: ArtifactTenantOperation, deliveryRequestID: number) => {
+  return http.post(`/api/v1/deliveryRequest/checkTr`, {op: op, deliveryRequestID: deliveryRequestID}) as Promise<{[key: string]: boolean}>
+}
 // approve delivery request
 export const RequestApprove = (drID: number, approvers: string[], comment: string|'') => {
   return http.post(`/api/v1/deliveryRequest/requestApproval`, 
