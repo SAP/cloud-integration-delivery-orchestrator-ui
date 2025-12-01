@@ -324,8 +324,9 @@
                       </n-flex>
                     </n-flex>
                   </n-flex>
-                  <n-button type="primary" secondary @click="updateDr">Update</n-button>
-
+                  <n-flex>
+                    <n-button type="primary" secondary @click="updateDr">Update</n-button>
+                  </n-flex>
                 </n-flex>
               </n-card>
             </n-step>
@@ -335,6 +336,7 @@
               <n-card hoverable size="medium">
                 <n-flex vertical>
                   <n-auto-complete
+                    style="width: 40%;"
                     :options="approverOptions"
                     :loading="searchApproverLoading"
                     :value="searchApprover"
@@ -344,28 +346,27 @@
                     clearable
                     clear-after-select
                     />
+                  <n-text depth="3" strong>Approvers:</n-text>
                   <n-flex>
-                    Approvers:
                     <n-tag v-for="(user_id, _) in deliveryRequest.Approvers" closable @close="handleUnselectApprover(user_id)">
                       {{ uaaUsers[user_id]?.email ?? (uaaUserInfo(user_id), '') }}
                     </n-tag>
-                    <n-divider vertical />
-                    <n-button @click="handleRequestApprove">Send</n-button>
+                    <n-button quaternary type="info" @click="handleRequestApprove">Send</n-button>
                   </n-flex>
-                  <n-button>Approve</n-button>
 
+                  <n-flex style="margin-top:20px">
+                    <n-button>Approve</n-button>
+                    <n-button type="error" ghost>Deliver Without Approval</n-button>
+                  </n-flex>
                 </n-flex>
-
-
               </n-card>
 
             </n-step>
             <n-step>
               <template #title> 
-                Delivery Flow 
-                <n-button size="small" tertiary @click="onSyncDrStatus">Sync Status</n-button>
-                <n-button size="small" tertiary @click="showFlowModal = true">Show Detail</n-button>
-                
+                Delivery Flow
+                <n-button type="info" ghost size="small" @click="onSyncDrStatus" style="margin: 0 20px;">Sync Status</n-button>
+                <n-button type="info" ghost size="small" @click="showFlowModal = true">Show Detail</n-button>
               </template>
               <n-card hoverable size="medium">
                 <DeliveryFlowView :delivery-request="deliveryRequest" :cpi-tenants="cpiTenants"
