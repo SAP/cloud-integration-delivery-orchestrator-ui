@@ -700,9 +700,12 @@ export default {
           .map(a => this.allOps.findIndex(op => op.ArtifactTechID === a.TechID && op.ArtifactVersion === a.Version)) // NOTE: if remove, should also remove all target tenant ops meanwhile
           .filter(i => i > -1)  // removed operations IDs of all tenants
         this.deleteOps = removeIdx.map(i => this.allOps[i]) // operations to be deleted
-        
-        const add = added
-          .map(a => ({  // add new operation
+        // cache ops that will be added
+        this.addOps = added
+          .map(a => {
+            const existingOp = this.addOps.find(op => op.ArtifactTechID === a.TechID && op.ArtifactVersion === a.Version) // avoid duplicate addition
+            if (existingOp) return existingOp
+            return {  // add new operation
               ID: 0,
               DeliveryRequestID: this.deliveryRequest.ID,
               ArtifactTechID: a.TechID,
@@ -713,9 +716,8 @@ export default {
               RequestState: "NOT_REQUESTED",
               ImportState: 'NOT_STARTED',
               DeployState: 'NOT_STARTED',
-            } as ArtifactTenantOperation))
-        // cache ops that will be added
-        this.addOps = add
+            } as ArtifactTenantOperation
+          })
       },
       deep: true,
     }
