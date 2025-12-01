@@ -355,7 +355,7 @@
                   </n-flex>
 
                   <n-flex style="margin-top:20px">
-                    <n-button>Approve</n-button>
+                    <n-button @click="handleApprove">Approve</n-button>
                     <n-button type="error" ghost>Deliver Without Approval</n-button>
                   </n-flex>
                 </n-flex>
@@ -492,7 +492,7 @@ export default {
     },
     async handleRequestApprove() {
       if (!this.deliveryRequest.Approvers || !this.deliveryRequest.Approvers.length) {
-        window.$message?.warning?.('Please select an approver before sending approval request.')
+        window.$message?.warning?.('Please select at least one approver before sending approval request.')
         return
       }
       RequestApprove(this.deliveryRequest.ID, this.deliveryRequest.Approvers, '')
@@ -500,6 +500,7 @@ export default {
     },
     async handleApprove() {
       await Approve(this.deliveryRequest.ID, '')
+      await this.refresh()
       window.$message?.success?.('Delivery Request approved.')
     },
     handleCurrent(current: number) {

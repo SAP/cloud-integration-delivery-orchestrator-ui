@@ -203,10 +203,9 @@ export const RequestApprove = (drID: number, approvers: string[], comment: strin
     {approvers: approvers, deliveryRequestID: drID, comment: comment})
 }
 
-export const Approve = (drID: number, comment: string | []) => {
+export const Approve = (drID: number, comment: string | []): Promise<DeliveryRequest> => {
   return http.post('/api/v1/deliveryRequest/approve', 
     {deliveryRequestID: drID, comment: comment})
-
 }
 
 // Cpi tenant operations mapping
