@@ -360,7 +360,7 @@
                     <n-tag v-for="(user_id, _) in deliveryRequest.Approvers" closable @close="handleUnselectApprover(user_id)">
                       {{ uaaUsers[user_id]?.email ?? (uaaUserInfo(user_id), '') }}
                     </n-tag>
-                    <n-button quaternary type="info" @click="handleRequestApprove">Send</n-button>
+                    <n-button v-if="deliveryRequest.Approvers" quaternary type="info" @click="handleRequestApprove">Send</n-button>
                   </n-flex>
 
                   <n-flex style="margin-top:20px">

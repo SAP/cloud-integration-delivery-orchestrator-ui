@@ -65,26 +65,22 @@ function opDeployDisabled(op: ArtifactTenantOperation) {
       <n-tag v-else :type="'warning'" size="small" :bordered="false">
         {{ nodeAggState }}
       </n-tag>
-      
     </div>
     <div v-if="!data.IsSource" class="batch-actions">
       <n-button size="tiny" tertiary @click="handleImportAll" :disabled="nodeImportDisabled">Import All</n-button>
       <n-button size="tiny" tertiary type="primary" @click="handleDeployAll" :disabled="nodeDeployDsiabled">Deploy All</n-button>
     </div>
-    <div v-if="!Object.keys(ops).length" class="empty-artifacts">
-      <n-text depth="3" style="font-size:11px">No artifacts {{ data.IsSource ? '' : 'delivered here yet' }}</n-text>
-    </div>
+
+    <n-text v-if="!Object.keys(ops).length" depth="3" style="font-size:11px">No artifacts {{ data.IsSource ? '' : 'delivered here yet' }}</n-text>
+
     <n-scrollbar v-else style="max-height:200px; margin-top:4px;">
-      <div v-for="op in ops" :key="op.ArtifactTechID + '@' + op.ArtifactVersion" class="artifact-row">
-        <div class="artifact-meta">
-          <span class="artifact-name" :title="op.ArtifactTechID">{{ op.ArtifactTechID }}</span>
-          <span class="artifact-version">@{{ op.ArtifactVersion }}</span>
-        </div>
-        <div v-if="!data.IsSource" class="artifact-actions">
+      <n-flex v-for="op in ops" :key="op.ArtifactTechID + '@' + op.ArtifactVersion" justify="space-between">
+        <n-text depth="3">{{ op.ArtifactTechID }}@{{ op.ArtifactVersion }}</n-text>
+        <n-flex v-if="!data.IsSource">
           <n-button size="tiny" quaternary @click="handleImport(op)" :disabled="opImportDisabled(op)">Import</n-button>
           <n-button size="tiny" quaternary type="primary" @click="handleDeploy(op)" :disabled="opDeployDisabled(op)">Deploy</n-button>
-        </div>
-      </div>
+        </n-flex>
+      </n-flex>
     </n-scrollbar>
   </div>
 </template>
@@ -95,7 +91,7 @@ function opDeployDisabled(op: ArtifactTenantOperation) {
   border: 1px solid var(--n-border-color, #dcdfe6);
   border-radius: 6px;
   padding: 8px 10px 10px;
-  min-width: 200px;
+  min-width: 300px;
   box-shadow: 0 2px 6px rgba(0,0,0,0.08);
   font-size: 12px;
 }
@@ -110,12 +106,9 @@ function opDeployDisabled(op: ArtifactTenantOperation) {
   color: #2563eb;
 }
 .node-title { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.empty-artifacts { margin-top: 4px; }
 .artifact-row { display:flex; align-items:center; justify-content:space-between; padding:2px 0; border-bottom:1px dashed rgba(0,0,0,0.06); }
 .artifact-row:last-child { border-bottom:none; }
-.artifact-meta { display:flex; gap:4px; align-items:center; overflow:hidden; }
-.artifact-name { max-width:110px; overflow:hidden; text-overflow:ellipsis; }
+.artifact-name { max-width:200px; overflow:hidden; text-overflow:ellipsis; }
 .artifact-version { color:#555; font-size:11px; }
-.artifact-actions { display:flex; gap:4px; }
 .batch-actions { display:flex; gap:4px; margin-bottom:4px; }
 </style>
