@@ -1,9 +1,18 @@
 <template>
   <!-- Modals -->
   <!-- Flow Modal -->
-  <n-modal v-model:show="showFlowModal" preset="card" title="Delivery Flow" :closable="true" :mask-closable="true"
-    style="width:80%; height: 100%;">
-    <CpiTransportFlowView :delivery-request="deliveryRequest" :cpi-tenants="cpiTenants" :tenant-to-ops="tenantToOps" />
+  <n-modal 
+    v-model:show="showFlowModal" 
+    preset="card" 
+    title="Delivery Flow" 
+    :closable="true" 
+    :mask-closable="true"
+    style="width:80%; 
+    height: 100%;">
+    <CpiTransportFlowView 
+      :delivery-request="deliveryRequest"
+      :cpi-tenants="cpiTenants"
+      :tenant-to-ops="tenantToOps" />
   </n-modal>
   <!-- artifact details modal -->
   <n-modal v-model:show="showArtifactDetails" preset="card" 
@@ -325,7 +334,7 @@
                     </n-flex>
                   </n-flex>
                   <n-flex>
-                    <n-button type="primary" secondary @click="updateDr">Update</n-button>
+                    <n-button type="primary" secondary @click="updateDr"> Update </n-button>
                   </n-flex>
                 </n-flex>
               </n-card>
@@ -541,6 +550,8 @@ export default {
         const pkg = this.tenantPkgs.find(p => p.Id === packageId)
         if (pkg && !this.selectedPackages.find(p => p.Id === pkg.Id)) this.selectedPackages.push(pkg)
       })
+      this.deleteOps = []
+      this.addOps = []
       this.draftSourceOps = []
       this.packagesLoading = false
     },
@@ -564,10 +575,6 @@ export default {
       const delOps = DeleteOps(this.deleteOps.map(op => op.ID))
       const insertOps = InsertOps(this.deliveryRequest.ID, this.addOps)
       await Promise.all([delOps, insertOps, draftOps])
-      // this.deleteOps = []
-      // this.addOps = []
-      // TODO: check???
-      this.draftSourceOps = []
       await this.refresh()
     },
     // check TR number existence

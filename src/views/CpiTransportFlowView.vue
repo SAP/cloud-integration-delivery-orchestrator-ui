@@ -43,11 +43,11 @@ const nodes = computed<Node[]>(() => {
     targetNodes.push({
         id: String(tn.id), // transport node ID
         data: {
-        NodeID: tn.id,
-        TenantID: tenant?.ID,
-        TrToOp: trToOp,
-        IsSource: tenant?.ID === props.deliveryRequest.SourceTenant.ID,
-        Tenant: tenant
+            NodeID: tn.id,
+            TenantID: tenant?.ID,
+            TrToOp: trToOp,
+            IsSource: tenant?.ID === props.deliveryRequest.SourceTenant.ID,
+            Tenant: tenant
         },
         position: { x: 0, y: 0 },
         type: 'cpi-transport'
