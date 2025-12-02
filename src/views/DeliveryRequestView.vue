@@ -343,7 +343,7 @@
             <n-step>
               <template #title> Approve </template>
               <n-card hoverable size="medium">
-                <n-flex vertical>
+                <n-flex vertical v-if="!deliveryRequest.ApprovedBy">
                   <n-auto-complete
                     style="width: 40%;"
                     :options="approverOptions"
@@ -367,6 +367,12 @@
                     <n-button @click="handleApprove">Approve</n-button>
                     <n-button type="error" ghost>Deliver Without Approval</n-button>
                   </n-flex>
+                </n-flex>
+                <n-flex vertical v-else>
+                  <n-text depth="3" strong type="success">
+                    Approved By 
+                    {{ uaaUsers[deliveryRequest.ApprovedBy]?.email ?? (uaaUserInfo(deliveryRequest.ApprovedBy), '') }}
+                  </n-text>
                 </n-flex>
               </n-card>
 

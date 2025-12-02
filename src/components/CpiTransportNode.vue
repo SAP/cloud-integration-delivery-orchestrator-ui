@@ -48,12 +48,12 @@ function handleDeployAll() {
   emit('deploy-all', { tenant: props.data.Tenant, artifactOps: Object.values(props.data.TrToOp) })
 }
 
-function opImportDisabled(op: ArtifactTenantOperation) {
+function disableImport(op: ArtifactTenantOperation) {
   return op.ImportState === 'COMPLETE' || op.ImportState === 'IN_PROGRESS'
 }
 
-function opDeployDisabled(op: ArtifactTenantOperation) {
-  return op.DeployState === 'COMPLETE' || op.DeployState === 'IN_PROGRESS'
+function disableDeploy(op: ArtifactTenantOperation) {
+  return !(op.DeployState === 'QUEUED' || op.DeployState === 'FAILED')
 }
 </script>
 
@@ -77,8 +77,8 @@ function opDeployDisabled(op: ArtifactTenantOperation) {
       <n-flex v-for="op in ops" :key="op.ArtifactTechID + '@' + op.ArtifactVersion" justify="space-between">
         <n-text depth="3">{{ op.ArtifactTechID }}@{{ op.ArtifactVersion }}</n-text>
         <n-flex v-if="!data.IsSource">
-          <n-button size="tiny" quaternary @click="handleImport(op)" :disabled="opImportDisabled(op)">Import</n-button>
-          <n-button size="tiny" quaternary type="primary" @click="handleDeploy(op)" :disabled="opDeployDisabled(op)">Deploy</n-button>
+          <n-button size="tiny" quaternary @click="handleImport(op)" :disabled="disableImport(op)">Import</n-button>
+          <n-button size="tiny" quaternary type="primary" @click="handleDeploy(op)" :disabled="disableDeploy(op)">Deploy</n-button>
         </n-flex>
       </n-flex>
     </n-scrollbar>
