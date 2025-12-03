@@ -221,8 +221,18 @@ export const TenantOps = (ops: ArtifactTenantOperation[]) => {
   return tenantToOps
 }
 
-export const DeriveNodeAgg = (nodedata: CpiTenantNodeData): AggregateStatus => {
-  const ops = Object.values(nodedata.TrToOp || {})
+export const DeriveArtifactOpAgg = (op: ArtifactTenantOperation) => {
+  if (op.DeployState !== 'NOT_STARTED') return op.DeployState
+  if (op.ImportState !== 'NOT_STARTED') return op.ImportState
+  if (op.RequestState !== 'NOT_REQUESTED') return op.RequestState
+  return 'NOT_REQUESTED'
+}
+
+export const DeriveGroupAgg = () => {
+  
+}
+
+export const DeriveNodeAgg = (ops: ArtifactTenantOperation[]): AggregateStatus => {
   if (ops.length === 0) return 'UNKNOWN'
 
   // Collect state sets
@@ -274,7 +284,7 @@ export function layoutNodes(nodes: Node[], edges: Edge[], direction: 'LR' | 'TB'
   g.setGraph({ rankdir: direction })
   g.setDefaultEdgeLabel(() => ({}))
 
-  nodes.forEach((node) => {g.setNode(node.id, { width: 600, height: 100 })})
+  nodes.forEach((node) => {g.setNode(node.id, { width: Number(node?.width ?? 0), height: Number(node?.height ?? 0) })})
 
   edges.forEach((edge) => {g.setEdge(edge.source, edge.target)})
 

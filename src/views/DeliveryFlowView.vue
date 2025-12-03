@@ -3,7 +3,7 @@
         key="delivery-flow-view"
         :nodes="graph.nodes"
         :edges="graph.edges"
-        style="width: 100%; height: 300px;"
+        style="width: 100%; min-height: 300px;"
         :nodes-draggable="true"
         :pan-on-drag="true"
         :zoom-on-scroll="true" 
@@ -71,9 +71,18 @@ export default defineComponent({
                 const isTail = tenants.map(t => !this.childNodes[t.TransportNodeID] || this.childNodes[t.TransportNodeID].length === 0).every(v => v)
                 const groupNode: Node = {
                     id: `n-group-${groupLabel}`,
-                    data: { label: groupLabel, sourceNodeId: 0, tenants: tenants, isSource: isSource, isTail },
+                    data: { 
+                        label: groupLabel, 
+                        sourceNodeId: 0, 
+                        tenants: tenants, 
+                        isSource: isSource, 
+                        isTail: isTail,
+                        tenantToOps: this.tenantToOps
+                    },
                     position: { x: 0, y: 0 }, // Placeholder position
-                    type: 'deliver-group'
+                    type: 'deliver-group',
+                    width: 300,
+                    height: 200,
                 }
                 tenants.forEach(t => {groupNodeMap[t.TransportNodeID] = groupNode})
             })
@@ -94,6 +103,7 @@ export default defineComponent({
                         source: pGroupNode.id,
                         target: cGrouNpde.id,
                         animated: true,
+                        style: { strokeWidth: 3}
                     }
                 })
             })

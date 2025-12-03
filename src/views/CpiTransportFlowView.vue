@@ -56,16 +56,16 @@ const nodes = computed<Node[]>(() => {
     const sourceNodeID = props.deliveryRequest.SourceTenant.TransportNodeID
     const sourceTenantID = props.deliveryRequest.SourceTenant.ID
     const sourceNode = {
-    id: String(sourceNodeID),
-    data: {
-        NodeID: sourceNodeID,
-        TenantID: sourceTenantID,
-        TrToOp: props.tenantToOps[sourceTenantID] || {},
-        IsSource: true,
-        Tenant: props.deliveryRequest.SourceTenant
-    },
-    position: { x: 0, y: 0 },
-    type: 'cpi-transport'
+        id: String(sourceNodeID),
+        data: {
+            NodeID: sourceNodeID,
+            TenantID: sourceTenantID,
+            TrToOp: props.tenantToOps[sourceTenantID] || {},
+            IsSource: true,
+            Tenant: props.deliveryRequest.SourceTenant
+        },
+        position: { x: 0, y: 0 },
+        type: 'cpi-transport'
     }
     const all = [sourceNode, ...targetNodes]
     return all 

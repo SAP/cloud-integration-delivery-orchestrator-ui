@@ -364,8 +364,8 @@
                   </n-flex>
 
                   <n-flex style="margin-top:20px">
-                    <n-button @click="handleApprove">Approve</n-button>
-                    <n-button type="error" ghost>Deliver Without Approval</n-button>
+                    <n-button strong type="info" ghost @click="handleApprove">Approve</n-button>
+                    <n-button type="error" ghost>Skip Approval</n-button>
                   </n-flex>
                 </n-flex>
                 <n-flex vertical v-else>

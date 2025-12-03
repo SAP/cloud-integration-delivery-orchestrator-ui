@@ -32,7 +32,7 @@ const nodeDeployDsiabled = computed(() => {
 })
 
 const nodeAggState = computed((): AggregateStatus => {
-  return DeriveNodeAgg(props.data)
+  return DeriveNodeAgg(Object.values(props.data.TrToOp || {}))
 })
 
 function handleImport(op: ArtifactTenantOperation) {
@@ -73,9 +73,10 @@ function disableDeploy(op: ArtifactTenantOperation) {
 
     <n-text v-if="!Object.keys(ops).length" depth="3" style="font-size:11px">No artifacts {{ data.IsSource ? '' : 'delivered here yet' }}</n-text>
 
-    <n-scrollbar v-else style="max-height:200px; margin-top:4px;">
+    <n-scrollbar v-else style="max-height:200px; margin-top:10px;">
       <n-flex v-for="op in ops" :key="op.ArtifactTechID + '@' + op.ArtifactVersion" justify="space-between">
         <n-text depth="3">{{ op.ArtifactTechID }}@{{ op.ArtifactVersion }}</n-text>
+        <n-text v-if="!data.IsSource" >Import State: {{ op.ImportState }}, Deploy State: {{ op.DeployState }}</n-text>
         <n-flex v-if="!data.IsSource">
           <n-button size="tiny" quaternary @click="handleImport(op)" :disabled="disableImport(op)">Import</n-button>
           <n-button size="tiny" quaternary type="primary" @click="handleDeploy(op)" :disabled="disableDeploy(op)">Deploy</n-button>
