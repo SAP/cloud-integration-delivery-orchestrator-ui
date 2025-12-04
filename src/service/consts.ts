@@ -71,6 +71,11 @@ export const cpiTenantColums: DataTableColumns<CpiTenant> = [
       )
     },
     resizable: true
+  },
+  {
+    title: 'Group',
+    key: 'Group',
+    resizable: true
   }
 
 ]
@@ -381,6 +386,13 @@ export const deliveryRuleColumns: DataTableColumns<DeliveryRule> = [
     key: 'Active',
     render(row: DeliveryRule) {
       return row.Active ? 'Yes' : 'No'
+    }
+  },
+  {
+    title: 'Skip Approve',
+    key: 'SkipApprove',
+    render(row: DeliveryRule) {
+      return row.SkipApprove ? 'Yes' : 'No'
     }
   },
   {

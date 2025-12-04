@@ -29,6 +29,10 @@
                 Active:
                 <n-switch v-model:value="selDeliveryRule.Active" />
             </div>
+            <div>
+                Skip Approve:
+                <n-switch v-model:value="selDeliveryRule.SkipApprove" />
+            </div>
         </div>
         <template #action>
             <n-button type="primary" @click="onSave">Save</n-button>

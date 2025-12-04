@@ -169,7 +169,8 @@ export interface DeliveryRule {
   IncludedTenants: CpiTenant[]
   ExcludedTenants: CpiTenant[]
   SourceTenantID: CpiTenant
-  SourceTenan:   CpiTenant
+  SourceTenant:   CpiTenant
+  SkipApprove: boolean
 
   TargetNodes: TransportNode[]
   TargetRoutes: TransportRoute[]
