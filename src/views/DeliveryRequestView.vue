@@ -124,28 +124,46 @@
 
     <!-- header -->
     <n-card class="header-card-shadow-class">
-      <n-grid x-gap="10" :cols="5">
+      <n-grid x-gap="10" :cols="4">
         <!-- delivery request name and desctiption -->
         <n-gi>
           <n-flex vertical>
-            <n-input class="ui5-title-root" v-model:value="deliveryRequest.Name" placeholder="Delivery Request Name"
-              clearable autofocus v-if="isEditingDr" />
+            <div class="ui5-title-root">
+              Delivery Request <n-text type="info">#{{ deliveryRequest.ID }}</n-text>
+              <n-divider vertical/>
+              <n-tag round size="small">{{ deliveryRequest.AggregateStatus }}</n-tag>
+            </div>
+            <n-input 
+              style="width: 70%;"
+              v-model:value="deliveryRequest.Name" 
+              placeholder="Delivery Request Name"
+              clearable autofocus 
+              v-if="isEditingDr" />
             <span class="ui5-title-root" v-else-if="deliveryRequest.Name">
-              <!-- <n-text depth="3"> Delivery Request Name: </n-text> -->
-              {{ deliveryRequest.Name }}
+              <n-text :depth="3">
+                {{ deliveryRequest.Name }}
+              </n-text>
             </span>
 
           </n-flex>
         </n-gi>
         <n-gi>
-          <!-- plan JIRA link -->
-          <n-input v-model:value="deliveryRequest.JiraLink" placeholder="JIRA Link" size="large" clearable
-            v-if="isEditingDr" />
-          <n-text style="font-weight: bold" v-else-if="deliveryRequest.JiraLink">
-            {{ deliveryRequest.JiraLink }}
-          </n-text>
-          <n-flex>{{ deliveryRequest.DeliveryRule?.Name }}</n-flex>
-          <n-text>{{ deliveryRequest.Description }}</n-text>
+          <!-- JIRA link -->
+          <n-flex vertical style="gap: 10px;">
+            <n-input style="width: 60%;"
+              v-model:value="deliveryRequest.JiraLink" 
+              placeholder="JIRA Link" 
+              clearable
+              v-if="isEditingDr" />
+            <n-text depth="3" strong v-else-if="deliveryRequest.JiraLink">
+              JIRA: 
+              <a :href="deliveryRequest.JiraLink" target="_blank" rel="noopener noreferrer">
+                {{ jira }}
+              </a>
+            </n-text>
+            <n-text depth="3" strong>Version / Delivery: {{ deliveryRequest.DeliveryRule?.Name }}</n-text>
+            <n-text>{{ deliveryRequest.Description }}</n-text>
+          </n-flex>
         </n-gi>
 
         <!-- Delivery Request basic information -->
@@ -153,50 +171,45 @@
           <n-flex vertical>
             <n-text depth="3" style="font-size: 12px" strong v-if="deliveryRequest.CreatedBy">
               Created By: {{ uaaUsers[deliveryRequest.CreatedBy]?.email ?? (uaaUserInfo(deliveryRequest.CreatedBy), '') }}
-              , at {{ toLocalTime(deliveryRequest.CreatedAt) }}
+              {{ toLocalTime(deliveryRequest.CreatedAt) }}
             </n-text>
             <n-text depth="3" style="font-size: 12px" strong v-if="deliveryRequest.UpdatedBy">
               Updated By: {{ uaaUsers[deliveryRequest.UpdatedBy]?.email ?? (uaaUserInfo(deliveryRequest.UpdatedBy), '') }} 
-              , at {{ toLocalTime(deliveryRequest.UpdatedAt) }}
+              {{ toLocalTime(deliveryRequest.UpdatedAt) }}
             </n-text>
           </n-flex>
         </n-gi>
-        <!-- Delivery Request status tag -->
-        <n-gi> {{ deliveryRequest.AggregateStatus }} </n-gi>
-        <!-- action buttions -->
+        <!-- action buttons -->
         <n-gi>
           <n-divider vertical />
           <!-- Edit button -->
-          <IconBtn tip="Edit" :handler="onEditDr" v-if="!isEditingDr">
-            <edit16-regular />
-          </IconBtn>
-          <IconBtn tip="Cancel" :handler="refresh" v-if="isEditingDr" color="#df423a">
-            <CancelOutlined />
-          </IconBtn>  
-          <n-button type="primary" @click="updateDr" v-if="isEditingDr">
-            Save
+          <n-button type="info" quaternary ghost @click="onEditDr" v-if="!isEditingDr">
+            Edit
           </n-button>
           <!-- Delete button -->
-          <IconBtn tip="Delete" :handler="deleteDr" v-if="!isEditingDr" color="#df423a">
-            <Delete28Regular />
-          </IconBtn>
+          <n-button type="error" secondary ghost @click="deleteDr" v-if="!isEditingDr">
+            Delete
+          </n-button>
+          <n-button type="info" quaternary ghost @click="updateDr" v-if="isEditingDr">
+            Save
+          </n-button>
+          <n-button type="error" secondary ghost @click="refresh" v-if="isEditingDr">
+            Cancel
+          </n-button>  
 
         </n-gi>
       </n-grid>
     </n-card>
 
-    <!-- Generate Delivert Request -->
+    <!-- Generate Delivery Request -->
     <n-card class="card-shadow-class">
-      <div style="margin-bottom: 15px; font-size: 15px; font-weight: bold">
-        Delivery Request <n-gradient-text type="success">#{{ deliveryRequest.ID }}</n-gradient-text>
-      </div>
       <n-grid x-gap="40" :cols="5">
         <!-- step lists -->
         <n-gi span="4">
           <n-steps vertical :current="current" @update:current="handleCurrent">
             <!-- parse yaml step -->
             <n-step>
-              <template #title> Create Delivery Plan </template>
+              <template #title> Prepare </template>
               <n-card hoverable size="medium">
                 <n-flex vertical v-if="!deliveryRequest.SourceTenant">
                   <n-skeleton text height="20px" style="width: 40%" />
@@ -368,6 +381,7 @@
                   </n-flex>
 
                   <n-flex style="margin-top:20px">
+                    <!-- Approve/Skip Approval button -->
                     <n-popover trigger="hover">
                       <template #trigger>
                         <n-button strong :disabled="approveInfo.disable" :type="approveInfo.disable ? 'error':'info'" ghost @click="handleApprove" >
@@ -770,6 +784,11 @@ export default {
         loading: false
       }
     },
+    jira(): string {
+      const v = this.deliveryRequest.JiraLink || ''
+      const match = v.match(/([A-Z]+-\d+)/)
+      return match ? match[1] : ''
+    }
   },
   async created() {
     await this.refresh()
