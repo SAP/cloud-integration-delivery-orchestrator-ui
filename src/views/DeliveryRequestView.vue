@@ -151,13 +151,13 @@
         <!-- Delivery Request basic information -->
         <n-gi span="1">
           <n-flex vertical>
-            <n-text depth="3" style="font-size: 12px" strong>
-              Created By: {{ deliveryRequest.CreatedBy }} at
-              {{ toLocalTime(deliveryRequest.CreatedAt) }}
+            <n-text depth="3" style="font-size: 12px" strong v-if="deliveryRequest.CreatedBy">
+              Created By: {{ uaaUsers[deliveryRequest.CreatedBy]?.email ?? (uaaUserInfo(deliveryRequest.CreatedBy), '') }}
+              , at {{ toLocalTime(deliveryRequest.CreatedAt) }}
             </n-text>
-            <n-text depth="3" style="font-size: 12px" strong>
-              Updated By: {{ deliveryRequest.UpdatedBy }} at
-              {{ toLocalTime(deliveryRequest.UpdatedAt) }}
+            <n-text depth="3" style="font-size: 12px" strong v-if="deliveryRequest.UpdatedBy">
+              Updated By: {{ uaaUsers[deliveryRequest.UpdatedBy]?.email ?? (uaaUserInfo(deliveryRequest.UpdatedBy), '') }} 
+              , at {{ toLocalTime(deliveryRequest.UpdatedAt) }}
             </n-text>
           </n-flex>
         </n-gi>
@@ -288,14 +288,14 @@
                                   <template v-if="isArtifactSelected(pkg.Id, a)">
                                     <span style="margin-left:2px">✔</span>
                                   </template>
-                                  <n-tooltip trigger="hover" placement="top">
+                                  <n-popover trigger="hover" placement="top">
                                     <template #trigger>
                                       <n-icon size="18" @click.stop="openArtifactDetails(a)">
                                         <Info16Regular />
                                       </n-icon>
                                     </template>
-                                    Show Details
-                                  </n-tooltip>
+                                    <n-text depth="3" strong>Show Details</n-text>
+                                  </n-popover>
                                 </n-tag>
                               </div>
                             </n-scrollbar>
@@ -333,8 +333,8 @@
                       </n-flex>
                     </n-flex>
                   </n-flex>
-                  <n-flex>
-                    <n-button type="primary" secondary @click="updateDr"> Update </n-button>
+                  <n-flex style="margin-top: 10px;">
+                    <n-button type="info" ghost strong @click="updateDr"> Update </n-button>
                   </n-flex>
                 </n-flex>
               </n-card>
@@ -343,7 +343,8 @@
             <n-step>
               <template #title> Approve </template>
               <n-card hoverable size="medium">
-                <n-flex vertical v-if="!deliveryRequest.ApprovedBy">
+                <n-skeleton v-if="approveInfo.loading" style="width: 50%;" />
+                <n-flex vertical v-else-if="!deliveryRequest.ApprovedBy">
                   <n-auto-complete
                     style="width: 40%;"
                     :options="approverOptions"
@@ -357,15 +358,26 @@
                     />
                   <n-text depth="3" strong>Approvers:</n-text>
                   <n-flex>
-                    <n-tag v-for="(user_id, _) in deliveryRequest.Approvers" closable @close="handleUnselectApprover(user_id)">
-                      {{ uaaUsers[user_id]?.email ?? (uaaUserInfo(user_id), '') }}
-                    </n-tag>
-                    <n-button v-if="deliveryRequest.Approvers" quaternary type="info" @click="handleRequestApprove">Send</n-button>
+                    <span v-for="(user_id, _) in deliveryRequest.Approvers">
+                      <n-spin v-if="!(uaaUsers[user_id]?.email ?? (uaaUserInfo(user_id), ''))" :size="15"/>
+                      <n-tag v-else closable @close="handleUnselectApprover(user_id)">
+                        {{ uaaUsers[user_id]?.email }}
+                      </n-tag>
+                    </span>
+
                   </n-flex>
 
                   <n-flex style="margin-top:20px">
-                    <n-button strong type="info" ghost @click="handleApprove">Approve</n-button>
-                    <n-button type="error" ghost>Skip Approval</n-button>
+                    <n-popover trigger="hover">
+                      <template #trigger>
+                        <n-button strong :disabled="approveInfo.disable" :type="approveInfo.disable ? 'error':'info'" ghost @click="handleApprove" >
+                          {{ approveInfo.display }}
+                        </n-button>
+                      </template>
+                      <n-text strong depth="3" v-if="approveInfo.disable">Cannot Skip Approval</n-text>
+                    </n-popover>
+                    <n-button v-if="deliveryRequest.Approvers" ghost type="info" @click="handleRequestApprove">Send To Approvers</n-button>
+
                   </n-flex>
                 </n-flex>
                 <n-flex vertical v-else>
@@ -415,6 +427,7 @@ import {
   Approve,
   UaaUserInfo,
   CheckTrExistence,
+  CurrentUser,
 } from '@/service/api'
 import { toLocalTime } from '@/service/consts'
 import { Edit16Regular, Delete28Regular, Info16Regular } from '@vicons/fluent'
@@ -477,6 +490,7 @@ export default {
       searchTimer: null as number | null,
       searchApprover: '',
       uaaUsers: {} as { [key: string]: UserInfo }, // userId - userEmail
+      currentUser: {} as UserInfo,
     }
   },
   methods: {
@@ -744,11 +758,23 @@ export default {
     },
     tenantToOps(): { [key: number]: { [key: string]: ArtifactTenantOperation } } { // only used in delivert flow view
       return TenantOps(this.allOps) || {} // cpi tenant ID - map[trNumber]ArtifactTenantOperation
-    }
+    },
+    approveInfo(): {disable: boolean, display: string, loading: boolean} {
+      const createdBy = this.uaaUsers[this.deliveryRequest.CreatedBy]?.email
+      const currentEmail = this.currentUser?.email
+      if (!createdBy || !currentEmail) return {loading: true, disable: false, display: 'Approve'}
+      const disable = !this.deliveryRequest.DeliveryRule?.SkipApprove && currentEmail === createdBy // disable self approval
+      return {
+        disable: disable,
+        display: disable ? 'Approve' : 'Skip Approval',
+        loading: false
+      }
+    },
   },
   async created() {
     await this.refresh()
     this.cpiTenants = await GetAllCpiTenants()
+    this.currentUser = await CurrentUser()
   }
 }
 </script>

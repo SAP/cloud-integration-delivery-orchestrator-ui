@@ -3,9 +3,11 @@ import http from './http'
 import type { ApiEndpoint, Artifact, ArtifactTenantOperation, ArtifactVersionHistoryItem, CpiTenant, CpiTenantNodeData, DeliverOpRequest, DeliveryRequest, DeliveryRule, NodeTransportRequest, Package, RuntimeArtifact, TransportGroup, TransportNode, TransportRoute, UserInfo } from './model'
 import type { AggregateStatus, DeployState, ImportState, RequestState } from './statuses'
 
+let currentUser: UserInfo | null = null
 export const CurrentUser = async () => {
-  const { data } = await axios.get('/user-api/currentUser')
-  return data
+  if (currentUser) return currentUser
+  const { data } = await axios.get('/user-api/currentUser')  
+  return currentUser = data
 }
 
 export const GetJobCounts = () => {
@@ -229,7 +231,7 @@ export const DeriveArtifactOpAgg = (op: ArtifactTenantOperation) => {
 }
 
 export const DeriveGroupAgg = () => {
-  
+
 }
 
 export const DeriveNodeAgg = (ops: ArtifactTenantOperation[]): AggregateStatus => {
