@@ -4,39 +4,39 @@
         <template #header>
             <div>{{ selDeliveryRule.ID ? 'Edit Delivery Rule' : 'Create Delivery Rule' }}</div>
         </template>
-        <div style="display:flex;flex-direction:column;gap:12px;">
-            <div>
-                Name:
-                <n-input v-model:value="selDeliveryRule.Name" placeholder="Rule Name" />
-            </div>
-            <div>
-                Version Pattern (regex):
-                <n-input v-model:value="selDeliveryRule.VersionPattern" placeholder="e.g. ^\\d+\\.\\d+\\.\\d+$" />
-            </div>
-            <div>
-                Included Tenants:
-                <n-select
+        <n-flex vertical>
+            <n-text strong depth="3">Name:</n-text>
+            <n-input v-model:value="selDeliveryRule.Name" placeholder="Rule Name" />
+
+            <n-text strong depth="3" style="margin-top: 10px;">Version Pattern (regex):</n-text>
+            <n-input v-model:value="selDeliveryRule.VersionPattern" placeholder="e.g. 5.2.*, 6,2,*" />
+            
+            <n-text strong depth="3" style="margin-top: 10px;">Included Tenants:</n-text>
+            <n-select
                     filterable
                     multiple
                     clearable
                     placeholder="Select Included Tenants"
-                    :options="tenantOptions.filter(op => !op.disabled)"
-                    @update:value="handleSelect"
-                    :value="tenantOptions.filter(op => selDeliveryRule.IncludedTenants?.some(t => t.ID === op.value.ID))"
+                    :options="tenantOptions"
+                    @update:value="(v: CpiTenant[]) => selDeliveryRule.IncludedTenants = v"
                 />
-            </div>
-            <div v-for="tenant in selDeliveryRule.IncludedTenants">{{ tenant.Name }}</div>
-            <div>
-                Active:
-                <n-switch v-model:value="selDeliveryRule.Active" />
-            </div>
-            <div>
+
+            <n-flex>
+                <n-tag type="info" v-for="tenant in selDeliveryRule.IncludedTenants" :key="tenant.ID">{{ tenant.Name }}</n-tag>
+            </n-flex>
+
+            <n-text strong depth="3" style="margin-top: 10px;">
+                Active: <n-switch v-model:value="selDeliveryRule.Active" />
+            </n-text>
+
+            <n-text strong depth="3">
                 Skip Approve:
                 <n-switch v-model:value="selDeliveryRule.SkipApprove" />
-            </div>
-        </div>
+            </n-text>
+
+        </n-flex>
         <template #action>
-            <n-button type="primary" @click="onSave">Save</n-button>
+            <n-button type="info" @click="onSave">Save</n-button>
         </template>
     </n-modal>
 
@@ -67,11 +67,9 @@ import type { DeliveryRule, CpiTenant, TransportRoute } from '@/service/model'
 export default defineComponent({
     components: { DataTable },
     data() {
-        
         const toolBars: ToolBar<DeliveryRule>[] = [
             { text: 'Edit', func: (rows: DeliveryRule[]) => this.handleEdit(rows) },
             { text: 'Delete', func: (rows: DeliveryRule[]) => this.handleDelete(rows) },
-            { text: 'Toggle Active', func: (rows: DeliveryRule[]) => this.handleToggleActive(rows) }
         ]
         return {
             deliveryRuleColumns,
@@ -94,15 +92,6 @@ export default defineComponent({
             if (!this.selDeliveryRule.IncludedTenants) this.selDeliveryRule.IncludedTenants = []
             if (!this.selDeliveryRule.ExcludedTenants) this.selDeliveryRule.ExcludedTenants = []
             await UpsertDeliveryRule(this.selDeliveryRule)
-            await this.refresh()
-        },
-        async handleToggleActive(rows: DeliveryRule[]) {
-            if (rows.length === 0) {
-                window.$message.warning('Please select a delivery rule')
-                return
-            }
-            const rule = { ...rows[0], Active: !rows[0].Active }
-            await UpsertDeliveryRule(rule)
             await this.refresh()
         },
         async handleDelete(rows: DeliveryRule[]) {
@@ -141,7 +130,7 @@ export default defineComponent({
                 label: t.Name,
                 value: t, 
                 disabled: !includeRoutes.some(route => route.targetNodeId === t.TransportNodeID) 
-            }) )
+            })).filter(op => !op.disabled)
         }
     },
     async created() {
