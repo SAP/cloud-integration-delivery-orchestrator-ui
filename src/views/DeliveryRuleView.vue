@@ -20,8 +20,9 @@
                     multiple
                     clearable
                     placeholder="Select Included Tenants"
-                    :options="tenantOptions"
+                    :options="tenantOptions.filter(op => !op.disabled)"
                     @update:value="handleSelect"
+                    :value="tenantOptions.filter(op => selDeliveryRule.IncludedTenants?.some(t => t.ID === op.value.ID))"
                 />
             </div>
             <div v-for="tenant in selDeliveryRule.IncludedTenants">{{ tenant.Name }}</div>
@@ -51,10 +52,9 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, h } from 'vue'
+import { defineComponent } from 'vue'
 import DataTable from '@/components/DataTable.vue'
-import { NTag } from 'naive-ui'
-import { toLocalTime, type ToolBar } from '@/service/consts'
+import { type ToolBar } from '@/service/consts'
 import {
     GetDeliveryRules,
     UpsertDeliveryRule,
@@ -64,7 +64,6 @@ import {
 } from '@/service/api'
 import {deliveryRuleColumns} from '@/service/consts'
 import type { DeliveryRule, CpiTenant, TransportRoute } from '@/service/model'
-
 export default defineComponent({
     components: { DataTable },
     data() {
@@ -82,7 +81,6 @@ export default defineComponent({
             selDeliveryRule: {} as DeliveryRule,
             cpiTenants: [] as CpiTenant[],
             transportRoutes: [] as TransportRoute[],
-            tenantOptions: [] as { label: string; value: CpiTenant, disabled: boolean }[],
         }
     },
     methods: {
@@ -129,19 +127,27 @@ export default defineComponent({
         },
         handleSelect(value: CpiTenant[]) {
             this.selDeliveryRule.IncludedTenants = value
-            const include = this.transportRoutes.filter(
-                tr => this.selDeliveryRule.IncludedTenants.some(t => t.TransportNodeID === tr.sourceNodeId)
+        }
+    },
+    computed: {
+        tenantOptions(): { label: string; value: CpiTenant, disabled: boolean }[] {
+            const include = this.selDeliveryRule.IncludedTenants || []
+            let includeRoutes = this.transportRoutes.filter(
+                route => include.some(t => t.TransportNodeID === route.sourceNodeId)
             )
-            this.tenantOptions.forEach(opt => {
-                opt.disabled = !include.some(tr => tr.targetNodeId === opt.value.TransportNodeID)
-            })
+            includeRoutes = includeRoutes.length ? includeRoutes : this.transportRoutes
+
+            return this.cpiTenants.map(t => ({
+                label: t.Name,
+                value: t, 
+                disabled: !includeRoutes.some(route => route.targetNodeId === t.TransportNodeID) 
+            }) )
         }
     },
     async created() {
         await this.refresh()
         this.cpiTenants = await GetCpiTenants() || []
         this.transportRoutes = await GetTransportRoutes()
-        this.tenantOptions = this.cpiTenants.map(t => ({ label: t.Name, value: t, disabled:false }) )
     }
 })
 </script>
