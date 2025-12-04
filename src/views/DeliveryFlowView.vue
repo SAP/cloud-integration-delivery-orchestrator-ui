@@ -82,7 +82,7 @@ export default defineComponent({
                     position: { x: 0, y: 0 }, // Placeholder position
                     type: 'deliver-group',
                     width: 300,
-                    height: 200,
+                    height: 150,
                 }
                 tenants.forEach(t => {groupNodeMap[t.TransportNodeID] = groupNode})
             })

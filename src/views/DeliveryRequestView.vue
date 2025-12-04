@@ -409,7 +409,7 @@
                 <n-button type="info" ghost size="small" @click="onSyncDrStatus" style="margin: 0 20px;">Sync Status</n-button>
                 <n-button type="info" ghost size="small" @click="showFlowModal = true">Show Detail</n-button>
               </template>
-              <n-card hoverable size="medium">
+              <n-card hoverable size="large">
                 <DeliveryFlowView :delivery-request="deliveryRequest" :cpi-tenants="cpiTenants"
                   :tenant-to-ops="tenantToOps" />
               </n-card>

@@ -1,15 +1,20 @@
 <template>
     <n-card :title="props.data.label" size="small" style="height: 100%; width: 100%;">
         <template #header-extra>
-          <n-tag v-if="props.data.isSource" type="info" size="small" :bordered="false">Source</n-tag>
+          <n-tag v-if="props.data.isSource" type="success" size="small" :bordered="false">Source</n-tag>
           <n-tag v-else :type="'warning'" size="small" :bordered="false">{{ groupStateAggr }}</n-tag>
         </template>
-        <n-tag v-for="t in props.data.tenants">{{ t?.Name }}</n-tag>
-        <n-flex v-if="!props.data.isSource" style="margin-top: 10px;" :size="[2, 0]">
-          <n-button strong quaternary type="info" @click="handleDeliver">Deliver</n-button>
-          <n-button quaternary type="info" @click="handleImportOnly"> Import Only</n-button>
-          <n-button quaternary type="info" @click="handleDeployOnly"> Deploy Only</n-button>
+        <n-flex>
+          <n-tag type="info" v-for="t in props.data.tenants">{{ t?.Name }}</n-tag>
         </n-flex>
+        <template #action>
+          <n-flex justify="space-between" :size="[1,0]" v-if="!props.data.isSource">
+            <n-button size="tiny" strong quaternary type="info" @click="handleDeliver">Deliver</n-button>
+            <n-button size="tiny" quaternary type="info" @click="handleImportOnly"> Import Only</n-button>
+            <n-button size="tiny" quaternary type="info" @click="handleDeployOnly"> Deploy Only</n-button>
+          </n-flex>
+        </template>
+
     </n-card>
 
 
