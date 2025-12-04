@@ -13,13 +13,12 @@
             
             <n-text strong depth="3" style="margin-top: 10px;">Included Tenants:</n-text>
             <n-select
-                    filterable
-                    multiple
-                    clearable
-                    placeholder="Select Included Tenants"
-                    :options="tenantOptions"
-                    @update:value="(v: CpiTenant[]) => selDeliveryRule.IncludedTenants = v"
-                />
+                filterable
+                multiple
+                clearable
+                :options="tenantOptions"
+                @update:value="(v: CpiTenant[]) => selDeliveryRule.IncludedTenants = v"
+            />
 
             <n-flex>
                 <n-tag type="info" v-for="tenant in selDeliveryRule.IncludedTenants" :key="tenant.ID">{{ tenant.Name }}</n-tag>
@@ -121,16 +120,21 @@ export default defineComponent({
     computed: {
         tenantOptions(): { label: string; value: CpiTenant, disabled: boolean }[] {
             const include = this.selDeliveryRule.IncludedTenants || []
-            let includeRoutes = this.transportRoutes.filter(
+            if (include.length === 0) {
+                return this.cpiTenants.map(t => ({
+                    label: t.Name,
+                    value: t,
+                    disabled: false
+                }))
+            }
+            const includeRoutes = this.transportRoutes.filter(
                 route => include.some(t => t.TransportNodeID === route.sourceNodeId)
             )
-            includeRoutes = includeRoutes.length ? includeRoutes : this.transportRoutes
-
             return this.cpiTenants.map(t => ({
                 label: t.Name,
                 value: t, 
                 disabled: !includeRoutes.some(route => route.targetNodeId === t.TransportNodeID) 
-            })).filter(op => !op.disabled)
+            }))
         }
     },
     async created() {
