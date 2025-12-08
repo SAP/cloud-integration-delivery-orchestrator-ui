@@ -4,50 +4,31 @@
       <h3>{{ title }} ({{ counts }})</h3>
       <n-flex style="margin: auto 0">
         <!-- custom toolbars -->
-        <n-button
-          quaternary
-          type="info"
-          v-for="(tool, index) in customToolBars"
-          :key="index"
-          @click="tool.func(checkedRows)"
-        >
+        <n-button quaternary type="info" v-for="(tool, index) in customToolBars" :key="index"
+          @click="tool.func(checkedRows)">
           {{ tool.text }}
         </n-button>
 
         <!-- add toolbar -->
-        <n-button
-          quaternary
-          type="info"
-          class="icon-class"
-          @click="handleAdd(data)"
-          v-if="handleAdd"
-        >
-          <n-icon><IosAdd /> </n-icon>
+        <n-button quaternary type="info" class="icon-class" @click="handleAdd(data)" v-if="handleAdd">
+          <n-icon>
+            <IosAdd />
+          </n-icon>
         </n-button>
       </n-flex>
     </n-flex>
-    <n-input
-      @input="handleInputSearch"
-      @clear="handleClearSearch"
-      placeholder="Search. Split with ',' or space"
-      clearable
-      size="large"
-      v-if="enableSearch"
-    />
+    <n-input @input="handleInputSearch" @clear="handleClearSearch" placeholder="Search. Split with ',' or space"
+      clearable size="large" v-if="enableSearch" />
 
-    <n-data-table
-      ref="tableRef"
-      :columns="columns"
-      :data="data"
-      :row-props="rowProps"
-      size="small"
-      :row-key="rowKey"
-      @update:checked-row-keys="handleCheck"
-      :default-checked-row-keys="defaultCheckedRowKeys"
-      striped
-      :loading="loading"
-      :pagination="paginationReactive"
-    />
+    <n-data-table ref="tableRef" :columns="columns" :data="data" :row-props="rowProps" size="small" :row-key="rowKey"
+      @update:checked-row-keys="handleCheck" :default-checked-row-keys="defaultCheckedRowKeys" striped
+      :loading="loading" :pagination="paginationReactive">
+      <template #loading>
+        <n-space>
+          <n-spin size="large" />
+        </n-space>
+      </template>
+    </n-data-table>
   </n-flex>
 </template>
 
@@ -114,9 +95,9 @@ export default defineComponent({
     handleInputSearch(v: string) {
       this.doFilter(v.split(/[\s,]+/).filter((v) => v != ''))
     },
-    handleClearSearch(v: string) {},
+    handleClearSearch(v: string) { },
     doFilter(v: string[]) {
-      ;(this.columns as any[]).forEach((column: any) => {
+      ; (this.columns as any[]).forEach((column: any) => {
         column.filter = (_value: any, row: any) => {
           const vat = Object.values(row)
             .filter((v) => this.isPrimitive(v))
@@ -137,16 +118,16 @@ export default defineComponent({
     },
     doSorter() {
       const st = new Set(this.defaultCheckedRowKeys as any)
-      ;(this.columns as any[]).forEach((column: any) => {
-        if (!column.sortOrder) return
-        column.sorter = (row1: any, row2: any) => {
-          const keyFn = this.rowKey as any
-          const a = st.has(keyFn(row1)) ? 1 : 0
-          const b = st.has(keyFn(row2)) ? 1 : 0
-          return a - b
-        }
-        column.sortOrder = 'descend'
-      })
+        ; (this.columns as any[]).forEach((column: any) => {
+          if (!column.sortOrder) return
+          column.sorter = (row1: any, row2: any) => {
+            const keyFn = this.rowKey as any
+            const a = st.has(keyFn(row1)) ? 1 : 0
+            const b = st.has(keyFn(row2)) ? 1 : 0
+            return a - b
+          }
+          column.sortOrder = 'descend'
+        })
     }
   },
   emits: ['update:checkRows', 'update:edit'],
@@ -169,12 +150,15 @@ export default defineComponent({
   height: 10px;
   width: 10px;
 }
+
 h2 {
   padding-bottom: 15px;
 }
+
 .icon-class {
   font-size: 25px;
 }
+
 .header-class {
   width: 100%;
   margin: 0;

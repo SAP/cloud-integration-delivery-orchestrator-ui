@@ -39,6 +39,7 @@
     :handle-add="() => { showModal = true; selectedDeliveryRequest = {} as DeliveryRequest }"
     :row-key="(row: DeliveryRequest) => row.ID"
     :row-click="handleRowClick"
+    :loading="loading"
   />
 </template>
 
@@ -65,6 +66,7 @@ export default defineComponent({
       selectedDeliveryRequest: {} as DeliveryRequest,
       deliveryRuleOptions: [] as {label: string, value: DeliveryRule, disabled: boolean}[],
       uaaUsers: {} as { [key: string]: UserInfo }, // userId - userEmail
+      loading: false as boolean
     }
   },
   methods: {
@@ -72,6 +74,7 @@ export default defineComponent({
       this.$router.push({ path: `/delivery-request/${row.ID}` })
     },
     async loadDeliveryRequests() {
+      this.loading = true
       const deliveryRequests = await GetDeliveryRequests()
       await Promise.all(
         deliveryRequests.map(async (dr) => {
@@ -81,6 +84,7 @@ export default defineComponent({
       )
       deliveryRequests.sort((a, b) => new Date(b.UpdatedAt).getTime() - new Date(a.UpdatedAt).getTime())
       this.deliveryRequests = deliveryRequests
+      this.loading = false
     },
     async onCreate() {
       try {

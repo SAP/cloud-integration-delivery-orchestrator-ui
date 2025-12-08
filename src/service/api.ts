@@ -230,7 +230,7 @@ export const DeriveArtifactOpAgg = (op: ArtifactTenantOperation) => {
   return 'NOT_REQUESTED'
 }
 
-export const DeriveGroupAgg = () => {
+export const DeriveOverallAgg = () => {
 
 }
 

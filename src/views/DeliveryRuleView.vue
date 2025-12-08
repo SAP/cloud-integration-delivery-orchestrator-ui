@@ -47,6 +47,7 @@
         :handle-add="handleAdd"
         :row-key="(row: DeliveryRule) => row.ID"
         :key="rules.length"
+        :loading="loading"
     />
 </template>
 
@@ -78,13 +79,16 @@ export default defineComponent({
             selDeliveryRule: {} as DeliveryRule,
             cpiTenants: [] as CpiTenant[],
             transportRoutes: [] as TransportRoute[],
+            loading: false,
         }
     },
     methods: {
         async refresh() {
+            this.loading = true
             this.rules = await GetDeliveryRules() || []
             this.rules.sort((a, b) => (a.Name || '').localeCompare(b.Name || ''))
             this.showModal = false
+            this.loading = false
         },
         async onSave() {
             // ensure arrays exist

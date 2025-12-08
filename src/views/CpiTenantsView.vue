@@ -24,7 +24,8 @@
         :custom-tool-bars="toolBars"
         :handle-add="handleAdd" 
         :row-key="(row: CpiTenant) => row.ID"
-        :key="cpiTenants.length" />
+        :key="cpiTenants.length"
+        :loading="loading" />
 
 </template>
 
@@ -54,7 +55,8 @@ export default defineComponent({
             transportNodes: [] as TransportNode[],
             cpiEndpoints: [] as ApiEndpoint[],
             transportNodesOptions: [] as {}[],
-            CpiEndpointsOptions: [] as {}[]
+            CpiEndpointsOptions: [] as {}[],
+            loading: false
         }
     },
     methods: {
@@ -63,9 +65,11 @@ export default defineComponent({
             await this.refresh()
         },
         async refresh() {
+            this.loading = true
             this.cpiTenants = await GetCpiTenants() || []
             this.showModal = false
             this.cpiTenants.sort((a, b) => (a.Name || '').localeCompare(b.Name || ''))
+            this.loading = false
         },
         async handleDelete(rows: CpiTenant[]) {
             if (rows.length === 0) {
