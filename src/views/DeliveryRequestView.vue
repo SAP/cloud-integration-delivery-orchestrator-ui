@@ -407,9 +407,14 @@
               <template #title> 
                 Delivery Flow
                 <n-button type="info" ghost size="small" @click="onSyncDrStatus" style="margin: 0 20px;">Sync Status</n-button>
-                <n-button type="info" ghost size="small" @click="showFlowModal = true">Show Detail</n-button>
+                <n-button type="info" ghost size="small" @click="showFlowModal = true" :disabled="loadingCpiTenants">Show Detail</n-button>
               </template>
-              <n-card hoverable size="large">
+              <n-flex v-if="loadingCpiTenants" vertical>
+                <n-skeleton style="width: 50%;" />
+                <n-skeleton style="width: 60%;" />
+                <n-skeleton style="width: 70%;" />
+              </n-flex>
+              <n-card v-else hoverable size="large">
                 <DeliveryFlowView :delivery-request="deliveryRequest" :cpi-tenants="cpiTenants"
                   :tenant-to-ops="tenantToOps" />
               </n-card>
@@ -453,6 +458,7 @@ import type { DeliveryRequest, CpiTenant, Package, Artifact, ArtifactVersionHist
 import DeliveryFlowView from './DeliveryFlowView.vue'
 import CpiTransportFlowView from './CpiTransportFlowView.vue'
 import ArtifactOpTag from '@/components/ArtifactOpTag.vue'
+import { nextTick } from 'vue'
 export default {
   name: 'TransportPlanView',
   components: {
@@ -505,6 +511,7 @@ export default {
       searchApprover: '',
       uaaUsers: {} as { [key: string]: UserInfo }, // userId - userEmail
       currentUser: {} as UserInfo,
+      loadingCpiTenants: true
     }
   },
   methods: {
@@ -792,7 +799,10 @@ export default {
   },
   async created() {
     await this.refresh()
+    this.loadingCpiTenants = true
+    await nextTick()
     this.cpiTenants = await GetAllCpiTenants()
+    this.loadingCpiTenants = false
     this.currentUser = await CurrentUser()
   }
 }

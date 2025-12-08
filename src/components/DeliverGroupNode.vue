@@ -1,5 +1,5 @@
 <template>
-    <n-card :title="props.data.label" size="small" style="height: 100%; width: 100%;">
+    <n-card :id="props.id" :title="props.data.label" size="small" style="height: 100%; width: 100%;">
         <template #header-extra>
           <n-tag v-if="props.data.isSource" type="success" size="small" :bordered="false">Source</n-tag>
           <n-tag v-else :type="'warning'" size="small" :bordered="false">{{ groupStateAggr }}</n-tag>

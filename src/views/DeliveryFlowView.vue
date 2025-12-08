@@ -19,7 +19,7 @@
 
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, nextTick, watch } from 'vue'
 import { VueFlow, type Edge, type Node } from '@vue-flow/core'
 import type { ArtifactTenantOperation, CpiTenant, DeliveryRequest } from '@/service/model'
 import { DeployOps, ImportOps, layoutNodes } from '@/service/api'
@@ -50,7 +50,7 @@ const childNodes = computed<{ [key: number]: number[] }>(() => {
     return child
 })
 
-// transport node ID -> (group) node
+// transport TMS node ID -> (group) node
 const toGroupNode = computed<{ [key: number]: Node }>(() => {
     const tenantGroups: { [key: string]: CpiTenant[] } = {}
     props.deliveryRequest?.DeliveryRule?.TargetNodes?.forEach(n => {
@@ -77,7 +77,7 @@ const toGroupNode = computed<{ [key: number]: Node }>(() => {
             position: { x: 0, y: 0 },
             type: 'deliver-group',
             width: 300,
-            height: 150,
+            height: 200,
         }
         tenants.forEach(t => { groupNodeMap[t.TransportNodeID] = groupNode })
     })
@@ -121,6 +121,18 @@ const graph = computed(() => {
     const edges = Object.values(uniqueEdges)
     return layoutNodes(nodes, edges)
 })
+
+watch(toGroupNode, async(newVal) => {
+    await nextTick()
+    Object.entries(newVal).forEach(([id, node]) => {
+        const el = document.getElementById(node.id)
+        const {width, height} = el?.getBoundingClientRect() ?? {}
+        console.log(`DeliverGroup ${node.id} real size`, width, height)
+        node.height = height
+        node.width = width
+    })
+}, {deep: true}
+)
 
 function groupLabel(childNodeIds: number[]): string {
     if (childNodeIds.length === 1) {
