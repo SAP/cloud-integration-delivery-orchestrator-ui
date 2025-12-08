@@ -224,20 +224,15 @@
                     Source Cpi Tenant
                   </n-divider>
                   <n-text depth="3" strong>
-                    Tenant: #{{ deliveryRequest.SourceTenant.ID }}: {{ deliveryRequest.SourceTenant.Name }}
+                    Tenant: #{{ deliveryRequest.SourceTenant.ID }} {{ deliveryRequest.SourceTenant.Name }}
                   </n-text>
-                  <div v-if="deliveryRequest.SourceTenant.TransportNodeID">
-                    <n-text depth="3" strong>
-                      Transport Node: #{{ deliveryRequest.SourceTenant.TransportNodeID }}
-                      {{ deliveryRequest.SourceTenant.TransportNodeName }} -
-                      {{ deliveryRequest.SourceTenant.TransportNodeDescription}}
-                    </n-text>
-                  </div>
-                  <div v-if="deliveryRequest.SourceTenant.CpiEndpoint">
-                    <n-text depth="3" strong>
-                      CPI Endpoint: {{ deliveryRequest.SourceTenant.CpiEndpoint.name }} - {{deliveryRequest.SourceTenant.CpiEndpoint.url }}
-                    </n-text>
-                  </div>
+                  <n-text v-if="deliveryRequest.SourceTenant.TransportNodeID" depth="3" strong>
+                    Transport Node: #{{ deliveryRequest.SourceTenant.TransportNodeID }}
+                    {{ deliveryRequest.SourceTenant.TransportNodeName }} - {{ deliveryRequest.SourceTenant.TransportNodeDescription}}
+                  </n-text>
+                  <n-text v-if="deliveryRequest.SourceTenant.CpiEndpoint" depth="3" strong>
+                    CPI Endpoint: {{ deliveryRequest.SourceTenant.CpiEndpoint.name }} - {{deliveryRequest.SourceTenant.CpiEndpoint.url }}
+                  </n-text>
                   <!-- packages & artifacts section -->
                   <n-divider dashed title-placement="center"
                     style="margin:0 0 10px 0; font-weight:600; letter-spacing:.5px">

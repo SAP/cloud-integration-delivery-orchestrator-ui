@@ -524,28 +524,6 @@ export const deliveryRequestColumns: DataTableColumns<DeliveryRequest> = [
     }
   },
   {
-    title: 'Artifacts',
-    key: 'Artifacts',
-    resizable: true,
-    render(row: DeliveryRequest) {
-      if (!row.ArtifactTenantOperations?.length) return ''
-      return h(
-        'div',
-        row.ArtifactTenantOperations.map(a =>
-          h(
-            NTag,
-            {
-              size: 'small',
-              style: { marginRight: '4px', marginBottom: '4px' },
-              type: 'info'
-            },
-            { default: () => `${a.ArtifactTechID}@${a.ArtifactVersion}` }
-          )
-        )
-      )
-    }
-  },
-  {
     title: 'Updated At',
     key: 'UpdatedAt',
     resizable: true,
