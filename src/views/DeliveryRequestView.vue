@@ -3,12 +3,11 @@
   <!-- Flow Modal -->
   <n-modal 
     v-model:show="showFlowModal" 
-    preset="card" 
+    preset="dialog" 
     title="Delivery Flow" 
     :closable="true" 
     :mask-closable="true"
-    style="width:80%; 
-    height: 100%;">
+    style="width: 80%; height: 80%;">
     <CpiTransportFlowView 
       :delivery-request="deliveryRequest"
       :cpi-tenants="cpiTenants"
@@ -16,7 +15,7 @@
   </n-modal>
   <!-- artifact details modal -->
   <n-modal v-model:show="showArtifactDetails" preset="card" 
-    style="max-width:560px"
+    style="width: 35%;"
     size="small" 
     :closable="true" 
     :close-on-esc="true" 
@@ -319,29 +318,29 @@
                       Selected Artifacts ({{ selArtifactOps.length }})
                     </n-divider>
                     <n-flex vertical>
-                      <!-- old(source) artifacts + draft source artifacts -->
-                      <n-flex>
-                        <ArtifactOpTag v-for="(op, i) in sourceOps" 
-                          :i="i" :art-op="op" :stage-type="stateType(op)" 
-                          @open-artifact-details="openArtifactDetails"/>
-                      </n-flex>
-                      <!-- artifacts to be added -->
-                      <n-flex vertical>
-                        <n-text type="success" depth="3" strong v-if="addOps && addOps.length > 0">To be Added: </n-text>
+                      <n-spin :show="updatingOps" :delay="500">
+                        <!-- old(source) artifacts + draft source artifacts -->
                         <n-flex>
-                          <ArtifactOpTag v-for="(op, i) in addOps" :i="i" :art-op="op" :stage-type="stateType(op)" @open-artifact-details="openArtifactDetails"/>
+                          <ArtifactOpTag v-for="(op, i) in sourceOps" 
+                            :i="i" :art-op="op" :stage-type="stateType(op)" 
+                            @open-artifact-details="openArtifactDetails"/>
                         </n-flex>
-                      </n-flex> 
-                      <!-- artifacts to be deleted -->
-                      <n-flex vertical>
-                        <n-text type="error" depth="3" strong v-if="deleteOps && deleteOps.length > 0">To be Deleted: </n-text>
-                        <n-flex>
-                          <ArtifactOpTag v-for="(op, i) in deleteOps" :i="i" :art-op="op" :stage-type="stateType(op)" @open-artifact-details="openArtifactDetails"/>
+                        <!-- artifacts to be added -->
+                        <n-flex vertical>
+                          <n-text type="success" depth="3" strong v-if="addOps && addOps.length > 0">To be Added: </n-text>
+                          <n-flex>
+                            <ArtifactOpTag v-for="(op, i) in addOps" :i="i" :art-op="op" :stage-type="stateType(op)" @open-artifact-details="openArtifactDetails"/>
+                          </n-flex>
+                        </n-flex> 
+                        <!-- artifacts to be deleted -->
+                        <n-flex vertical>
+                          <n-text type="error" depth="3" strong v-if="deleteOps && deleteOps.length > 0">To be Deleted: </n-text>
+                          <n-flex>
+                            <ArtifactOpTag v-for="(op, i) in deleteOps" :i="i" :art-op="op" :stage-type="stateType(op)" @open-artifact-details="openArtifactDetails"/>
+                          </n-flex>
                         </n-flex>
-                      </n-flex>
+                      </n-spin>
                     </n-flex>
-                  </n-flex>
-                  <n-flex style="margin-top: 10px;">
                     <n-button type="info" ghost strong @click="updateDr"> Update </n-button>
                   </n-flex>
                 </n-flex>
@@ -384,6 +383,7 @@
                         </n-button>
                       </template>
                       <n-text strong depth="3" v-if="approveInfo.disable">Cannot Skip Approval</n-text>
+                      <n-text strong depth="3">Force Deliver</n-text>
                     </n-popover>
                     <n-button v-if="deliveryRequest.Approvers" ghost type="info" @click="handleRequestApprove">Send To Approvers</n-button>
 
@@ -506,7 +506,8 @@ export default {
       searchApprover: '',
       uaaUsers: {} as { [key: string]: UserInfo }, // userId - userEmail
       currentUser: {} as UserInfo,
-      loadingCpiTenants: true
+      loadingCpiTenants: true,
+      updatingOps: false,
     }
   },
   methods: {
@@ -606,12 +607,15 @@ export default {
           return
         }
       }
+      this.updatingOps = true
+      await nextTick()
       await UpdateDeliveryRequest(this.deliveryRequest)
       const draftOps = UpdateOps(this.deliveryRequest.ID, this.draftSourceOps.map(d => d.op))
       const delOps = DeleteOps(this.deleteOps.map(op => op.ID))
       const insertOps = InsertOps(this.deliveryRequest.ID, this.addOps)
       await Promise.all([delOps, insertOps, draftOps])
       await this.refresh()
+      this.updatingOps = false
     },
     // check TR number existence
     async checkTr(op: ArtifactTenantOperation) {

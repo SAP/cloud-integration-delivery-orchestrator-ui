@@ -1,5 +1,9 @@
 <template>
-    <VueFlow :nodes="graph.nodes" :edges="graph.edges" fit-view-on-init :style="{height:graph.height+'px'}" >
+    <VueFlow 
+        :nodes="graph.nodes" 
+        :edges="graph.edges" 
+        fit-view-on-init 
+        :style="{ height: graph.height + 'px', width: '100%' }" >
         <template #node-cpi-transport="props" >
           <CpiTransportNode
             v-bind="props"
@@ -50,7 +54,9 @@ const nodes = computed<Node[]>(() => {
             Tenant: tenant
         },
         position: { x: 0, y: 0 },
-        type: 'cpi-transport'
+        type: 'cpi-transport',
+        width: 600,
+        height: 200
     })
     })
     const sourceNodeID = props.deliveryRequest.SourceTenant.TransportNodeID
@@ -65,7 +71,9 @@ const nodes = computed<Node[]>(() => {
             Tenant: props.deliveryRequest.SourceTenant
         },
         position: { x: 0, y: 0 },
-        type: 'cpi-transport'
+        type: 'cpi-transport',
+        width: 100,
+        height: 200
     }
     const all = [sourceNode, ...targetNodes]
     return all 

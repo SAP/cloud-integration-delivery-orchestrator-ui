@@ -58,58 +58,46 @@ function disableDeploy(op: ArtifactTenantOperation) {
 </script>
 
 <template>
-  <div class="cpi-node">
-    <div class="node-header" :class="{ source: data.IsSource }">
-      <span class="node-title">{{ data.Tenant.Name }}</span>
+  <n-card style="height: 100%; width: 100%;">
+    <template #header>
+      <n-flex>
+        <n-text>{{ data.Tenant.Name }}</n-text>
+        <span v-if="!data.IsSource">
+          <n-button size="tiny" tertiary type="primary" @click="handleDeployAll" :disabled="nodeDeployDsiabled" style="margin: 0 10px;">Deploy All</n-button>
+          <n-button size="tiny" tertiary @click="handleImportAll" :disabled="nodeImportDisabled">Import All</n-button>
+        </span>
+      </n-flex>
+    </template>
+    <template #header-extra>
       <n-tag v-if="data.IsSource" type="info" size="small" :bordered="false">Source</n-tag>
       <n-tag v-else :type="'warning'" size="small" :bordered="false">
         {{ nodeAggState }}
       </n-tag>
-    </div>
-    <div v-if="!data.IsSource" class="batch-actions">
-      <n-button size="tiny" tertiary @click="handleImportAll" :disabled="nodeImportDisabled">Import All</n-button>
-      <n-button size="tiny" tertiary type="primary" @click="handleDeployAll" :disabled="nodeDeployDsiabled">Deploy All</n-button>
-    </div>
+    </template>
 
     <n-text v-if="!Object.keys(ops).length" depth="3" style="font-size:11px">No artifacts {{ data.IsSource ? '' : 'delivered here yet' }}</n-text>
-
-    <n-scrollbar v-else style="max-height:200px; margin-top:10px;">
-      <n-flex v-for="op in ops" :key="op.ArtifactTechID + '@' + op.ArtifactVersion" justify="space-between">
-        <n-text depth="3">{{ op.ArtifactTechID }}@{{ op.ArtifactVersion }}</n-text>
-        <n-text v-if="!data.IsSource" >Import State: {{ op.ImportState }}, Deploy State: {{ op.DeployState }}</n-text>
-        <n-flex v-if="!data.IsSource">
-          <n-button size="tiny" quaternary @click="handleImport(op)" :disabled="disableImport(op)">Import</n-button>
-          <n-button size="tiny" quaternary type="primary" @click="handleDeploy(op)" :disabled="disableDeploy(op)">Deploy</n-button>
-        </n-flex>
-      </n-flex>
+    <n-scrollbar v-else>
+      <n-table size="small" :bordered="false" :single-line="true">
+        <thead>
+          <tr>
+            <th>Artifact</th>
+            <th>Import State</th>
+            <th>Deploy State</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="op in ops" :key="op.ArtifactTechID + '@' + op.ArtifactVersion">
+            <td>{{ op.ArtifactTechID }}@{{ op.ArtifactVersion }}</td>
+            <td>{{ op.ImportState }}</td>
+            <td>{{ op.DeployState }}</td>
+            <td>
+              <n-button size="tiny" quaternary type="info" @click="handleImport(op)" :disabled="disableImport(op)">Import</n-button>
+              <n-button size="tiny" quaternary type="info" @click="handleDeploy(op)" :disabled="disableDeploy(op)">Deploy</n-button>
+            </td>
+          </tr>
+        </tbody>
+      </n-table>
     </n-scrollbar>
-  </div>
+  </n-card>
 </template>
-
-<style scoped>
-.cpi-node {
-  background: #fff;
-  border: 1px solid var(--n-border-color, #dcdfe6);
-  border-radius: 6px;
-  padding: 8px 10px 10px;
-  min-width: 300px;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.08);
-  font-size: 12px;
-}
-.node-header {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-weight: 600;
-  margin-bottom: 4px;
-}
-.node-header.source {
-  color: #2563eb;
-}
-.node-title { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.artifact-row { display:flex; align-items:center; justify-content:space-between; padding:2px 0; border-bottom:1px dashed rgba(0,0,0,0.06); }
-.artifact-row:last-child { border-bottom:none; }
-.artifact-name { max-width:200px; overflow:hidden; text-overflow:ellipsis; }
-.artifact-version { color:#555; font-size:11px; }
-.batch-actions { display:flex; gap:4px; margin-bottom:4px; }
-</style>
