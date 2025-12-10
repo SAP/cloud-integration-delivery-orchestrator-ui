@@ -382,8 +382,8 @@
                           {{ approveInfo.display }}
                         </n-button>
                       </template>
-                      <n-text strong depth="3" v-if="approveInfo.disable">Cannot Skip Approval</n-text>
-                      <n-text strong depth="3">Force Deliver</n-text>
+                      <n-text strong depth="3" v-if="approveInfo.disable">Cannot approve your own request</n-text>
+                      <n-text strong depth="3" v-else>Force Deliver</n-text>
                     </n-popover>
                     <n-button v-if="deliveryRequest.Approvers" ghost type="info" @click="handleRequestApprove">Send To Approvers</n-button>
 
