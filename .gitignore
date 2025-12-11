@@ -13,6 +13,7 @@ dist
 dist-ssr
 coverage
 *.local
+mta_archives/
 
 /cypress/videos/
 /cypress/screenshots/
