@@ -21,8 +21,7 @@ export default defineConfig(({mode}) => {
       cors: true
     },
     build: {
-      outDir: resolve(__dirname, '../approuter/dist'),
-      emptyOutDir: true
+      outDir: resolve(__dirname, 'approuter/dist'),
     }
   }
 })
