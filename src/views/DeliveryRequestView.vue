@@ -799,7 +799,7 @@ export default {
     jira(): string {
       const v = this.deliveryRequest.JiraLink || ''
       const match = v.match(/([A-Z]+-\d+)/)
-      return match ? match[1] : ''
+      return match ? match[1] : 'Invalid'
     },
     cpiTenantLink() {
       const tenant = this.deliveryRequest.SourceTenant

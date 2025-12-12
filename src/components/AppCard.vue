@@ -5,11 +5,15 @@ export default defineComponent({
     title: String,
     subtitle: String,
     path: String,
-    count: Number
+    count: {
+      type: Object as PropType<{ [key: string]: number }>,
+      required: false,
+      default: () => ({})
+    }
   },
   methods: {
     jumpTo() {
-      this.$router.push(this.path)
+      this.$router.push(this.path as string)
     }
   }
 })
@@ -24,7 +28,14 @@ export default defineComponent({
     <div/>
     <n-text depth="3" strong>{{ subtitle }}</n-text>
     <template #footer>
-      <n-text depth="3" strong>{{count}}</n-text>
+      <n-space vertical size="4">
+        <n-text
+          v-for="(value, key) in count"
+          :key="key"
+          depth="3"
+          strong
+        >{{ key }}: {{ value }}</n-text>
+      </n-space>
     </template>
   </n-card>
 </template>

@@ -3,15 +3,16 @@ import http from './http'
 import type { ApiEndpoint, Artifact, ArtifactTenantOperation, ArtifactVersionHistoryItem, CpiTenant, CpiTenantNodeData, DeliverOpRequest, DeliveryRequest, DeliveryRule, NodeTransportRequest, Package, RuntimeArtifact, TransportGroup, TransportNode, TransportRoute, UserInfo } from './model'
 import type { AggregateStatus, DeployState, ImportState, RequestState } from './statuses'
 
+export const GetDrCounts = () => {
+  const drCounts = http.get('/api/v1/deliveryRequest/counts') as Promise<{ [key: string]: number }[]>
+  return drCounts
+}
+
 let currentUser: UserInfo | null = null
 export const CurrentUser = async () => {
   if (currentUser) return currentUser
   const { data } = await axios.get('/user-api/currentUser')  
   return currentUser = data
-}
-
-export const GetJobCounts = () => {
-  return http.get('/api/v1/count') as Promise<{ [key: string]: number }[]>
 }
 
 export const GetCPIApiEndpoints = () => {
