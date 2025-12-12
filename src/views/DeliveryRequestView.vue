@@ -220,18 +220,21 @@
                   <!-- cpi tenants selection -->
                   <n-divider dashed title-placement="center"
                     style="margin:0 0 10px 0; font-weight:600; letter-spacing:.5px">
-                    Source Cpi Tenant
+                    Source CPI Tenant
                   </n-divider>
-                  <n-text depth="3" strong>
-                    Tenant: #{{ deliveryRequest.SourceTenant.ID }} {{ deliveryRequest.SourceTenant.Name }}
-                  </n-text>
-                  <n-text v-if="deliveryRequest.SourceTenant.TransportNodeID" depth="3" strong>
-                    Transport Node: #{{ deliveryRequest.SourceTenant.TransportNodeID }}
-                    {{ deliveryRequest.SourceTenant.TransportNodeName }} - {{ deliveryRequest.SourceTenant.TransportNodeDescription}}
-                  </n-text>
-                  <n-text v-if="deliveryRequest.SourceTenant.CpiEndpoint" depth="3" strong>
-                    CPI Endpoint: {{ deliveryRequest.SourceTenant.CpiEndpoint.name }} - {{deliveryRequest.SourceTenant.CpiEndpoint.url }}
-                  </n-text>
+                  <n-flex justify="center">
+                    <n-text depth="3" strong>
+                      {{ deliveryRequest.SourceTenant.Name }} #{{ deliveryRequest.SourceTenant.ID }}
+                      <n-divider vertical />
+                    </n-text>
+                    <n-text depth="3" strong>
+                      <a :href="cpiTenantLink" target="_blank" rel="noopener noreferrer">
+                        {{ cpiTenantLink }}
+                      </a>
+                    </n-text>
+                      
+                  </n-flex>
+
                   <!-- packages & artifacts section -->
                   <n-divider dashed title-placement="center"
                     style="margin:0 0 10px 0; font-weight:600; letter-spacing:.5px">
@@ -607,15 +610,18 @@ export default {
           return
         }
       }
-      this.updatingOps = true
-      await nextTick()
-      await UpdateDeliveryRequest(this.deliveryRequest)
-      const draftOps = UpdateOps(this.deliveryRequest.ID, this.draftSourceOps.map(d => d.op))
-      const delOps = DeleteOps(this.deleteOps.map(op => op.ID))
-      const insertOps = InsertOps(this.deliveryRequest.ID, this.addOps)
-      await Promise.all([delOps, insertOps, draftOps])
-      await this.refresh()
-      this.updatingOps = false
+      try {
+        this.updatingOps = true
+        await nextTick()
+        await UpdateDeliveryRequest(this.deliveryRequest)
+        const draftOps = UpdateOps(this.deliveryRequest.ID, this.draftSourceOps.map(d => d.op))
+        const delOps = DeleteOps(this.deleteOps.map(op => op.ID))
+        const insertOps = InsertOps(this.deliveryRequest.ID, this.addOps)
+        await Promise.all([delOps, insertOps, draftOps])
+      } finally{
+        await this.refresh()
+        this.updatingOps = false
+      }
     },
     // check TR number existence
     async checkTr(op: ArtifactTenantOperation) {
@@ -794,6 +800,12 @@ export default {
       const v = this.deliveryRequest.JiraLink || ''
       const match = v.match(/([A-Z]+-\d+)/)
       return match ? match[1] : ''
+    },
+    cpiTenantLink() {
+      const tenant = this.deliveryRequest.SourceTenant
+      if (!tenant || !tenant.CpiEndpoint) return ''
+      const baseUrl = new URL(tenant.CpiEndpoint.url)
+      return `${baseUrl.protocol}//${baseUrl.host}/itspaces/shell/design`
     }
   },
   async created() {
