@@ -65,7 +65,7 @@ export default defineComponent({
       showModal: false,
       selectedDeliveryRequest: {} as DeliveryRequest,
       deliveryRuleOptions: [] as {label: string, value: DeliveryRule, disabled: boolean}[],
-      uaaUsers: {} as { [key: string]: UserInfo }, // userId - userEmail
+      uaaUsers: {} as { [key: string]: Promise<UserInfo> }, // userId - userEmail
       loading: false as boolean
     }
   },
@@ -111,8 +111,10 @@ export default defineComponent({
       }
     },
     async uaaUserInfo(userId: string) {
-      if (this.uaaUsers[userId]) return this.uaaUsers[userId]
-      return this.uaaUsers[userId] = await UaaUserInfo(userId)
+      if(!this.uaaUsers[userId]) {
+        this.uaaUsers[userId] = UaaUserInfo(userId)
+      }
+      return this.uaaUsers[userId]
     },
   },
   async created() {
