@@ -1,17 +1,22 @@
 <template>
-    <n-modal v-model:show="showModal" preset="dialog" title="Dialog">
+    <n-modal v-model:show="showModal" preset="dialog" title="Dialog" style="width: 40%;">
         <template #header>
             <div>Create Cpi Tenant</div>
         </template>
-        Name:
-        <n-input v-model:value="selectedCpiTenant.Name" placeholder="Cpi Tenant Name, e.g. cpi-mmt-dev" />
-        TMS Node:
-        <n-select @update:value="onSelectNode" filterable placeholder="Choose TMS Transport Nodes"
-            :options="transportNodesOptions" />
+        <n-flex vertical>
+            Name
+            <n-input v-model:value="selectedCpiTenant.Name" placeholder="Cpi Tenant Name, e.g. cpi-mmt-dev" />
+            TMS Node
+            <n-select @update:value="onSelectNode" :value="`${selectedCpiTenant.TransportNodeName}(${selectedCpiTenant.TransportNodeDescription})`" filterable placeholder="Choose TMS Transport Nodes"
+                :options="transportNodesOptions"  />
+            Cpi Api Endpoint
+            <n-select @update:value="(e: ApiEndpoint) => selectedCpiTenant.CpiEndpoint=e" :value="`${selectedCpiTenant.CpiEndpoint.name}(${selectedCpiTenant.CpiEndpoint.url})`" filterable placeholder="Choose CPI Api Endpoint"
+                :options="CpiEndpointsOptions" />
+            Tag
+            <n-select v-model:value="selectedCpiTenant.Group" tag filterable placeholder="e.g. Dev, Test, Production"
+             :options="tagOptions"/>
+        </n-flex>
 
-        Cpi Api Endpoint:
-        <n-select v-model:value="selectedCpiTenant.CpiEndpoint" filterable placeholder="Choose CPI Api Endpoint"
-            :options="CpiEndpointsOptions" />
 
         <template #action>
             <n-button type="primary" @click="onSave">Save</n-button>
@@ -30,7 +35,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent } from 'vue'
+import { defineComponent, h } from 'vue'
 import DataTable from '@/components/DataTable.vue'
 import { cpiTenantColums, type ToolBar } from '@/service/consts'
 import { DeleteCpiTenant, GetCPIApiEndpoints, GetCpiTenants, GetTransportNodes, UpsertCpiTenant } from '@/service/api'
@@ -40,10 +45,14 @@ export default defineComponent({
     data() {
         const toolBars: ToolBar<CpiTenant>[] = [
             {
-            text: 'Delete',
-            // 这里用箭头函数包装是为了保留外层 this（组件实例）；
-            // 如果直接写 func: this.handleDelete ，在 DataTable 调用时 this 会丢失。
-            func: (rows: CpiTenant[]) => this.handleDelete(rows)
+                text: 'Delete',
+                // 这里用箭头函数包装是为了保留外层 this（组件实例）；
+                // 如果直接写 func: this.handleDelete ，在 DataTable 调用时 this 会丢失。
+                func: (rows: CpiTenant[]) => this.handleDelete(rows)
+            },
+            {
+                text: 'Edit',
+                func: (rows: CpiTenant[]) => {this.handleEdit(rows)}
             }
         ]
         return {
@@ -83,6 +92,14 @@ export default defineComponent({
             this.selectedCpiTenant = {} as CpiTenant
             this.showModal = true
         },
+        handleEdit(rows: CpiTenant[]) {
+            if (rows.length === 0) {
+                window.$message.warning('Please select one Cpi Tenant')
+                return
+            }
+            this.selectedCpiTenant = { ...rows[0] }
+            this.showModal = true
+        },
         onSelectNode(node: TransportNode) {
             this.selectedCpiTenant.TransportNodeID = node.id
             this.selectedCpiTenant.TransportNodeName = node.name
@@ -95,6 +112,12 @@ export default defineComponent({
         this.cpiEndpoints = await GetCPIApiEndpoints() || []
         this.transportNodesOptions = this.transportNodes.map(node => ({ label: `${node.name}(${node.description})`, value: node }))
         this.CpiEndpointsOptions = this.cpiEndpoints.map(ep => ({ label: `${ep.name}(${ep.url})`, value: ep }))
+    },
+    computed: {
+        tagOptions(): { label: string; value: string }[] {
+            const groups = Array.from(new Set(this.cpiTenants.map(t => t.Group).filter(g => g)))
+            return groups.map(g => ({ label: g, value: g }))
+        }
     }
 })
 

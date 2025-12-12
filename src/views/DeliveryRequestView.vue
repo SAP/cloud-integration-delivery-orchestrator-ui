@@ -330,7 +330,7 @@
                         </n-flex>
                         <!-- artifacts to be added -->
                         <n-flex vertical>
-                          <n-text type="success" depth="3" strong v-if="addOps && addOps.length > 0">To be Added: </n-text>
+                          <n-text type="success" depth="3" strong v-if="addOps && addOps.length > 0">New: </n-text>
                           <n-flex>
                             <ArtifactOpTag v-for="(op, i) in addOps" :i="i" :art-op="op" :stage-type="stateType(op)" @open-artifact-details="openArtifactDetails"/>
                           </n-flex>
