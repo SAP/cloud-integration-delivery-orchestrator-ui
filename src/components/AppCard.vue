@@ -27,16 +27,9 @@ export default defineComponent({
     <n-text style="font-size: 15px;font-weight: bolder;">{{ title }}</n-text>
     <div/>
     <n-text depth="3" strong>{{ subtitle }}</n-text>
-    <template #footer>
-      <n-space vertical size="4">
-        <n-text
-          v-for="(value, key) in count"
-          :key="key"
-          depth="3"
-          strong
-        >{{ key }}: {{ value }}</n-text>
-      </n-space>
-    </template>
+    <n-span v-for="(k, i) in Object.entries(count)" :key="i">
+      {{ k[0] }}: <n-text strong>{{ k[1] }}</n-text>
+    </n-span>
   </n-card>
 </template>
 
