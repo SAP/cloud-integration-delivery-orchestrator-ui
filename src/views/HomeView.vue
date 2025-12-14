@@ -1,7 +1,7 @@
 <script lang="ts">
 import AppCard from '@/components/AppCard.vue'
 import http from '@/service/http';
-import { s } from 'node_modules/vite/dist/node/types.d-aGj9QkWt';
+import type { AppCount } from '@/service/model';
 import { defineComponent } from 'vue'
 
 
@@ -12,7 +12,7 @@ export default defineComponent({
   data() {
     const routers = this.$router.getRoutes()
     const apps = routers.filter(r => r.children.length > 0)
-    const counts: { [key: string]: { [key: string]: number } } = {}
+    const counts: { [key: string]: AppCount } = {}
     return {
       apps,
       counts,
@@ -23,7 +23,7 @@ export default defineComponent({
       .map(async app => {
         const countPath = app.meta?.countPath as string
         if (!countPath) return
-        this.counts[app.name as string] = await http.get(countPath)
+        this.counts[app.name as string] = (await http.get(countPath)) as AppCount
       })
     await Promise.all(all)
   }

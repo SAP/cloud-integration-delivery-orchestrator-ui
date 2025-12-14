@@ -214,3 +214,9 @@ export interface UserInfo {
     type: string
   }[]
 }
+
+
+export interface AppCount {
+  Total: number
+  StatusCounts: {[key: string]: number}
+}
