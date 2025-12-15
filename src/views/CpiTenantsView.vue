@@ -7,11 +7,17 @@
             Name
             <n-input v-model:value="selectedCpiTenant.Name" placeholder="Cpi Tenant Name, e.g. cpi-mmt-dev" />
             TMS Node
-            <n-select @update:value="onSelectNode" :value="`${selectedCpiTenant.TransportNodeName}(${selectedCpiTenant.TransportNodeDescription})`" filterable placeholder="Choose TMS Transport Nodes"
-                :options="transportNodesOptions"  />
+            <n-select @update:value="onSelectNode" 
+                :value="tmsNodeDisplay" 
+                filterable 
+                placeholder="Choose TMS Transport Nodes"
+                :options="transportNodesOptions"/>
             Cpi Api Endpoint
-            <n-select @update:value="(e: ApiEndpoint) => selectedCpiTenant.CpiEndpoint=e" :value="`${selectedCpiTenant.CpiEndpoint.name}(${selectedCpiTenant.CpiEndpoint.url})`" filterable placeholder="Choose CPI Api Endpoint"
-                :options="CpiEndpointsOptions" />
+            <n-select @update:value="(e: ApiEndpoint) => selectedCpiTenant.CpiEndpoint=e" 
+                :value="cpiEndpointDisplay"
+                filterable 
+                placeholder="Choose CPI Api Endpoint"
+                :options="CpiEndpointsOptions"/>
             Tag
             <n-select v-model:value="selectedCpiTenant.Group" tag filterable placeholder="e.g. Dev, Test, Production"
              :options="tagOptions"/>
@@ -117,6 +123,12 @@ export default defineComponent({
         tagOptions(): { label: string; value: string }[] {
             const groups = Array.from(new Set(this.cpiTenants.map(t => t.Group).filter(g => g)))
             return groups.map(g => ({ label: g, value: g }))
+        },
+        tmsNodeDisplay() {
+            return this.selectedCpiTenant.TransportNodeName ? `${this.selectedCpiTenant.TransportNodeName}(${this.selectedCpiTenant.TransportNodeDescription})` : null
+        },
+        cpiEndpointDisplay() {
+            return this.selectedCpiTenant.CpiEndpoint ? `${this.selectedCpiTenant.CpiEndpoint.name}(${this.selectedCpiTenant.CpiEndpoint.url})` : null
         }
     }
 })

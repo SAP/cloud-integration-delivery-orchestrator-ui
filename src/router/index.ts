@@ -1,5 +1,31 @@
-import { c } from 'naive-ui'
+import http from '@/service/http'
+import type { AppCount } from '@/service/model'
+import type { AggregateStatus } from '@/service/statuses'
 import { createRouter, createWebHistory } from 'vue-router'
+
+const deliveryRequestCounts = async (): Promise<AppCount> => {
+  const counts = (await http.get('/api/v1/deliveryRequest/counts')) as {
+    Total: number
+    StatusCounts: Record<AggregateStatus, number>
+  }
+  return {
+    Total: counts.Total,
+    StatusCounts: {
+      'pending': counts.StatusCounts.PENDING,
+      'waiting approval': counts.StatusCounts.WAITING_APPROVAL,
+    }
+  }
+}
+
+const cpiTenantCounts = async (): Promise<AppCount> => {
+  const counts = (await http.get('/api/v1/cpiTenant/counts')) as AppCount
+  return counts
+}
+
+const deliveryRuleCounts = async (): Promise<AppCount> => {
+  const counts = (await http.get('/api/v1/deliveryRule/counts')) as AppCount
+  return counts
+}
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -19,7 +45,7 @@ const router = createRouter({
           path: 'delivery-request-list',
           name: 'Delivery Requests',
           component: () => import('@/views/DeliveryRequestListView.vue'),
-          meta: { description: 'Transport, Deploy Artifacts to CPI Tenants', countPath: '/api/v1/deliveryRequest/counts' }
+          meta: { description: 'Transport, Deploy Artifacts to CPI Tenants', statusCount: deliveryRequestCounts }
         },
       ]
     },
@@ -32,13 +58,13 @@ const router = createRouter({
           path: 'cpi-tenants',
           name: 'CPI Tenants',
           component: () => import('@/views/CpiTenantsView.vue'),
-          meta: { description: 'Manage CPI Tenants', countPath: '/api/v1/deliveryRequest/counts' }
+          meta: { description: 'Manage CPI Tenants', statusCount: cpiTenantCounts }
         },
         {
           path: 'delivery-rule',
           name: 'Delivery Rule',
           component: () => import('@/views/DeliveryRuleView.vue'),
-          meta: { description: 'Configure Delivery Rules', countPath: '/api/v1/deliveryRequest/counts' }
+          meta: { description: 'Configure Delivery Rules', statusCount: deliveryRuleCounts }
         }
       ]
     },

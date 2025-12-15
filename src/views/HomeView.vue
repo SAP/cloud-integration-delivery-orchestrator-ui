@@ -21,9 +21,9 @@ export default defineComponent({
   async created() {
     const all = this.apps.map(app => app.children).flat()
       .map(async app => {
-        const countPath = app.meta?.countPath as string
-        if (!countPath) return
-        this.counts[app.name as string] = (await http.get(countPath)) as AppCount
+        const statusCount = app.meta?.statusCount as (() => Promise<AppCount>) | undefined
+        if (!statusCount) return
+        this.counts[app.name as string] = await statusCount()
       })
     await Promise.all(all)
   }

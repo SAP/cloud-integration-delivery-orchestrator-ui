@@ -6,10 +6,21 @@ import vueJsx from '@vitejs/plugin-vue-jsx'
 import { resolve } from 'node:path'
 
 // https://vitejs.dev/config/
-export default defineConfig(({mode}) => {
+export default defineConfig(({ mode }) => {
   return {
     base: '/',
-    plugins: [vue(), vueJsx()],
+    plugins: [
+      vue({
+        template: {
+          compilerOptions: {
+            // treat all tags with a ui5- as custom elements
+            isCustomElement: tag => tag.includes('ui5-')
+          }
+        }
+      }),
+      vueJsx(),
+
+    ],
     resolve: {
       alias: {
         '@': fileURLToPath(new URL('./src', import.meta.url))

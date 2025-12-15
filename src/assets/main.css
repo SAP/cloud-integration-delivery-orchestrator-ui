@@ -4,7 +4,10 @@
 /* this contains the default theme, these are optional styles */
 @import '@vue-flow/core/dist/theme-default.css';
 
-@import '@sap-theming/theming-base-content/content/Base/baseLib/sap_fiori_3/css_variables.css';
+/* @import '@sap-theming/theming-base-content/content/Base/baseLib/sap_fiori_3/css_variables.css'; */
+
+/* @import 'fundamental-styles/dist/fundamental-styles.css'; */
+
 
 #app {
 }
@@ -13,7 +16,7 @@ html,
 body {
   background-color: var(--sapBackgroundColor);
   color: var(--sapTextColor);
-  font-family: var(--sapFontFamily);
+  /* font-family: var(--sapFontFamily); */
 }
 
 @media (hover: hover) {

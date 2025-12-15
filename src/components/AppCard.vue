@@ -1,6 +1,8 @@
 <script lang="ts">
 import type { AppCount } from '@/service/model';
 import { defineComponent, type PropType } from 'vue'
+import "@ui5/webcomponents/dist/Card.js";
+import "@ui5/webcomponents/dist/CardHeader.js";
 export default defineComponent({
   props: {
     title: String,
@@ -21,49 +23,31 @@ export default defineComponent({
 </script>
 
 <template>
-  <n-card hoverable size="huge" content-style="padding:16px 16px 0px 16px" footer-style="padding: auto" @click="jumpTo">
-    <n-text style="font-size: 14px; font-weight: bolder;">{{ title }}</n-text>
-    <div/>
+  <div>
+    <ui5-card @click="jumpTo">
+      <ui5-card-header slot="header" :title-text="title" :subtitle-text="subtitle" interactive>
+      </ui5-card-header>
+      <ui5-text style="color: var(--sapPositiveColor); font-size: 2rem;">{{ count.Total || 0 }}</ui5-text>
+      <ui5-text class=""> Total</ui5-text>
 
-    <n-text depth="3" style="font-size: 14px;" strong>{{ subtitle }}</n-text>
+      <span v-for="key in Object.keys(count.StatusCounts || {})" :key="key">
+        <span v-if="count.StatusCounts?.[key]" style="margin-left: 10px;">
+          <ui5-text :style="{ color: 'var(--sapCriticalColor)', fontSize: '1.25rem' }">
+            {{ count.StatusCounts?.[key]}}
+          </ui5-text>
+          {{ key }}
+        </span>
 
-    <div class="">
-      {{ count.Total }}
-    </div>
-    
+      </span>
 
-    <!-- <n-span v-for="(k, i) in Object.entries(count.StatusCounts)" :key="i">
-      {{ k[0] }}: <n-text strong>{{ k[1] }}</n-text>
-    </n-span> -->
+    </ui5-card>
+  </div>
 
-  </n-card>
 </template>
 
 <style scoped>
-.n-card {
-  /* display: grid; */
-  /* place-items: center; */
-  border-radius: 0.75rem;
-  border: .125rem solid #fff;
+ui5-card {
   width: 11rem;
   height: 11rem;
-  font-size: 16px;
-  box-shadow: rgba(34, 53, 72, 0.2) 0px 0px 2px 0px;
-  outline-color: rgb(19, 30, 41);
-}
-.header-content {
-  height: 3.625rem;
-  padding-top: 1rem;
-  padding-left: 1rem;
-  padding-right: 1rem;
-}
-.count-content {
-  text-align: right; 
-  font-size: 36px; 
-  padding: 0 16px;
-}
-.one-by-one {
-    width: 11rem;
-    height: 11rem;
 }
 </style>
