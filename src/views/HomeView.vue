@@ -1,6 +1,5 @@
 <script lang="ts">
 import AppCard from '@/components/AppCard.vue'
-import http from '@/service/http';
 import type { AppCount } from '@/service/model';
 import { defineComponent } from 'vue'
 
@@ -34,8 +33,11 @@ export default defineComponent({
   <div v-for="(router, index) in apps" :key="index" class="sub">
     <div class="subtitle"> {{ router.name }} </div>
     <n-flex>
-      <AppCard v-for="(child, index) in router.children" :key="index" :title="child.name as string"
-        :subtitle="(child.meta?.description || '') as string" :path="`${router.path}/${child.path}`"
+      <AppCard v-for="(child, index) in router.children" 
+        :key="index" 
+        :title="child.name as string"
+        :subtitle="(child.meta?.description || '') as string" 
+        :path="`${router.path}/${child.path}`"
         :count="counts[child.name as string]" />
     </n-flex>
   </div>
