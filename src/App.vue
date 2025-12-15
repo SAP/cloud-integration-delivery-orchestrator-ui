@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, useTemplateRef, type Ref } from 'vue'
+
 import { useRouter } from 'vue-router'
 import { IosArrowBack } from '@vicons/ionicons4'
 import MessageItem from '@/components/MessageComp.vue'
@@ -12,22 +13,19 @@ import "@ui5/webcomponents/dist/Avatar.js"
 import "@ui5/webcomponents/dist/Button.js"
 import "@ui5/webcomponents-fiori/dist/ShellBarItem.js"
 import "@ui5/webcomponents/dist/Popover.js"
-
-type UserInfo = {
-  firstname?: string
-  lastname?: string
-  email?: string
-  [key: string]: any
-}
-
+import "@ui5/webcomponents/dist/Icon.js";
+import "@ui5/webcomponents-icons/dist/log.js";
+import "@ui5/webcomponents/dist/List.js";
+import "@ui5/webcomponents/dist/ListItemStandard.js";
 // Router
 const router = useRouter()
 // Expose as `route` to keep existing template usage (route.currentRoute.name)
 const route = router
 
 // State
-const userInfo = ref<UserInfo>({})
-const pop = ref<any | null>(null)
+const userInfo = ref<{ [key: string]: string }>({})
+
+const openProfile = ref(false)
 
 // Lifecycle: load current user
 onMounted(async () => {
@@ -47,16 +45,14 @@ function handleLogout() {
   window.location.href = '/logout'
 }
 
-function openPop(e: Event) {
-  pop.value?.showAt((e.target as HTMLElement) || undefined)
-}
-
 // Computed
 const canBack = computed(() => router.currentRoute.value.path !== '/')
-const avartarSrc = computed(
+const avatarInit = computed(
   () => `${userInfo.value.firstname?.charAt(0) || ''}${userInfo.value.lastname?.charAt(0) || ''}`
 )
 const userEmail = computed(() => userInfo.value.email)
+
+const userName = computed(() => `${userInfo.value.firstname || ''} ${userInfo.value.lastname || ''}`)
 </script>
 
 <template>
@@ -67,47 +63,22 @@ const userEmail = computed(() => userInfo.value.email)
     </ui5-shellbar-branding>
     <ui5-button v-if="canBack" @click="handleBack" icon="nav-back" slot="startButton"></ui5-button>
     <ui5-shellbar-item icon="sys-help" text="Help"></ui5-shellbar-item>
-    <ui5-avatar @click="openPop" slot="profile" :initials="avartarSrc"></ui5-avatar>
+    <ui5-avatar @click="() => { openProfile = !openProfile }" id="pop-user-profile" slot="profile"
+      :initials="avatarInit"></ui5-avatar>
   </ui5-shellbar>
 
-  <ui5-popover ref="pop" header-text="Newsletter subscription" placement="Bottom">
+  <ui5-popover opener="pop-user-profile" :open="openProfile" :header-text="userName" placement="Bottom">
+    <div class="popover-content">
+      <ui5-label>{{ userEmail }}</ui5-label>
 
-      <!-- <div class="popover-content">
-          <ui5-label for="emailInput" required show-colon>Email</ui5-label>
-          <ui5-input id="emailInput" style="min-width: 150px;" placeholder="Enter Email"></ui5-input>
-          <ui5-label>Note: If you open the page in mobile, a dialog would be displayed.</ui5-label>
-      </div> -->
-
-      <div slot="footer" class="popover-footer">
-          <ui5-button id="closePopoverButton" design="Emphasized">Subscribe</ui5-button>
-      </div>
-
+      <ui5-list separators="None" style="margin-block-end: 0.75rem;">
+        <ui5-li additional-text="Sign Out" icon="log" @click="handleLogout">
+          <!-- <ui5-icon name="log" design="Neutral"></ui5-icon> -->
+        </ui5-li>
+      </ui5-list>
+      
+    </div>
   </ui5-popover>
-
-
-
-  <div class="header-class">
-    <n-flex justify="space-between">
-      <n-flex>
-        <n-icon size="30px">
-          <IosArrowBack @click="handleBack" v-if="canBack" />
-        </n-icon>
-        <n-image width="70" src="/SAP_BIG.png" preview-disabled @click="handleHome" />
-  <h2>{{ router.currentRoute.value.name }}</h2>
-      </n-flex>
-      <n-popover trigger="hover">
-        <template #trigger>
-          <n-avatar style="margin-right: 10px" round size="medium">{{ avartarSrc }}</n-avatar>
-        </template>
-        {{ userEmail }}
-        <div style="text-align:center; padding:8px;">
-          <a href="/logout" style="cursor:pointer; color:#007bff; display:inline-block;">
-            Log Out
-          </a>
-        </div>
-      </n-popover>
-    </n-flex>
-  </div>
 
   <div class="body-class">
     <n-message-provider placement="bottom-left">
@@ -118,19 +89,6 @@ const userEmail = computed(() => userInfo.value.email)
 </template>
 
 <style scoped>
-.header-class {
-  width: 100%;
-  z-index: 999;
-  background-color: white;
-  box-shadow: 0 3px 5px gray;
-  position: sticky;
-  top: 0;
-}
-
-.n-flex {
-  align-items: center;
-}
-
 .body-class {
   margin-top: 10px;
 }
