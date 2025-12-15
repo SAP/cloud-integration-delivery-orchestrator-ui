@@ -19,6 +19,7 @@
     "@tsconfig/node20": "^20.1.4",
     "@types/node": "^20.14.5",
     "@ui5/webcomponents": "^2.17.0",
+    "@ui5/webcomponents-fiori": "^2.17.0",
     "@vicons/fluent": "^0.12.0",
     "@vicons/ionicons4": "^0.12.0",
     "@vicons/material": "^0.12.0",
