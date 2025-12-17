@@ -419,7 +419,16 @@
             </n-step>
           </n-steps>
         </n-gi>
-        <!-- <n-gi span="2"> Log </n-gi> -->
+        <n-gi span="2"> 
+          Log 
+          <n-flex vertical>
+            <n-alert v-for="(condition, i) in deliveryRequest.Conditions" :key="i">
+              {{ condition.State }} - {{ condition.Message }}
+            </n-alert>
+          </n-flex>
+        </n-gi>
+
+
       </n-grid>
     </n-card>
   </div>
@@ -618,10 +627,11 @@ export default {
         const delOps = DeleteOps(this.deleteOps.map(op => op.ID))
         const insertOps = InsertOps(this.deliveryRequest.ID, this.addOps)
         await Promise.all([delOps, insertOps, draftOps])
-      } finally{
-        await this.refresh()
+      } catch (_) {
         this.updatingOps = false
       }
+      this.updatingOps = false
+      await this.refresh()
     },
     // check TR number existence
     async checkTr(op: ArtifactTenantOperation) {
@@ -826,7 +836,7 @@ export default {
     0 0 0.125rem 0 rgba(34, 53, 72, 0.2),
     0 0.125rem 0.25rem 0 rgba(34, 53, 72, 0.2);
   position: sticky;
-  top: 80px;
+  top: 0px;
   z-index: 99;
 }
 

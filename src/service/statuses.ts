@@ -30,6 +30,8 @@ export type AggregateStatus =
   | 'UNKNOWN'
   | 'PENDING'
   | 'WAITING_APPROVAL'
+  | 'IN_PROGRESS'
+  | 'FAILED'
   | 'AWAITING_IMPORT' // can import
   | 'IMPORTING'
   | 'IMPORT_FAILED' // can re-import
@@ -45,12 +47,6 @@ export type AggregateStatus =
 
 // Condition Types
 export type ConditionType =
-  | 'TransportReady'
-  | 'ImportComplete'
-  | 'DeployComplete'
-  | 'PartialProgress'
-  | 'RetryScheduled'
-  | 'RollbackInProgress'
-  | 'Canceled'
-  | 'LastFailurePhase'
-  | 'LastFailureReason';
+  | 'Error'
+  | 'Warn'
+  | 'Success'

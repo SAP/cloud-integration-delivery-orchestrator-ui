@@ -1,4 +1,4 @@
-import type { RequestState, ImportState, DeployState, AggregateStatus } from "./statuses"
+import type { RequestState, ImportState, DeployState, AggregateStatus, ConditionType } from "./statuses"
 
 // Represents the per-tenant lifecycle operation of an artifact within a delivery request.
 export interface ArtifactTenantOperation {
@@ -50,6 +50,17 @@ export interface DeliveryRequest {
   UpdatedBy:      string;
   CreatedAt:      string;
   UpdatedAt:      string;
+  Conditions:     Condition[];
+}
+
+export interface Condition {
+  ID: number
+  CreatedAt: string
+  DeliveryRequestID: number
+  ArtifactTenantOperationID: number
+  State: ConditionType
+  Message: string
+  Timestamp: string
 }
 
 export interface CpiTenant {
