@@ -10,8 +10,8 @@
         <template #action>
           <n-flex justify="space-between" :size="[1,0]" v-if="!props.data.isSource">
             <n-button size="tiny" strong quaternary type="info" @click="handleDeliver">Deliver</n-button>
-            <n-button size="tiny" quaternary type="info" @click="handleImportOnly"> Import Only</n-button>
-            <n-button size="tiny" quaternary type="info" @click="handleDeployOnly"> Deploy Only</n-button>
+            <n-button size="tiny" quaternary type="info" @click="handleImportOnly" :disabled="disableImport"> Import Only</n-button>
+            <n-button size="tiny" quaternary type="info" @click="handleDeployOnly" :disabled="disableDeploy"> Deploy Only</n-button>
           </n-flex>
         </template>
 
@@ -40,6 +40,23 @@ const props = defineProps<{
         tenantToOps: { [key: number]: { [key: string]: ArtifactTenantOperation }}
     }
 }>()
+
+const disableImport = computed(() => {
+  return props.data.tenants.every(t => {
+    const trToOps = props.data.tenantToOps[t.ID] || {}
+    // "NOT_STARTED" | "QUEUED" | "IMPORT_DISABLED" | "IN_PROGRESS" | "FAILED" | "COMPLETE"
+    // // only queued(INITIAL) state can be triggered for import
+    return Object.values(trToOps).every(op => !(op.ImportState === 'QUEUED' || op.ImportState === 'FAILED'))
+  })
+})
+
+const disableDeploy = computed(() => {
+  return props.data.tenants.every(t => {
+    const trToOps = props.data.tenantToOps[t.ID] || {}
+    // "NOT_STARTED" | "QUEUED" | "IN_PROGRESS" | "FAILED" | "COMPLETE" | "DEPLOY_DISABLED" | "ROLLBACKING" | "ROLLED_BACK"
+    return Object.values(trToOps).every(op => !(op.DeployState === 'QUEUED' || op.DeployState === 'FAILED'))
+  })
+})
 
 const groupStateAggr = computed(() => {
   const tenantStates = Object.entries(props.data.tenantToOps)

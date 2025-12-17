@@ -156,7 +156,7 @@ async function onImportOnly(payload: { tenantIDs: number[] }) {
     const tasks: Promise<any>[] = []
     payload.tenantIDs.forEach(tID => {
         const ops = Object.values(props.tenantToOps[tID]).map(op => op.ID)
-        tasks.push(ImportOps(ops, tID))
+        tasks.push(ImportOps(ops, tID, props.deliveryRequest.ID))
     })
     await Promise.all(tasks)
 }
@@ -165,7 +165,7 @@ async function onDeployOnly(payload: { tenantIDs: number[] }) {
     const tasks: Promise<any>[] = []
     payload.tenantIDs.forEach(tID => {
         const ops = Object.values(props.tenantToOps[tID]).map(op => op.ID)
-        tasks.push(DeployOps(ops, tID))
+        tasks.push(DeployOps(ops, tID, props.deliveryRequest.ID))
     })
     await Promise.all(tasks)
 }

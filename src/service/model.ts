@@ -214,6 +214,7 @@ export interface CpiTenantNodeData {
 export interface DeliverOpRequest {
   opIDs: number[]
   targetTenant: number // target tenant ID
+  deliveryRequestID: number
 }
 export interface UserInfo {
   id: string

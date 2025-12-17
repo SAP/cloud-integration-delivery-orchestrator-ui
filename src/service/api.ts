@@ -155,18 +155,20 @@ export const GetArtifactVersionHistory = async (
   return data
 }
 
-export const ImportOps = (opIDs: number[], tenant: number) => {
+export const ImportOps = (opIDs: number[], tenant: number, drID: number) => {
   const req: DeliverOpRequest ={
     opIDs: opIDs,
-    targetTenant: tenant
+    targetTenant: tenant,
+    deliveryRequestID: drID
   }
   return http.post(`/api/v1/deliveryRequest/import`, req)
 }
 
-export const DeployOps = (opIDs: number[], tenant: number) => {
+export const DeployOps = (opIDs: number[], tenant: number, drID: number) => {
   const req: DeliverOpRequest ={
     opIDs: opIDs,
-    targetTenant: tenant
+    targetTenant: tenant,
+    deliveryRequestID: drID
   }
   return http.post(`/api/v1/deliveryRequest/deploy`, req)
 }

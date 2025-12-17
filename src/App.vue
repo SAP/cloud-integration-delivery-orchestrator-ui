@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, useTemplateRef, type Ref } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 
 import { useRouter } from 'vue-router'
 import MessageItem from '@/components/MessageComp.vue'
@@ -61,7 +61,6 @@ const userName = computed(() => `${userInfo.value.firstname || ''} ${userInfo.va
 
       <ui5-list separators="None" style="margin-block-end: 0.75rem;">
         <ui5-li additional-text="Sign Out" icon="log" @click="handleLogout">
-          <!-- <ui5-icon name="log" design="Neutral"></ui5-icon> -->
         </ui5-li>
       </ui5-list>
       

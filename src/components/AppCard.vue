@@ -1,38 +1,49 @@
-<script lang="ts">
-import type { AppCount } from '@/service/model';
-import { defineComponent, type PropType } from 'vue'
-import "@ui5/webcomponents/dist/Card.js";
-import "@ui5/webcomponents/dist/CardHeader.js";
-export default defineComponent({
-  props: {
-    title: String,
-    subtitle: String,
-    path: String,
-    count: {
-      type: Object as PropType<AppCount>,
-      required: false,
-      default: () => ({})
-    }
-  },
-  methods: {
-    jumpTo() {
-      this.$router.push(this.path as string)
-    }
+<script setup lang="ts">
+import type { AppCount } from '@/service/model'
+import { ref, onMounted, withDefaults, defineProps } from 'vue'
+import { useRouter } from 'vue-router'
+import "@ui5/webcomponents/dist/Card.js"
+import "@ui5/webcomponents/dist/CardHeader.js"
+
+const props = withDefaults(defineProps<{
+  title: string
+  subtitle: string
+  path: string
+  count?: () => Promise<AppCount>
+}>(), {
+  count: async () => ({} as AppCount)
+})
+
+const router = useRouter()
+
+const appCount = ref<AppCount>({} as AppCount)
+
+const jumpTo = () => {
+  if (props.path) router.push(props.path)
+}
+const loading = ref(false)
+onMounted(async () => {
+  try { 
+    loading.value = true
+    appCount.value = await props.count()
+  }finally {
+    loading.value = false
   }
+  
 })
 </script>
 
 <template>
-  <ui5-card @click="jumpTo">
+  <ui5-card @click="jumpTo" :loading="loading">
     <ui5-card-header slot="header" :title-text="title" :subtitle-text="subtitle" interactive>
     </ui5-card-header>
     <div class="card-content">
-      <ui5-text style="color: var(--sapPositiveColor); font-size: 2rem;">{{ count.Total || 0 }}</ui5-text>
+      <ui5-text style="color: var(--sapPositiveColor); font-size: 2rem;">{{ appCount.Total || 0 }}</ui5-text>
       <ui5-text> Total</ui5-text>
-      <span v-for="key in Object.keys(count.StatusCounts || {})" :key="key">
-        <span v-if="count.StatusCounts?.[key]" style="margin-left: 10px;">
+      <span v-for="key in Object.keys(appCount.StatusCounts || {})" :key="key">
+        <span v-if="appCount.StatusCounts?.[key]" style="margin-left: 10px;">
           <ui5-text :style="{ color: 'var(--sapCriticalColor)', fontSize: '1.25rem' }">
-            {{ count.StatusCounts?.[key] }}
+            {{ appCount.StatusCounts?.[key] }}
           </ui5-text>
           {{ key }}
         </span>

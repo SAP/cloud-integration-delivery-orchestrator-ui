@@ -104,18 +104,18 @@ const nodeToTenant = computed<{[key: number]: CpiTenant}>(() => {
 
 async function onImportArtifact(payload: { tenant: CpiTenant; artifactOp: ArtifactTenantOperation }) {
     const {tenant, artifactOp} = payload
-    await ImportOps([artifactOp.ID], tenant.ID)
+    await ImportOps([artifactOp.ID], tenant.ID, props.deliveryRequest.ID)
 }
 async function onDeployArtifact(payload: { tenant: CpiTenant; artifactOp: ArtifactTenantOperation }) {
     const {tenant, artifactOp} = payload
-    await DeployOps([artifactOp.ID], tenant.ID)
+    await DeployOps([artifactOp.ID], tenant.ID, props.deliveryRequest.ID)
 }
 async function onImportAll(payload: { tenant: CpiTenant; artifactOps: ArtifactTenantOperation[] }) {
     const {tenant, artifactOps} = payload
-    await ImportOps(artifactOps.map(op => op.ID), tenant.ID)
+    await ImportOps(artifactOps.map(op => op.ID), tenant.ID, props.deliveryRequest.ID)
 }
 async function onDeployAll(payload: { tenant: CpiTenant; artifactOps: ArtifactTenantOperation[] }) {
     const {tenant, artifactOps} = payload
-    await DeployOps(artifactOps.map(op => op.ID), tenant.ID)
+    await DeployOps(artifactOps.map(op => op.ID), tenant.ID, props.deliveryRequest.ID)
 }
 </script>

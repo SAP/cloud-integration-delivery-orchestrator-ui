@@ -1,32 +1,10 @@
-<script lang="ts">
+<script setup lang="ts">
 import AppCard from '@/components/AppCard.vue'
-import type { AppCount } from '@/service/model';
-import { defineComponent } from 'vue'
+import type { AppCount } from '@/service/model'
+import { useRouter } from 'vue-router'
 
-
-export default defineComponent({
-  components: {
-    AppCard
-  },
-  data() {
-    const routers = this.$router.getRoutes()
-    const apps = routers.filter(r => r.children.length > 0)
-    const counts: { [key: string]: AppCount } = {}
-    return {
-      apps,
-      counts,
-    }
-  },
-  async created() {
-    const all = this.apps.map(app => app.children).flat()
-      .map(async app => {
-        const statusCount = app.meta?.statusCount as (() => Promise<AppCount>) | undefined
-        if (!statusCount) return
-        this.counts[app.name as string] = await statusCount()
-      })
-    await Promise.all(all)
-  }
-})
+const router = useRouter()
+const apps = router.getRoutes().filter(r => r.children.length > 0)
 </script>
 
 <template>
@@ -38,7 +16,7 @@ export default defineComponent({
         :title="child.name as string"
         :subtitle="(child.meta?.description || '') as string" 
         :path="`${router.path}/${child.path}`"
-        :count="counts[child.name as string]" />
+        :count="child.meta?.statusCount as () => Promise<AppCount>" />
     </n-flex>
   </div>
 </template>
