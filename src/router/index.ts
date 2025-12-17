@@ -1,6 +1,31 @@
-import { useUserInfoStore } from '@/service/api'
-import { authUrl } from '@/service/consts'
+import http from '@/service/http'
+import type { AppCount } from '@/service/model'
+import type { AggregateStatus } from '@/service/statuses'
 import { createRouter, createWebHistory } from 'vue-router'
+
+const deliveryRequestCounts = async (): Promise<AppCount> => {
+  const counts = (await http.get('/api/v1/deliveryRequest/counts')) as {
+    Total: number
+    StatusCounts: Record<AggregateStatus, number>
+  }
+  return {
+    Total: counts.Total,
+    StatusCounts: {
+      'pending': counts.StatusCounts.PENDING,
+      'waiting approval': counts.StatusCounts.WAITING_APPROVAL,
+    }
+  }
+}
+
+const cpiTenantCounts = async (): Promise<AppCount> => {
+  const counts = (await http.get('/api/v1/cpiTenant/counts')) as AppCount
+  return counts
+}
+
+const deliveryRuleCounts = async (): Promise<AppCount> => {
+  const counts = (await http.get('/api/v1/deliveryRule/counts')) as AppCount
+  return counts
+}
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -8,67 +33,51 @@ const router = createRouter({
     {
       path: '/',
       name: 'MMT Devops',
-      component: () => import('@/views/HomeView.vue')
+      component: () => import('@/views/HomeView.vue'),
+      meta: { description: 'Home' }
     },
     {
       path: '/jobs',
-      name: 'Jobs of Cloud Integration and Transport',
+      name: 'Cloud Integration Delployment and Transport',
+      meta: { description: 'Jobs Root' },
       children: [
         {
-          path: 'import',
-          name: 'Import',
-          component: () => import('@/views/ImportJobView.vue')
+          path: 'delivery-request-list',
+          name: 'Delivery Requests',
+          component: () => import('@/views/DeliveryRequestListView.vue'),
+          meta: { description: 'Transport, Deploy Artifacts to CPI Tenants', statusCount: deliveryRequestCounts }
+        },
+      ]
+    },
+    {
+      path: '/config',
+      name: 'Delivery Configurations',
+      meta: { description: 'Configurations Root' },
+      children: [
+        {
+          path: 'cpi-tenants',
+          name: 'CPI Tenants',
+          component: () => import('@/views/CpiTenantsView.vue'),
+          meta: { description: 'Manage CPI Tenants', statusCount: cpiTenantCounts }
         },
         {
-          path: 'deploy',
-          name: 'Delivery',
-          component: () => import('@/views/DeployJobView.vue')
+          path: 'delivery-rule',
+          name: 'Delivery Rule',
+          component: () => import('@/views/DeliveryRuleView.vue'),
+          meta: { description: 'Configure Delivery Rules', statusCount: deliveryRuleCounts }
         }
       ]
     },
     {
-      path: '/tools',
-      name: 'Tools and Configurations',
-      children: [
-        {
-          path: 'parse',
-          name: 'Transport Plan',
-          component: () => import('@/views/TransportPlanListView.vue')
-        },
-        {
-          path: 'transportGroup',
-          name: 'Transport Group',
-          component: () => import('@/views/TransportGroupListView.vue')
-        }
-      ]
-    },
-    {
-      path: '/flow/:jobId',
-      name: 'Job Flow',
-      component: () => import('@/views/FlowView.vue'),
-      props: true
-    },
-    {
-      path: '/callback',
-      name: 'Oauth',
-      component: () => import('@/views/LoginCallback.vue'),
-    },
-    {
-      path: '/transportplan/:planId',
-      name: 'Transport&Delivery Plan',
-      component: () => import('@/views/TransportPlanView.vue'),
-      props: true
+      path: '/delivery-request/:planId',
+      name: 'Maintain Delivery Request',
+      component: () => import('@/views/DeliveryRequestView.vue'),
+      props: route => ({ planId: Number(route.params.planId) })
     }
   ]
 })
 
 router.beforeEach((to, from) => {
-  const isLogged = useUserInfoStore().isLogged()
-  if (!isLogged && to.path !== '/callback') {
-    window.$message.info('Redirect to login')
-    window.location.href = authUrl
-    return false
-  }
   return true
 })
 

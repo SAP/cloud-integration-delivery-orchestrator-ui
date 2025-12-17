@@ -1,0 +1,36 @@
+{
+  "authenticationMethod": "route",
+  "routes": [
+    {
+      "source": "^/user-api(.*)",
+      "target": "$1",
+      "service": "sap-approuter-userapi",
+      "authenticationType": "xsuaa"
+    },
+    {
+      "source": ".*/api/v1/(.*)$",
+      "target": "$1",
+      "destination": "backendservice",
+      "csrfProtection": false,
+      "authenticationType": "xsuaa"
+    },
+    {
+      "source": ".*/cpi-cookie-service/(.*)$",
+      "target": "$1",
+      "destination": "cpi-cookie-service",
+      "authenticationType": "xsuaa",
+      "csrfProtection": false
+    },
+    {
+      "source": "^/(.*)$",
+      "target": "$1",
+      "destination": "vite-dev-server"
+    }
+  ],
+  "logout": {
+    "logoutEndpoint": "/logout"
+  },
+  "websockets": {
+    "enabled": true
+  }
+}

@@ -1,20 +1,8 @@
 import { NTag, type DataTableColumns } from 'naive-ui'
-import type { ApiEndpoint, Artifact, Job, Package, TransportGroup, TransportNode, TransportPlan, NodeTransportRequest } from './api'
+import type { ApiEndpoint, Artifact, Package, TransportGroup, TransportNode, NodeTransportRequest, CpiTenant, DeliveryRule, DeliveryRequest } from './model'
 import { h } from 'vue'
 import type { Router } from 'vue-router'
 import { IosArrowForward } from '@vicons/ionicons4'
-
-// uase maco.account400 Cloud Identity Service: https://maco.accounts400.ondemand.com/admin/#/applications/668667c6474e930344d2f375
-// document: https://help.sap.com/docs/cloud-identity-services/cloud-identity-services/configure-client-to-call-identity-authentication-token-endpoint-for-authorization-code-flow
-
-export const clientId = '74653741-4458-4cc6-902a-4681533d1509'
-export const clientSecret = "REDACTED"
-
-export const callbackUrl = import.meta.env.VITE_CALLBACK_URL
-
-export const authUrl = `https://maco.accounts400.ondemand.com/oauth2/authorize?client_id=${clientId}&redirect_uri=${callbackUrl}&response_type=code&state=123&scope=email`
-export const tokenEndpoint = '/user/oauth2/token'
-export const userInfoEndpoint = '/user/oauth2/userinfo'
 
 
 export const apiEndpointColums: DataTableColumns<ApiEndpoint> = [
@@ -43,159 +31,54 @@ export const apiEndpointColums: DataTableColumns<ApiEndpoint> = [
   }
 ]
 
-// statusTag is a naive-ui component NTag. It can't be imported directly in this file, or vite error will raise.
-export function createJobColums(router: Router, statusTag: any): DataTableColumns<Job> {
-  const handleRouter = (row: Job) => {
-    router.push({
-      path: `/flow/${row.ID}`
-    })
-  }
-  const colums: DataTableColumns<Job> =  [
-    {
-      type: 'selection',
-      // disabled(row: Job) {
-      //   return row.Status === 'Error'
-      // }
-    },
-    {
-      title: 'ID',
-      key: 'ID',
-      resizable: true,
-      render(row: Job) {
-        return h(
-          'div',
-          {
-            onClick: () => {handleRouter(row)},
-            style: { fontWeight: 'bold' }
-          },
-          row.ID
-        )
-      }
-    },
-    {
-      title: 'Job Name',
-      key: 'Name',
-      resizable: true,
-      render(row: Job) {
-        return h(
-          'div',
-          {
-            onClick: () => {handleRouter(row)}
-          },
-          row.Name
-        )
-      }
-    },
-    {
-      title: 'Description',
-      key: 'Description',
-      resizable: true,
-      render(row: Job) {
-        return h(
-          'div',
-          {
-            onClick: () => {handleRouter(row)}
-          },
-          row.Description
-        )
-      }
-    },
-    {
-      title: 'Status',
-      key: 'Status',
-      resizable: true,
-      render(row: Job) {
-        return h(
-          NTag,
-          {
-            type: toJobStatusTag(row.Status),
-            onClick: () => {handleRouter(row)}
-          },
-          row.Status
-        )
-      }
-    },
-    {
-      title: 'Created by',
-      key: 'CreatedBy',
-      resizable: true,
-      render(row: Job) {
-        return h(
-          'div',
-          {
-            onClick: () => {handleRouter(row)}
-          },
-          row.CreatedBy
-        )
-      }
-    },
-    {
-      title: 'Created At',
-      key: 'CreatedAt',
-      resizable: true,
-      render(row: Job) {
-        return h(
-          'div',
-          {
-            onClick: () => {handleRouter(row)}
-          },
-          toLocalTime(row.CreatedAt)
-        )
-      }
-    },
-    {
-      title: 'Modified by',
-      key: 'UpdatedBy',
-      resizable: true,
-      render(row: Job) {
-        return h(
-          'div',
-          {
-            onClick: () => {handleRouter(row)}
-          },
-          row.UpdatedBy
-        )
-      }
-    },
-    {
-      title: 'Modified at',
-      key: 'UpdatedAt',
-      resizable: true,
-      render(row: Job) {
-        return h(
-          'div',
-          {
-            onClick: () => {handleRouter(row)}
-          },
-          toLocalTime(row.UpdatedAt)
-        )
-      },
-      sorter(a: Job, b: Job) {
-        return new Date(a.UpdatedAt).getTime() - new Date(b.UpdatedAt).getTime()
-      },
-    },
-    {
-      title: '',
-      key: 'arrow',
-      render(row: Job) {
-        return h(
-          'div',
-          {
-            style: { width: '18px', height: '18px' },
-            onClick: () => {
-              router.push({
-                path: `/flow/${row.ID}`
-              })
-            }
-          },
-          [h(IosArrowForward)]
-        )
-      }
+export const cpiTenantColums: DataTableColumns<CpiTenant> = [
+  {
+    type: 'selection',
+    multiple: false,
+    disabled(row: Object) {
+      return false
     }
-  ]
-  return colums
-}
+  },
+  {
+    title: 'ID',
+    key: 'ID',
+    resizable: true
+  },
+  {
+    title: 'Name',
+    key: 'Name',
+    resizable: true,
+    sortOrder: 'descend'
+  },
+  {
+    title: 'Transport Node',
+    key: 'TmsNode',
+    resizable: true,
+    render(row: CpiTenant) {
+      return h(
+        'div',
+        `${row.TransportNodeName}#${row.TransportNodeID}`
+      )
+    }
+  },
+  {
+    title: 'CPI Api Endpoint',
+    key: 'CpiEndpoint',
+    render(row: CpiTenant) {
+      return h(
+        'div',
+        `${row.CpiEndpoint.name}(${row.CpiEndpoint.url})`
+      )
+    },
+    resizable: true
+  },
+  {
+    title: 'Group',
+    key: 'Group',
+    resizable: true
+  }
 
+]
 export const transportGroupColums: DataTableColumns<TransportGroup> = [
   {
     type: 'selection',
@@ -222,13 +105,13 @@ export const transportGroupColums: DataTableColumns<TransportGroup> = [
   {
     title: 'Import Nodes',
     key: 'TransportNodes',
-    render(row: TransportGroup){
+    render(row: TransportGroup) {
       const importNodes = row.TransportNodes.map(node => node.name)
       return h(
         'div',
         importNodes.map(node => h(
-          NTag, 
-          { style: { marginRight: '8px' }, type: 'info' }, 
+          NTag,
+          { style: { marginRight: '8px' }, type: 'info' },
           node
         ))
       )
@@ -239,13 +122,13 @@ export const transportGroupColums: DataTableColumns<TransportGroup> = [
     title: 'Deploy Nodes',
     key: 'DeployEndpoints',
     resizable: true,
-    render(row: TransportGroup){
+    render(row: TransportGroup) {
       const deployNodes = row.DeployEndpoints
       return h(
         'div',
         deployNodes.map(node => h(
-          NTag, 
-          { style: { marginRight: '8px' }, type: 'success' }, 
+          NTag,
+          { style: { marginRight: '8px' }, type: 'success' },
           node
         ))
       )
@@ -262,152 +145,6 @@ export const transportGroupColums: DataTableColumns<TransportGroup> = [
     resizable: true
   }
 ]
-
-export const transportPlanColumns = (router: Router) =>{
-  const handleRouter = (row: TransportPlan) => {
-    router.push({path: `/transportplan/${row.ID}`})
-  }
-  return [
-    {
-      type: 'selection',
-      multiple: false,
-      disabled(row: Object) {
-        return false
-      }
-    },
-    {
-      title: 'ID',
-      key: 'ID',
-      resizable: true,
-      render(row: TransportPlan) {
-        return h(
-          'div',
-          {
-            onClick: () => {handleRouter(row)},
-            style: { fontWeight: 'bold' }
-          },
-          row.ID
-        )
-      }
-    },
-    {
-      title: 'Name',
-      key: 'Name',
-      render(row: TransportPlan) {
-        return h(
-          'div',
-          {
-            onClick: () => {handleRouter(row)},
-          },
-          row.Name
-        )
-      }
-    },
-    {
-      title: 'Description',
-      key: 'Description',
-      resizable: true,
-      render(row: TransportPlan) {
-        return h(
-          'div',
-          {
-            onClick: () => {handleRouter(row)},
-          },
-          row.Description
-        )
-      }
-    },
-    {
-      title: 'Transport Group',
-      key: 'TransportGroup',
-      render(row: TransportPlan){
-        return h(
-          'div',
-          {
-            onClick: () => {handleRouter(row)},
-          },
-          `#${row.TransportGroupID} - ${row.TransportGroupName}`
-        )
-      },
-      resizable: true
-    },
-    {
-      title: 'Created At',
-      key: 'CreatedAt',
-      resizable: true,
-      render(row: TransportPlan) {
-        return h(
-          'div',
-          {
-            onClick: () => {handleRouter(row)},
-          },
-          toLocalTime(row.CreatedAt)
-        )
-      }
-    },
-    {
-      title: 'Updated At',
-      key: 'UpdatedAt',
-      resizable: true,
-      render(row: TransportPlan) {
-        return h(
-          'div',
-          {
-            onClick: () => {handleRouter(row)},
-          },
-          toLocalTime(row.UpdatedAt)
-        )
-      }
-    },
-    {
-      title: 'Created By',
-      key: 'CreatedBy',
-      resizable: true,
-      render(row: TransportPlan) {
-        return h(
-          'div',
-          {
-            onClick: () => {handleRouter(row)},
-          },
-          row.CreatedBy
-        )
-      }
-    },
-    {
-      title: 'Updated By',
-      key: 'UpdatedBy',
-      resizable: true,
-      render(row: TransportPlan) {
-        return h(
-          'div',
-          {
-            onClick: () => {handleRouter(row)},
-          },
-          row.UpdatedBy
-        )
-      }
-    },
-    {
-      title: '',
-      key: 'arrow',
-      render(row: TransportPlan) {
-        return h(
-          'div',
-          {
-            style: { width: '18px', height: '18px' },
-            onClick: () => {
-              router.push({
-                path: `/transportplan/${row.ID}`
-              })
-            }
-          },
-          [h(IosArrowForward)]
-        )
-      }
-    }
-  
-  ] as DataTableColumns<TransportPlan>
-} 
 
 export const transportNodesColums: DataTableColumns<TransportNode> = [
   {
@@ -592,15 +329,99 @@ export const runtimeArtifactColumns: DataTableColumns<Artifact> = [
   }
 ]
 
+export const deliveryRuleColumns: DataTableColumns<DeliveryRule> = [
+  { type: 'selection', multiple: false },
+  {
+    title: 'ID',
+    key: 'ID',
+    resizable: true
+  },
+  {
+    title: 'Name',
+    key: 'Name',
+    resizable: true,
+    sortOrder: 'descend'
+  },
+  {
+    title: 'Version Pattern',
+    key: 'VersionPattern',
+    resizable: true
+  },
+  {
+    title: 'Included Tenants',
+    key: 'IncludedTenants',
+    resizable: true,
+    render(row: DeliveryRule) {
+      return h(
+        'div',
+        row.IncludedTenants?.map(t =>
+          h(
+            NTag,
+            { style: { marginRight: '4px', marginBottom: '4px' }, type: 'info' },
+            { default: () => t.Name }
+          )
+        )
+      )
+    }
+  },
+  {
+    title: 'Excluded Tenants',
+    key: 'ExcludedTenants',
+    resizable: true,
+    render(row: DeliveryRule) {
+      return h(
+        'div',
+        row.ExcludedTenants?.map(t =>
+          h(
+            NTag,
+            { style: { marginRight: '4px', marginBottom: '4px' }, type: 'warning' },
+            { default: () => t.Name }
+          )
+        )
+      )
+    }
+  },
+  {
+    title: 'Active',
+    key: 'Active',
+    render(row: DeliveryRule) {
+      return row.Active ? 'Yes' : 'No'
+    }
+  },
+  {
+    title: 'Skip Approve',
+    key: 'SkipApprove',
+    render(row: DeliveryRule) {
+      return row.SkipApprove ? 'Yes' : 'No'
+    }
+  },
+  {
+    title: 'Updated At',
+    key: 'UpdatedAt',
+    resizable: true,
+    render(row: DeliveryRule) {
+      return toLocalTime(row.UpdatedAt)
+    }
+  },
+  {
+    title: 'Created At',
+    key: 'CreatedAt',
+    resizable: true,
+    render(row: DeliveryRule) {
+      return toLocalTime(row.CreatedAt)
+    }
+  }
+]
+
 export const stepTypeOptions: { [key: string]: string } = {
   Import: 'Import Transport Requests',
   Deploy: 'Deploy Artifacts(Iflow, Package, ScriptCollection)',
   Undeploy: 'Undeploy Runtime Artifacts'
 }
 
-export interface ToolBar {
+export interface ToolBar<T = any> {
   text: String
-  func(rows: DataTableColumns): void
+  func(rows: T[]): void | Promise<void>
 }
 
 // maps Step status to naive-ui status: wait, process, finish, error
@@ -635,3 +456,97 @@ export function toJobStatusTag(status: string) {
 export function toLocalTime(str: string) {
   return new Date(str).toLocaleString('zh-CN')
 }
+
+export const deliveryRequestColumns: DataTableColumns<DeliveryRequest> = [
+  { type: 'selection', multiple: false },
+  {
+    title: 'ID',
+    key: 'ID',
+    resizable: true,
+    sortOrder: 'descend'
+  },
+  {
+    title: 'Name',
+    key: 'Name',
+    resizable: true
+  },
+  {
+    title: 'Jira Link',
+    key: 'JiraLink',
+    resizable: true,
+    render(row: DeliveryRequest) {
+      if (!row.JiraLink) return ''
+      return h(
+        'a',
+        {
+          href: row.JiraLink,
+          target: '_blank',
+          style: 'color: var(--primary-color)'
+        },
+        row.JiraLink
+      )
+    }
+  },
+  {
+    title: 'Status',
+    key: 'Status',
+    resizable: true,
+    render(row: DeliveryRequest) {
+      const type =
+        row.AggregateStatus === 'Error'
+          ? 'error'
+          : row.AggregateStatus === 'DEPLOYED'
+            ? 'success'
+            : row.AggregateStatus === 'PENDING'
+              ? 'default'
+              : 'info'
+      return h(
+        NTag,
+        { type },
+        { default: () => row.AggregateStatus }
+      )
+    }
+  },
+  {
+    title: 'Source Tenant',
+    key: 'SourceTenant',
+    resizable: true,
+    render(row: DeliveryRequest) {
+      return row.SourceTenant?.Name || ''
+    }
+  },
+  {
+    title: 'Delivery Rule',
+    key: 'DeliveryRule',
+    resizable: true,
+    render(row: DeliveryRequest) {
+      return row.DeliveryRule?.Name || ''
+    }
+  },
+  {
+    title: 'Updated At',
+    key: 'UpdatedAt',
+    resizable: true,
+    render(row: DeliveryRequest) {
+      return toLocalTime(row.UpdatedAt)
+    }
+  },
+  {
+    title: 'Created At',
+    key: 'CreatedAt',
+    resizable: true,
+    render(row: DeliveryRequest) {
+      return toLocalTime(row.CreatedAt)
+    }
+  },
+  {
+    title: 'Created By',
+    key: 'CreatedBy',
+    resizable: true
+  },
+  {
+    title: 'Updated By',
+    key: 'UpdatedBy',
+    resizable: true
+  }
+]

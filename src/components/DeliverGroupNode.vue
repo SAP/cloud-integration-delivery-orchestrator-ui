@@ -1,0 +1,112 @@
+<template>
+    <n-card :id="props.id" :title="props.data.label" size="small" style="height: 100%; width: 100%;">
+        <template #header-extra>
+          <n-tag v-if="props.data.isSource" type="success" size="small" :bordered="false">Source</n-tag>
+          <n-tag v-else :type="'warning'" size="small" :bordered="false">{{ groupStateAggr }}</n-tag>
+        </template>
+        <n-flex>
+          <n-tag type="info" v-for="t in props.data.tenants">{{ t?.Name }}</n-tag>
+        </n-flex>
+        <template #action>
+          <n-flex justify="space-between" :size="[1,0]" v-if="!props.data.isSource">
+            <n-button size="tiny" strong quaternary type="info" @click="handleDeliver">Deliver</n-button>
+            <n-button size="tiny" quaternary type="info" @click="handleImportOnly" :disabled="disableImport"> Import Only</n-button>
+            <n-button size="tiny" quaternary type="info" @click="handleDeployOnly" :disabled="disableDeploy"> Deploy Only</n-button>
+          </n-flex>
+        </template>
+
+    </n-card>
+
+
+    <Handle v-if="!props.data.isTail" type="source" :position="Position.Right"/>
+    <Handle v-if="!props.data.isSource" type="target" :position="Position.Left"/>
+
+</template>
+
+<script setup lang="ts">
+import { DeriveNodeAgg } from '@/service/api';
+import type { ArtifactTenantOperation, CpiTenant } from '@/service/model';
+import type { AggregateStatus } from '@/service/statuses';
+import { Handle, Position } from '@vue-flow/core'
+import { computed } from 'vue';
+const props = defineProps<{
+    id: string
+    data: {
+        label: string
+        sourceNodeId: number
+        tenants: CpiTenant[]
+        isSource: boolean,
+        isTail: boolean,
+        tenantToOps: { [key: number]: { [key: string]: ArtifactTenantOperation }}
+    }
+}>()
+
+const disableImport = computed(() => {
+  return props.data.tenants.every(t => {
+    const trToOps = props.data.tenantToOps[t.ID] || {}
+    // "NOT_STARTED" | "QUEUED" | "IMPORT_DISABLED" | "IN_PROGRESS" | "FAILED" | "COMPLETE"
+    // // only queued(INITIAL) state can be triggered for import
+    return Object.values(trToOps).every(op => !(op.ImportState === 'QUEUED' || op.ImportState === 'FAILED'))
+  })
+})
+
+const disableDeploy = computed(() => {
+  return props.data.tenants.every(t => {
+    const trToOps = props.data.tenantToOps[t.ID] || {}
+    // "NOT_STARTED" | "QUEUED" | "IN_PROGRESS" | "FAILED" | "COMPLETE" | "DEPLOY_DISABLED" | "ROLLBACKING" | "ROLLED_BACK"
+    return Object.values(trToOps).every(op => !(op.DeployState === 'QUEUED' || op.DeployState === 'FAILED'))
+  })
+})
+
+const groupStateAggr = computed(() => {
+  const tenantStates = Object.entries(props.data.tenantToOps)
+    .filter(([tenantID, _]) => props.data.tenants.find(t => t.ID === Number(tenantID)) )
+    .map(([_, trToOps]) => {
+      return DeriveNodeAgg(Object.values(trToOps))
+    })
+    if (tenantStates.length === 0) return 'UNKNOWN'
+    const order: AggregateStatus[] = [
+      'UNKNOWN',
+      'PENDING',
+      'WAITING_APPROVAL',
+      'AWAITING_IMPORT',
+      'IMPORTING',
+      'IMPORT_FAILED',
+      'IMPORTED',
+      'AWAITING_DEPLOY',
+      'DEPLOYING',
+      'DEPLOY_FAILED',
+      'DEPLOYED',
+      'ROLLBACKING',
+      'ROLLED_BACK',
+      'CANCELED',
+      'Error',
+    ]
+    const rank = (s: AggregateStatus) => order.indexOf(s)
+    const overall = tenantStates.reduce((acc, cur) => {
+      return rank(cur as AggregateStatus) > rank(acc as AggregateStatus)
+      ? (cur as AggregateStatus)
+      : (acc as AggregateStatus)
+    }) as AggregateStatus
+
+    return overall
+
+})
+
+const emit = defineEmits<{
+  (e: 'deliver', payload: { tenantIDs: number[] }): void
+  (e: 'import-only', payload: { tenantIDs: number[] }): void
+  (e: 'deploy-only', payload: { tenantIDs: number[] }): void
+}>()
+
+function handleDeliver() {
+  emit('deliver', {tenantIDs: props.data.tenants.map(t => t.ID)})
+}
+function handleImportOnly() {
+  emit('import-only', {tenantIDs: props.data.tenants.map(t => t.ID)})
+}
+function handleDeployOnly() {
+  emit('deploy-only',{tenantIDs: props.data.tenants.map(t => t.ID)})
+}
+
+</script>

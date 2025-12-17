@@ -1,0 +1,37 @@
+ID: mmt.devops.ui.cpi.delivery
+_schema-version: 3.2.0
+version: 1.0.0
+
+parameters:
+  appname: mmt-devops-ui-cpi-delivery
+  tenant_id: stage-devops
+  domain: cfapps.sap.hana.ondemand.com
+
+modules:
+  - name: mmt.devops.ui.cpi.delivery.ui.approuter
+    type: nodejs
+    path: approuter
+    build-parameters:
+      builder: custom
+      commands:
+        - npm --prefix .. run build-only
+    parameters:
+      memory: 256M
+      disk-quota: 512M
+      hosts:
+        - ${appname}-${tenant_id}
+    properties:
+      TENANT_HOST_PATTERN: ^${appname}-(.*).${domain}
+      destinations:
+        - name: backendservice
+          url: https://com-sap-maco-mmt-srv-devops-cpi-delivery.cfapps.sap.hana.ondemand.com/api/v1
+          forwardAuthToken: true
+        - name: cpi-cookie-service
+          url: https://localhost:8080 # to be deployed
+          forwardAuthToken: true
+    requires:
+      - name: mmt_devops_uaa
+
+resources:
+  - name: mmt_devops_uaa
+    type: org.cloudfoundry.existing-service

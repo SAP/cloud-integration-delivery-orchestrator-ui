@@ -1,58 +1,22 @@
-<script lang="ts">
+<script setup lang="ts">
 import AppCard from '@/components/AppCard.vue'
-import { GetJobCounts } from '@/service/api';
-import { defineComponent } from 'vue'
+import type { AppCount } from '@/service/model'
+import { useRouter } from 'vue-router'
 
-interface count {
-  count: Number
-  type:  String
-}
-export default defineComponent({
-  components: {
-    AppCard
-  },
-  data() {
-    const routers = this.$router.getRoutes()
-    const apps = []
-    const counts: count[] = []
-    for (const item of routers) {
-      if (item.children.length) apps.push(item)
-    }
-    const subtitleMap: {[key:string]: string} = {
-      Delivery: 'Deploy/Undeploy Artifacts in CPI Tenant',
-      Import: 'Import TRs to CPI Tenant',
-      "Transport Group": 'Manage Transport Groups',
-      "Transport Plan": 'Generate Transport Plan by parsing YAML content',
-    }
-
-    return {
-      apps,
-      subtitleMap,
-      counts
-    }
-  },
-  created() {
-    GetJobCounts().then((res) => {
-      this.counts = res
-    })
-  }
-})
+const router = useRouter()
+const apps = router.getRoutes().filter(r => r.children.length > 0)
 </script>
 
 <template>
   <div v-for="(router, index) in apps" :key="index" class="sub">
-    <div class="subtitle">
-      {{ router.name }}
-    </div>
+    <div class="subtitle"> {{ router.name }} </div>
     <n-flex>
-      <AppCard
-        v-for="(child, index) in router.children"
-        :key="index"
-        :title="child.name"
-        :subtitle="subtitleMap[child.name]"
+      <AppCard v-for="(child, index) in router.children" 
+        :key="index" 
+        :title="child.name as string"
+        :subtitle="(child.meta?.description || '') as string" 
         :path="`${router.path}/${child.path}`"
-        :count="counts.find((item) => item.type.toLowerCase() === child.path.toLowerCase())?.count"
-      />
+        :count="child.meta?.statusCount as () => Promise<AppCount>" />
     </n-flex>
   </div>
 </template>
