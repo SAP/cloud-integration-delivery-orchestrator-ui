@@ -45,7 +45,10 @@ const router = createRouter({
           path: 'delivery-request-list',
           name: 'Delivery Requests',
           component: () => import('@/views/DeliveryRequestListView.vue'),
-          meta: { description: 'Transport, Deploy Artifacts to CPI Tenants', statusCount: deliveryRequestCounts }
+          meta: { description: 'Transport, Deploy Artifacts to CPI Tenants', statusCount: deliveryRequestCounts,
+              width: '20rem',
+              height: '11rem'
+           }
         },
       ]
     },
@@ -64,7 +67,7 @@ const router = createRouter({
           path: 'delivery-rule',
           name: 'Delivery Rule',
           component: () => import('@/views/DeliveryRuleView.vue'),
-          meta: { description: 'Configure Delivery Rules', statusCount: deliveryRuleCounts }
+          meta: { description: 'Manage Delivery Rules', statusCount: deliveryRuleCounts }
         }
       ]
     },

@@ -1,40 +1,43 @@
 <script setup lang="ts">
 import type { AppCount } from '@/service/model'
-import { ref, onMounted, withDefaults, defineProps } from 'vue'
+import { ref, onMounted, withDefaults, defineProps, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import "@ui5/webcomponents/dist/Card.js"
 import "@ui5/webcomponents/dist/CardHeader.js"
 
-const props = withDefaults(defineProps<{
+const props = defineProps<{
   title: string
-  subtitle: string
   path: string
-  count?: () => Promise<AppCount>
-}>(), {
-  count: async () => ({} as AppCount)
-})
+  meta: { description?: string; statusCount?: () => Promise<AppCount>, width?: string, height?: string }
+}>()
 
 const router = useRouter()
 
 const appCount = ref<AppCount>({} as AppCount)
+
+const subtitle = computed(() => props.meta?.description ?? '')
 
 const jumpTo = () => {
   if (props.path) router.push(props.path)
 }
 const loading = ref(false)
 onMounted(async () => {
-  try { 
+  try {
     loading.value = true
-    appCount.value = await props.count()
-  }finally {
+    const fetchStatus = props.meta?.statusCount
+    if (fetchStatus) {
+      appCount.value = await fetchStatus()
+    } else {
+      appCount.value = {} as AppCount
+    }
+  } finally {
     loading.value = false
   }
-  
 })
 </script>
 
 <template>
-  <ui5-card @click="jumpTo" :loading="loading">
+  <ui5-card @click="jumpTo" :loading="loading" :style="{ width: props.meta?.width || '11rem', height: props.meta?.height || '11rem' }">
     <ui5-card-header slot="header" :title-text="title" :subtitle-text="subtitle" interactive>
     </ui5-card-header>
     <div class="card-content">
@@ -56,8 +59,7 @@ onMounted(async () => {
 
 <style scoped>
 ui5-card {
-  width: 11rem;
-  height: 11rem;
+  /* width and height are set via :style binding on the component to support dynamic props */
 }
 
 

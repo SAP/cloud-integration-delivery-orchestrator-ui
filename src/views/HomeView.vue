@@ -14,9 +14,9 @@ const apps = router.getRoutes().filter(r => r.children.length > 0)
       <AppCard v-for="(child, index) in router.children" 
         :key="index" 
         :title="child.name as string"
-        :subtitle="(child.meta?.description || '') as string" 
+        :meta="child.meta as { description?: string; statusCount?: () => Promise<AppCount>, width?: string, height?: string }"
         :path="`${router.path}/${child.path}`"
-        :count="child.meta?.statusCount as () => Promise<AppCount>" />
+      />
     </n-flex>
   </div>
 </template>
