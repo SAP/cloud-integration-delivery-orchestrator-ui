@@ -58,10 +58,6 @@ onMounted(async () => {
 </template>
 
 <style scoped>
-ui5-card {
-  /* width and height are set via :style binding on the component to support dynamic props */
-}
-
 
 .ui5-header-subtitle {
   font-size: var(--sapFontSize);

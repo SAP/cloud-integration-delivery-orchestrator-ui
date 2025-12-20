@@ -7,7 +7,7 @@
     :open="showFlowModal"
     style="width: 60%; height: 80%;"
     draggable
-    @keydown.esc="showFlowModal = false"
+    @keydown.window.esc="showFlowModal = false"
   >
     <CpiTransportFlowView 
       :delivery-request="deliveryRequest"
@@ -24,7 +24,8 @@
   <ui5-dialog :open="showArtifactDetails" :header-text="`Artifact Details #${artifactOpDetial.ID || ''}`" 
     style="width: 35%;"
     draggable
-    @keydown.esc="showArtifactDetails = false">
+    @keydown.window.esc="showArtifactDetails = false"
+  >
     <n-tag round size="small" type="warning" v-show="draftSourceOps.find(d => d.op.ID === artifactOpDetial.ID)">DRAFT</n-tag>
     <n-tag round size="small" type="success" 
       v-show="addOps.find(a => a.ArtifactTechID === artifactOpDetial.ArtifactTechID && a.ArtifactVersion === artifactOpDetial.ArtifactVersion)">
@@ -639,17 +640,16 @@ export default {
       }
       try {
         this.updatingOps = true
-        await nextTick()
+        // await nextTick()
         await UpdateDeliveryRequest(this.deliveryRequest)
         const draftOps = UpdateOps(this.deliveryRequest.ID, this.draftSourceOps.map(d => d.op))
         const delOps = DeleteOps(this.deleteOps.map(op => op.ID))
         const insertOps = InsertOps(this.deliveryRequest.ID, this.addOps)
         await Promise.all([delOps, insertOps, draftOps])
-      } catch (_) {
+      } finally {
         this.updatingOps = false
+        await this.refresh()
       }
-      this.updatingOps = false
-      await this.refresh()
     },
     // check TR number existence
     async checkTr(op: ArtifactTenantOperation) {
@@ -711,11 +711,14 @@ export default {
     },
     async loadVersionHistory() {
       const baseUrl = new URL(this.deliveryRequest.SourceTenant.CpiEndpoint.url)
-      this.loadingArtifactHistory = true
       const {PackageID, TechID} = this.artifactDetail || {}
-      this.artifactVersionHistory = await GetArtifactVersionHistory(`${baseUrl.protocol}//${baseUrl.host}`, PackageID, TechID)
+      try {
+        this.loadingArtifactHistory = true
+        this.artifactVersionHistory = await GetArtifactVersionHistory(`${baseUrl.protocol}//${baseUrl.host}`, PackageID, TechID)
+      } finally {
+        this.loadingArtifactHistory = false
+      }
       console.log(this.artifactVersionHistory)
-      this.loadingArtifactHistory = false
     },
     openArtifactDetails(a: Artifact, op?: ArtifactTenantOperation) {
       this.artifactDetail = a
