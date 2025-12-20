@@ -7,7 +7,7 @@
     :open="showFlowModal"
     style="width: 60%; height: 80%;"
     draggable
-    @keydown.window.esc="showFlowModal = false"
+    @before-close="showFlowModal = false"
   >
     <CpiTransportFlowView 
       :delivery-request="deliveryRequest"
@@ -24,7 +24,7 @@
   <ui5-dialog :open="showArtifactDetails" :header-text="`Artifact Details #${artifactOpDetial.ID || ''}`" 
     style="width: 35%;"
     draggable
-    @keydown.window.esc="showArtifactDetails = false"
+    @before-close="showArtifactDetails = false"
   >
     <n-tag round size="small" type="warning" v-show="draftSourceOps.find(d => d.op.ID === artifactOpDetial.ID)">DRAFT</n-tag>
     <n-tag round size="small" type="success" 
@@ -65,7 +65,7 @@
           <n-skeleton text style="width: 60%; margin-top:8px" :repeat="3" />
         </div>
         <div v-else v-for="h in artifactVersionHistory">
-          {{ h. comment}} - {{ h.createdBy }} - {{ h.semanticVersion }} - {{ h.createdDate }}
+          {{ h.comment }} - {{ h.createdBy }} - {{ h.semanticVersion }} - {{ h.createdDate }}
         </div>
       </n-flex>
       <n-divider :style="{margin: 5+'px'}" dashed/>
@@ -289,7 +289,7 @@
                                     </template>
                                     <n-popover trigger="hover" placement="top">
                                       <template #trigger>
-                                        <n-icon size="18" @click.stop="openArtifactDetails(a)">
+                                        <n-icon size="18" @click="openArtifactDetails(a)">
                                           <Info16Regular />
                                         </n-icon>
                                       </template>
