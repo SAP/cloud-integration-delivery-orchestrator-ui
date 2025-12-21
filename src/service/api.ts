@@ -149,7 +149,8 @@ export const GetArtifactVersionHistory = async (
         cpi_tenant: cpiTenant,
         target_package_tech_name: targetPackageTechName,
         target_artifact_name: targetArtifactName
-      }
+      },
+      timeout: 8*1000
     }
   )
   return data

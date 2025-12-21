@@ -714,7 +714,11 @@ export default {
       const {PackageID, TechID} = this.artifactDetail || {}
       try {
         this.loadingArtifactHistory = true
+        // NOTE: request has no interception when calling cpi-cookie-service, should manually handel exceptions.
+        // Same with auto generate TR.
         this.artifactVersionHistory = await GetArtifactVersionHistory(`${baseUrl.protocol}//${baseUrl.host}`, PackageID, TechID)
+      } catch(e: any) {
+        window.$message?.error(`Failed to load artifact version history: ${e?.message ?? String(e) ?? ''}`)
       } finally {
         this.loadingArtifactHistory = false
       }
