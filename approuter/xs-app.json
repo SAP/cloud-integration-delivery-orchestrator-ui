@@ -24,12 +24,15 @@
     {
       "source": "^/(.*)$",
       "target": "$1",
-      "localDir": "dist/"
+      "localDir": "dist"
     }
   ],
   "logout": {
     "logoutEndpoint": "/logout"
   },
+  "errorPage": [
+    {"status": [404], "file": "dist/index.html"} 
+  ],
   "websockets": {
     "enabled": true
   }

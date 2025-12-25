@@ -44,3 +44,13 @@ npm run build-only
 cf login -a https://api.cf.sap.hana.ondemand.com/ -o MaCo-devops -s DEVOPS
 cf push
 ```
+
+
+### fallback url for static resources
+Since in approuter there is no fallback configuratoin for 404, here leverage "errorPage" to reach the purpose.
+When static resource not exist, like /delivery-request (display delivery request list), will fallback to index.html, then vue-router will handover the request.
+``` json
+"errorPage": [
+{"status": [404], "file": "dist/index.html"} 
+]
+```
