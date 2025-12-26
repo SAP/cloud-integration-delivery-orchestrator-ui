@@ -1,44 +1,82 @@
 <template>
-  <n-flex vertical align="start">
-    <n-flex justify="space-between" class="header-class">
-      <h3>{{ title }} ({{ counts }})</h3>
-      <n-flex style="margin: auto 0">
-        <!-- custom toolbars -->
-        <n-button quaternary type="info" v-for="(tool, index) in customToolBars" :key="index"
-          @click="tool.func(checkedRows)">
-          {{ tool.text }}
-        </n-button>
+  <ui5-bar design="Header">
+    <ui5-text slot="startContent" class="table-header">{{ title }} ({{ counts }})</ui5-text>
+    <ui5-segmented-button id="sizeBtn" accessible-name="Switch Table Size">
+      <ui5-segmented-button-item @click="tableWidth = '25%'">25%</ui5-segmented-button-item>
+      <ui5-segmented-button-item @click="tableWidth = '50%'">50%</ui5-segmented-button-item>
+      <ui5-segmented-button-item @click="tableWidth = '75%'">75%</ui5-segmented-button-item>
+      <ui5-segmented-button-item selected @click="tableWidth = '100%'">100%</ui5-segmented-button-item>
+    </ui5-segmented-button>
+    <div slot="endContent">
+      <ui5-button v-for="(tool, i) in customToolBars" :key="i"
+        @click="tool.func(checkedRows)"
+        class="toolbar-btn">
+        {{ tool.text }}
+      </ui5-button>
 
-        <!-- add toolbar -->
-        <n-button quaternary type="info" class="icon-class" @click="handleAdd(data)" v-if="handleAdd">
-          <n-icon>
-            <IosAdd />
-          </n-icon>
-        </n-button>
-      </n-flex>
-    </n-flex>
-    <n-input @input="handleInputSearch" @clear="handleClearSearch" placeholder="Search. Split with ',' or space"
-      clearable size="large" v-if="enableSearch" />
+      <ui5-button @click="handleAdd(data)" v-if="handleAdd" design="Emphasized" style="margin-right: 20px;">Create</ui5-button>
 
-    <n-data-table ref="tableRef" :columns="columns" :data="data" :row-props="rowProps" size="small" :row-key="rowKey"
-      @update:checked-row-keys="handleCheck" :default-checked-row-keys="defaultCheckedRowKeys" striped
-      :loading="loading" :pagination="paginationReactive">
-      <template #loading>
-        <n-space>
-          <n-spin size="large" />
-        </n-space>
-      </template>
-    </n-data-table>
-  </n-flex>
+      <ui5-segmented-button id="showHideDetailsBtn" accessible-name="Show/Hide Details">
+        <ui5-segmented-button-item @click="handlePopinToggle(false)" tooltip="Show Details" icon="detail-more" />
+        <ui5-segmented-button-item @click="handlePopinToggle(true)" tooltip="Hide Details" icon="detail-less"
+          selected />
+      </ui5-segmented-button>
+
+    </div>
+  </ui5-bar>
+  <ui5-table overflow-mode="Popin" :style="{ width: tableWidth }" @row-click="handleRowClick" 
+    :loading="loading" loading-delay="500"
+    row-action-count="1">
+    <ui5-table-selection-single id="selection" slot="features" @change="handleCheck"></ui5-table-selection-single>
+    <ui5-illustrated-message slot="noData" name="NoData"></ui5-illustrated-message>
+    <ui5-table-header-row slot="headerRow">
+      <ui5-table-header-cell min-width="100px" v-for="(header, i) in displayColumns" :key="`header-key-${i}`"
+        :id="headerId(header, i)" popin-hidden>
+        <span>{{ headerText(header) }}</span>
+      </ui5-table-header-cell>
+    </ui5-table-header-row>
+    <ui5-table-row v-for="(row, rKey) in data" :key="`rKey-${rKey}`" :row-key="rKey" interactive>
+      <ui5-table-cell v-for="(col, colKey) in rowData(row)" :key="`colKey-${colKey}`">
+        <VNodeRenderer v-if="isVNodeVal(col)" :vnode="col" />
+        <span v-else>{{ col }}</span>
+      </ui5-table-cell>
+      <ui5-table-row-action-navigation v-if="rowClick" slot="actions" interactive></ui5-table-row-action-navigation>
+    </ui5-table-row>
+  </ui5-table>
 </template>
 
 <script lang="ts">
-import { defineComponent, h, reactive, type HTMLAttributes, type PropType } from 'vue'
+import { defineComponent, reactive, isVNode, type HTMLAttributes, type PropType } from 'vue'
+// Helper component to render VNodes returned from column.render
+const VNodeRenderer = defineComponent({
+  name: 'VNodeRenderer',
+  props: {
+    vnode: { type: Object, required: true }
+  },
+  render() {
+    return this.$props.vnode
+  }
+})
 import { type ToolBar } from '@/service/consts'
-import type { DataTableColumns, DataTableRowKey } from 'naive-ui'
-import { IosAdd, IosSettings } from '@vicons/ionicons4'
+import "@ui5/webcomponents/dist/Table.js";
+import "@ui5/webcomponents/dist/TableHeaderRow.js";
+import "@ui5/webcomponents/dist/TableHeaderCell.js";
+import "@ui5/webcomponents/dist/Label.js";
+import "@ui5/webcomponents/dist/SegmentedButton.js";
+import "@ui5/webcomponents-icons/dist/detail-more.js";
+import "@ui5/webcomponents-icons/dist/detail-less.js";
+import "@ui5/webcomponents/dist/Bar.js";
+import "@ui5/webcomponents/dist/Input.js";
+import "@ui5/webcomponents/dist/Button.js";
+import "@ui5/webcomponents/dist/TableSelectionSingle.js";
+import "@ui5/webcomponents-fiori/dist/IllustratedMessage.js";
+import "@ui5/webcomponents-fiori/dist/illustrations/NoData.js";
+import "@ui5/webcomponents/dist/TableRowAction.js";
+import "@ui5/webcomponents/dist/TableRowActionNavigation.js";
+import type { DataTableColumns } from 'naive-ui';
 
 export default defineComponent({
+  components: { VNodeRenderer },
   props: {
     title: { type: String, required: true },
     columns: { type: Array as PropType<DataTableColumns<any>>, required: true },
@@ -73,24 +111,69 @@ export default defineComponent({
         paginationReactive.page = 1
       }
     })
-
-    const checkedRowKeysRef: DataTableRowKey[] = []
-    const checkedRows: DataTableColumns = []
+    const checkedRowKeysRef: any[] = []
+    const checkedRows: any[] = []
     const disableButton = true
+    const tableWidth = '100%'
     return {
       rowProps,
       disableButton,
       checkedRowKeysRef,
       checkedRows,
-      paginationReactive
+      paginationReactive,
+      tableWidth
     }
   },
   methods: {
-    handleCheck(rowKeys: DataTableRowKey[], rows: DataTableColumns) {
-      this.checkedRowKeysRef = rowKeys
-      this.checkedRows = rows
-      this.disableButton = !rows.length
-      this.$emit('update:checkRows', rows)
+    isVNodeVal(v: any) {
+      return isVNode(v)
+    },
+    headerId(header: any, i: number) {
+      const h = header as any
+      return `header-id-${h?.key ?? i}`
+    },
+    headerText(header: any) {
+      const h = header as any
+      return h?.title ?? h?.key ?? ''
+    },
+    handleRowClick(event: any) {
+      const rkey = event.detail.row.rowKey
+      this.data[rkey] && this.rowClick && this.rowClick(this.data[rkey])
+    },
+    handlePopinToggle(hidden: boolean) {
+      const headerIds = (this.displayColumns as any[]).map((header: any, i: number) => `header-id-${header?.key ?? i}`)
+      headerIds.forEach((id) => {
+        const headerEl = document.getElementById(id) as any
+        if (headerEl) headerEl.popinHidden = hidden
+      })
+    },
+    rowData(row: any) {
+      // Map visible (non-selection) columns to rendered VNode or text value
+      return (this.displayColumns as any[]).map((column: any) => {
+        if (typeof column?.render === 'function') {
+          try {
+            return column.render(row)
+          } catch (e) {
+            return ''
+          }
+        }
+        const key = column?.key
+        if (!key) return ''
+        const val = (row as any)[key]
+        if (val === undefined || val === null) return ''
+        return this.isPrimitive(val) ? String(val) : JSON.stringify(val)
+      })
+    },
+    handleCheck(event: any) {
+      const selectionFeature = document.getElementById("selection") as any;
+      const row = selectionFeature?.getSelectedRow?.();
+      if (!row) return;
+      const rowKey = row.rowKey;
+      const rowData = this.data[rowKey];
+
+      this.checkedRowKeysRef = [rowKey];
+      this.checkedRows = [rowData];
+      this.$emit('update:checkRows', this.checkedRows);
     },
     handleInputSearch(v: string) {
       this.doFilter(v.split(/[\s,]+/).filter((v) => v != ''))
@@ -131,12 +214,12 @@ export default defineComponent({
     }
   },
   emits: ['update:checkRows', 'update:edit'],
-  components: {
-    IosAdd
-  },
   computed: {
     counts() {
       return this.data.length
+    },
+    displayColumns(): any[] {
+      return (this.columns as any[]).filter((c: any) => c?.type !== 'selection')
     }
   },
   mounted() {
@@ -162,5 +245,16 @@ h2 {
 .header-class {
   width: 100%;
   margin: 0;
+}
+.toolbar-btn {
+  border: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  outline: none !important;
+  border-radius: 0 !important;
+}
+.table-header {
+  font-family: var(--sapFontBoldFamily);
+  font-size: var(--sapFontLargeSize);
 }
 </style>
