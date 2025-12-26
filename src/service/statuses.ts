@@ -50,3 +50,21 @@ export type ConditionType =
   | 'Error'
   | 'Warn'
   | 'Success'
+
+  export type Ui5Design = 
+    |"Set1" | "Set2" | "Neutral" | "Information" | "Positive" | "Negative" | "Critical"
+
+// Maps AggregateStatus to a UI5 design (used by ui5-tag, ui5-badge, etc.)
+// Data-driven mapping for AggregateStatus → Ui5Design
+// Functional helpers
+// Minimal, data-driven sets per design
+const DESIGN_SETS = {
+  Positive: new Set<AggregateStatus>(['DEPLOYED']),
+  Negative: new Set<AggregateStatus>(['FAILED', 'IMPORT_FAILED', 'DEPLOY_FAILED', 'Error']),
+  Information: new Set<AggregateStatus>(['IN_PROGRESS', 'IMPORTING', 'DEPLOYING', 'AWAITING_IMPORT', 'AWAITING_DEPLOY', 'WAITING_APPROVAL']),
+  Critical: new Set<AggregateStatus>(['IMPORTED', 'CANCELED', 'ROLLBACKING', 'ROLLED_BACK']),
+  Neutral: new Set<AggregateStatus>(['UNKNOWN', 'PENDING'])
+} as const
+
+export const aggregateStatusToUi5Design = (status: AggregateStatus): Ui5Design =>
+  (Object.entries(DESIGN_SETS).find(([, set]) => set.has(status))?.[0] as Ui5Design) ?? 'Neutral'

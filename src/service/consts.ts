@@ -4,6 +4,7 @@ import { h } from 'vue'
 import "@ui5/webcomponents/dist/Tag.js";
 import "@ui5/webcomponents-icons/dist/chain-link.js";
 import "@ui5/webcomponents/dist/Link.js";
+import { aggregateStatusToUi5Design } from './statuses';
 
 export const apiEndpointColums: DataTableColumns<ApiEndpoint> = [
   {
@@ -475,14 +476,7 @@ export const deliveryRequestColumns: DataTableColumns<DeliveryRequest> = [
     key: 'Status',
     resizable: true,
     render(row: DeliveryRequest) {
-      const type =
-        row.AggregateStatus === 'Error'
-          ? 'Negative'
-          : row.AggregateStatus === 'DEPLOYED'
-            ? 'Positive'
-            : row.AggregateStatus === 'PENDING'
-              ? 'Neutral'
-              : 'Information'
+      const type = aggregateStatusToUi5Design(row.AggregateStatus)
       return h(
         'ui5-tag',
         { design: type },

@@ -144,7 +144,7 @@
 
       <p slot="subheading" class="text">#{{ deliveryRequest.ID }}</p>
 
-      <ui5-tag color-scheme="7" wrapping-type="None">{{ deliveryRequest.AggregateStatus }}</ui5-tag>
+      <ui5-tag :design="aggrStatusToDesign">{{ deliveryRequest.AggregateStatus }}</ui5-tag>
 
       <ui5-toolbar class="actionsBar" id="actionsToolbar" slot="actionsBar" design="Transparent">
         <ui5-toolbar-button text="Edit" @click="onEditDr" v-if="!isEditingDr"></ui5-toolbar-button>
@@ -462,6 +462,8 @@ import DeliveryFlowView from './DeliveryFlowView.vue'
 import CpiTransportFlowView from './CpiTransportFlowView.vue'
 import ArtifactOpTag from '@/components/ArtifactOpTag.vue'
 import { nextTick } from 'vue'
+import { aggregateStatusToUi5Design } from '@/service/statuses'
+
 
 import "@ui5/webcomponents-fiori/dist/DynamicPage.js";
 import "@ui5/webcomponents-fiori/dist/DynamicPageTitle.js";
@@ -842,6 +844,9 @@ export default {
       if (!tenant || !tenant.CpiEndpoint) return ''
       const baseUrl = new URL(tenant.CpiEndpoint.url)
       return `${baseUrl.protocol}//${baseUrl.host}/itspaces/shell/design`
+    },
+    aggrStatusToDesign() {
+      return aggregateStatusToUi5Design(this.deliveryRequest.AggregateStatus)
     }
   },
   async created() {
