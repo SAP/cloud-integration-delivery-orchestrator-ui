@@ -454,7 +454,6 @@ import {
 import { toLocalTime } from '@/service/consts'
 import { Edit16Regular, Delete28Regular, Info16Regular } from '@vicons/fluent'
 import { SaveAltRound, StartTwotone, CancelOutlined } from '@vicons/material'
-import IconBtn from '@/components/IconBtn.vue'
 import { VueFlow } from '@vue-flow/core'
 import CpiTransportNode from '@/components/CpiTransportNode.vue'
 import type { DeliveryRequest, CpiTenant, Package, Artifact, ArtifactVersionHistoryItem, ArtifactTenantOperation, UserInfo } from '@/service/model'
@@ -496,7 +495,6 @@ export default {
     SaveAltRound,
     StartTwotone,
     CancelOutlined,
-    IconBtn,
     Info16Regular,
     VueFlow,
     CpiTransportNode,
