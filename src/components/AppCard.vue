@@ -58,14 +58,6 @@ onMounted(async () => {
 </template>
 
 <style scoped>
-
-.ui5-header-subtitle {
-  font-size: var(--sapFontSize);
-  color: var(--sapObjectHeader_Subtitle_TextColor);
-  padding-left: 16px;
-  padding-right: 16px;
-}
-
 .card-content {
   width: 100%;
   padding-left: 16px;

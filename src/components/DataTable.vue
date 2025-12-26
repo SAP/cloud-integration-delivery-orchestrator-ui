@@ -29,7 +29,7 @@
     <ui5-table-selection-single id="selection" slot="features" @change="handleCheck"></ui5-table-selection-single>
     <ui5-illustrated-message slot="noData" name="NoData"></ui5-illustrated-message>
     <ui5-table-header-row slot="headerRow">
-      <ui5-table-header-cell min-width="100px" v-for="(header, i) in displayColumns" :key="`header-key-${i}`"
+      <ui5-table-header-cell min-width="150px" v-for="(header, i) in displayColumns" :key="`header-key-${i}`"
         :id="headerId(header, i)" popin-hidden>
         <span>{{ headerText(header) }}</span>
       </ui5-table-header-cell>

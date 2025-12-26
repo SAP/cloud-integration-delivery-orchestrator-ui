@@ -61,8 +61,8 @@ export type ConditionType =
 const DESIGN_SETS = {
   Positive: new Set<AggregateStatus>(['DEPLOYED']),
   Negative: new Set<AggregateStatus>(['FAILED', 'IMPORT_FAILED', 'DEPLOY_FAILED', 'Error']),
-  Information: new Set<AggregateStatus>(['IN_PROGRESS', 'IMPORTING', 'DEPLOYING', 'AWAITING_IMPORT', 'AWAITING_DEPLOY', 'WAITING_APPROVAL']),
-  Critical: new Set<AggregateStatus>(['IMPORTED', 'CANCELED', 'ROLLBACKING', 'ROLLED_BACK']),
+  Information: new Set<AggregateStatus>(['IN_PROGRESS', 'IMPORTING', 'DEPLOYING']),
+  Critical: new Set<AggregateStatus>(['AWAITING_IMPORT', 'AWAITING_DEPLOY', 'WAITING_APPROVAL', 'IMPORTED', 'CANCELED', 'ROLLBACKING', 'ROLLED_BACK']),
   Neutral: new Set<AggregateStatus>(['UNKNOWN', 'PENDING'])
 } as const
 
