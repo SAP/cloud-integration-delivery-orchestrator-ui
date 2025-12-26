@@ -1,9 +1,9 @@
 import { NTag, type DataTableColumns } from 'naive-ui'
 import type { ApiEndpoint, Artifact, Package, TransportGroup, TransportNode, NodeTransportRequest, CpiTenant, DeliveryRule, DeliveryRequest } from './model'
 import { h } from 'vue'
-import type { Router } from 'vue-router'
-import { IosArrowForward } from '@vicons/ionicons4'
-
+import "@ui5/webcomponents/dist/Tag.js";
+import "@ui5/webcomponents-icons/dist/chain-link.js";
+import "@ui5/webcomponents/dist/Link.js";
 
 export const apiEndpointColums: DataTableColumns<ApiEndpoint> = [
   {
@@ -356,26 +356,9 @@ export const deliveryRuleColumns: DataTableColumns<DeliveryRule> = [
         'div',
         row.IncludedTenants?.map(t =>
           h(
-            NTag,
-            { style: { marginRight: '4px', marginBottom: '4px' }, type: 'info' },
-            { default: () => t.Name }
-          )
-        )
-      )
-    }
-  },
-  {
-    title: 'Excluded Tenants',
-    key: 'ExcludedTenants',
-    resizable: true,
-    render(row: DeliveryRule) {
-      return h(
-        'div',
-        row.ExcludedTenants?.map(t =>
-          h(
-            NTag,
-            { style: { marginRight: '4px', marginBottom: '4px' }, type: 'warning' },
-            { default: () => t.Name }
+            'ui5-tag',
+            { style: { marginRight: '4px', marginBottom: '4px' }, design: 'Set2', colorScheme: "5" },
+            t.Name
           )
         )
       )
@@ -458,7 +441,7 @@ export function toLocalTime(str: string) {
 }
 
 export const deliveryRequestColumns: DataTableColumns<DeliveryRequest> = [
-  { type: 'selection', multiple: false },
+  // { type: 'selection', multiple: false },
   {
     title: 'ID',
     key: 'ID',
@@ -477,11 +460,11 @@ export const deliveryRequestColumns: DataTableColumns<DeliveryRequest> = [
     render(row: DeliveryRequest) {
       if (!row.JiraLink) return ''
       return h(
-        'a',
+        'ui5-link',
         {
           href: row.JiraLink,
           target: '_blank',
-          style: 'color: var(--primary-color)'
+          icon: "chain-link"
         },
         row.JiraLink
       )
@@ -494,15 +477,15 @@ export const deliveryRequestColumns: DataTableColumns<DeliveryRequest> = [
     render(row: DeliveryRequest) {
       const type =
         row.AggregateStatus === 'Error'
-          ? 'error'
+          ? 'Negative'
           : row.AggregateStatus === 'DEPLOYED'
-            ? 'success'
+            ? 'Positive'
             : row.AggregateStatus === 'PENDING'
-              ? 'default'
-              : 'info'
+              ? 'Neutral'
+              : 'Information'
       return h(
-        NTag,
-        { type },
+        'ui5-tag',
+        { design: type },
         { default: () => row.AggregateStatus }
       )
     }
@@ -520,7 +503,11 @@ export const deliveryRequestColumns: DataTableColumns<DeliveryRequest> = [
     key: 'DeliveryRule',
     resizable: true,
     render(row: DeliveryRequest) {
-      return row.DeliveryRule?.Name || ''
+      return h(
+        'ui5-tag',
+        { design: "Set2", colorScheme: "10" },
+        { default: () => row.DeliveryRule?.Name || '' }
+      )
     }
   },
   {

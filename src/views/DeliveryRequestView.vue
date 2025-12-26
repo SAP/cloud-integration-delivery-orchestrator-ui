@@ -169,7 +169,7 @@
         <div class="product-info-cell">
             <ui5-label>JIRA</ui5-label>
             <p class="text price">
-              <ui5-link :href="deliveryRequest.JiraLink" target="_blank">{{ jira }}</ui5-link>
+              <ui5-link :href="deliveryRequest.JiraLink" target="_blank" icon="chain-link" :disabled="jira.includes('Invalid')">{{ jira }}</ui5-link>
             </p>
         </div>
         <div class="product-info-cell">
@@ -481,6 +481,7 @@ import "@ui5/webcomponents/dist/List.js";
 import "@ui5/webcomponents/dist/ListItemStandard.js";
 
 import "@ui5/webcomponents-icons/dist/action-settings.js";
+import "@ui5/webcomponents-icons/dist/chain-link.js";
 import "@ui5/webcomponents-icons/dist/share.js";
 import "@ui5/webcomponents-icons/dist/laptop.js";
 import "@ui5/webcomponents/dist/Dialog.js";
@@ -834,7 +835,7 @@ export default {
     jira(): string {
       const v = this.deliveryRequest.JiraLink || ''
       const match = v.match(/([A-Z]+-\d+)/)
-      return match ? match[1] : 'Invalid'
+      return match ? match[1] : `Invalid(${v})`
     },
     cpiTenantLink() {
       const tenant = this.deliveryRequest.SourceTenant
