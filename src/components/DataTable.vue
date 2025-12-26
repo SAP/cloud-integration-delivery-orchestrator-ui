@@ -9,12 +9,11 @@
     </ui5-segmented-button>
     <div slot="endContent">
       <ui5-button v-for="(tool, i) in customToolBars" :key="i"
-        @click="tool.func(checkedRows)"
-        class="toolbar-btn">
+        @click="tool.func(checkedRows)" design="Transparent">
         {{ tool.text }}
       </ui5-button>
 
-      <ui5-button @click="handleAdd(data)" v-if="handleAdd" design="Emphasized" style="margin-right: 20px;">Create</ui5-button>
+      <ui5-button @click="handleAdd(data)" v-if="handleAdd" design="Transparent" style="margin-right: 20px;">Create</ui5-button>
 
       <ui5-segmented-button id="showHideDetailsBtn" accessible-name="Show/Hide Details">
         <ui5-segmented-button-item @click="handlePopinToggle(false)" tooltip="Show Details" icon="detail-more" />
@@ -245,13 +244,6 @@ h2 {
 .header-class {
   width: 100%;
   margin: 0;
-}
-.toolbar-btn {
-  border: none !important;
-  background: transparent !important;
-  box-shadow: none !important;
-  outline: none !important;
-  border-radius: 0 !important;
 }
 .table-header {
   font-family: var(--sapFontBoldFamily);
