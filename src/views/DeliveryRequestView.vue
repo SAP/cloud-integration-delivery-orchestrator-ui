@@ -399,8 +399,8 @@
               <n-step>
                 <template #title> 
                   Delivery Flow
-                  <n-button type="info" ghost size="small" @click="onSyncDrStatus" style="margin: 0 20px;">Sync Status</n-button>
-                  <n-button type="info" ghost size="small" @click="showFlowModal = true" :disabled="loadingCpiTenants">Show Detail</n-button>
+                  <ui5-button @click="onSyncDrStatus" style="margin: 0 20px;">Sync Status</ui5-button>
+                  <ui5-button @click="showFlowModal = true" :disabled="loadingCpiTenants">Show Detail</ui5-button>
                 </template>
                 <n-flex v-if="loadingCpiTenants" vertical>
                   <n-skeleton style="width: 50%;" />
