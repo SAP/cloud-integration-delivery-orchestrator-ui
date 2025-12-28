@@ -58,6 +58,8 @@ const VNodeRenderer = defineComponent({
 })
 import { type ToolBar } from '@/service/consts'
 import "@ui5/webcomponents/dist/Table.js";
+import "@ui5/webcomponents/dist/TableRow.js";
+import "@ui5/webcomponents/dist/TableCell.js";
 import "@ui5/webcomponents/dist/TableHeaderRow.js";
 import "@ui5/webcomponents/dist/TableHeaderCell.js";
 import "@ui5/webcomponents/dist/Label.js";

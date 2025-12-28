@@ -249,59 +249,65 @@
                     <!-- Package & Artifacts Section -->
                     <div v-if="selectedPackages.length" style="margin-top:16px; width:100%">
                       <n-text depth="3" strong>Artifacts (select to include):</n-text>
-                      <n-collapse v-model:expanded-names="expandedPackages" style="margin-top:6px">
-                        <!-- Package Lists -->
-                        <n-collapse-item v-for="pkg in selectedPackages" :key="pkg.Id" :name="pkg.Id"
-                          :title="`${pkg.Name} - ${pkg.Version}`">
-                          <n-flex vertical v-if="loadingPackages[pkg.Id]" style="padding:4px 0">
-                            <n-skeleton text style="width:55%" :repeat="1" />
-                            <n-skeleton text style="width:70%; margin-top:6px" :repeat="1" />
-                          </n-flex>
-                          <div v-else>
-                            <div v-if="(packageArtifacts[pkg.Id] || []).length === 0">
-                              <n-empty description="No artifacts" />
-                            </div>
-                            <div v-else>
-                              <n-flex>
-                                <n-input v-model:value="artifactSearch[pkg.Id]" size="small"
-                                  placeholder="Filter artifacts (id / version / type)" clearable
-                                  style="max-width:320px; margin-bottom:8px" />
-                                <n-button tertiary size="tiny" @click="selectAllFiltered(pkg.Id)"
-                                  :disabled="!filteredArtifacts(pkg.Id).length">Select All Filtered</n-button>
-                                <n-button tertiary size="tiny" @click="clearSelections(pkg.Id)"
-                                  :disabled="!(selPkgArtifacts[pkg.Id] || []).length">Clear Selected</n-button>
-                                <n-text depth="1" type="info" style="font-size:12px; margin-left:auto">
-                                  Hint: click Info16Regular icon on an artifact tag to view details
-                                </n-text>
-                              </n-flex>
-
-                              <!-- Artifact list section -->
-                              <n-scrollbar
-                                style="max-height:260px; border:1px solid var(--n-border-color); padding:6px; border-radius:4px">
-                                <div style="display:flex; flex-wrap:wrap; gap:6px">
-                                  <n-tag v-for="a in filteredArtifacts(pkg.Id)"
-                                    :key="pkg.Id + '-' + a.TechID + '@' + a.Version"
-                                    :type="isArtifactSelected(pkg.Id, a) ? 'success' : 'default'" :bordered="false"
-                                    size="medium" @click="toggleArtifact(pkg.Id, a)">
-                                    <span>{{ a.TechID }}@{{ a.Version }}</span>
-                                    <template v-if="isArtifactSelected(pkg.Id, a)">
-                                      <span style="margin-left:2px">✔</span>
-                                    </template>
-                                    <n-popover trigger="hover" placement="top">
-                                      <template #trigger>
-                                        <n-icon size="18" @click="openArtifactDetails(a)">
-                                          <Info16Regular />
-                                        </n-icon>
-                                      </template>
-                                      <n-text depth="3" strong>Show Details</n-text>
-                                    </n-popover>
-                                  </n-tag>
-                                </div>
-                              </n-scrollbar>
-                            </div>
+                      <ui5-panel v-for="pkg in selectedPackages" :key="pkg.Id" 
+                        :header-text="`${pkg.Name} - ${pkg.Version}`"
+                        @toggle="loadPackageArtifacts(pkg.Id)"
+                        collapsed
+                        style="margin: 10px 0;"
+                        >
+                        <ui5-busy-indicator 
+                          v-if="loadingPackages[pkg.Id] || !packageArtifacts[pkg.Id]"
+                          active
+                          :delay="0"
+                          style="display:flex; justify-content:center; align-items:center; width:100%; height: 80px;"
+                          >
+                        </ui5-busy-indicator>
+                        <div v-else>
+                          <div v-if="(packageArtifacts[pkg.Id] || []).length === 0">
+                            <ui5-illustrated-message name="NoData" design="Dot">
+                              <div slot="subtitle">
+                                <ui5-button icon="refresh" design="Transparent" @click="loadPackageArtifacts(pkg.Id, true)"></ui5-button>
+                              </div>
+                            </ui5-illustrated-message>
                           </div>
-                        </n-collapse-item>
-                      </n-collapse>
+                          <div v-else>
+                            <n-flex>
+                              <n-input v-model:value="artifactSearch[pkg.Id]" size="small"
+                                placeholder="Filter artifacts (id / version / type)" clearable
+                                style="max-width:320px; margin-bottom:8px" />
+                              <n-button tertiary size="tiny" @click="selectAllFiltered(pkg.Id)"
+                                :disabled="!filteredArtifacts(pkg.Id).length">Select All Filtered</n-button>
+                              <n-button tertiary size="tiny" @click="clearSelections(pkg.Id)"
+                                :disabled="!(selPkgArtifacts[pkg.Id] || []).length">Clear Selected</n-button>
+                              <n-text depth="1" type="info" style="font-size:12px; margin-left:auto">
+                                Hint: click Info16Regular icon on an artifact tag to view details
+                              </n-text>
+                            </n-flex>
+
+                            <!-- Artifact list section -->
+                            <n-scrollbar
+                              style="max-height:260px; border:1px solid var(--n-border-color); padding:6px; border-radius:4px">
+                              <div style="display:flex; flex-wrap:wrap; gap:6px">
+                                <ui5-segmented-button
+                                  items-fit-content
+                                  selection-mode="Multiple"
+                                  v-for="a in filteredArtifacts(pkg.Id)"
+                                  :key="pkg.Id + '-' + a.TechID + '@' + a.Version"
+                                  @click="toggleArtifact(pkg.Id, a)">
+
+                                  <ui5-segmented-button-item :selected="isArtifactSelected(pkg.Id, a)">
+                                    {{ a.TechID }}@{{ a.Version }}
+                                  </ui5-segmented-button-item>
+
+                                  <ui5-segmented-button-item 
+                                    icon="italic-text" @click="openArtifactDetails(a)" tooltip="Show Details"
+                                  />
+                                </ui5-segmented-button>
+                              </div>
+                            </n-scrollbar>
+                          </div>
+                        </div>
+                      </ui5-panel>
                     </div>
                     <!-- selected Artifacts list -->
                     <n-flex vertical v-if="selArtifactOps.length || deleteOps.length" style="margin-top:18px">
@@ -333,7 +339,7 @@
                           </n-flex>
                         </n-spin>
                       </n-flex>
-                      <n-button type="info" ghost strong @click="updateDr"> Update </n-button>
+                      <ui5-button design="Emphasized" @click="updateDr" style="width:10%"> Update </ui5-button>
                     </n-flex>
                   </n-flex>
                 </n-card>
@@ -370,9 +376,9 @@
                       <!-- Approve/Skip Approval button -->
                       <n-popover trigger="hover">
                         <template #trigger>
-                          <n-button strong :disabled="approveInfo.disable" :type="approveInfo.disable ? 'error':'info'" ghost @click="handleApprove" >
+                          <ui5-button :disabled="approveInfo.disable" :design="approveInfo.disable ? 'Attention':'Positive'" @click="handleApprove" >
                             {{ approveInfo.display }}
-                          </n-button>
+                          </ui5-button>
                         </template>
                         <n-text strong depth="3" v-if="approveInfo.disable">Cannot approve your own request</n-text>
                         <n-text strong depth="3" v-else>Force Deliver</n-text>
@@ -485,7 +491,15 @@ import "@ui5/webcomponents-icons/dist/action-settings.js";
 import "@ui5/webcomponents-icons/dist/chain-link.js";
 import "@ui5/webcomponents-icons/dist/share.js";
 import "@ui5/webcomponents-icons/dist/laptop.js";
+import "@ui5/webcomponents-icons/dist/refresh.js";
+import "@ui5/webcomponents-icons/dist/italic-text.js";
 import "@ui5/webcomponents/dist/Dialog.js";
+import "@ui5/webcomponents/dist/Panel.js";
+import "@ui5/webcomponents/dist/BusyIndicator.js";
+import "@ui5/webcomponents-fiori/dist/IllustratedMessage.js";
+import "@ui5/webcomponents-fiori/dist/illustrations/NoData.js";
+import "@ui5/webcomponents/dist/SegmentedButton.js";
+import "@ui5/webcomponents/dist/SegmentedButtonItem.js";
 
 export default {
   name: 'TransportPlanView',
@@ -515,7 +529,6 @@ export default {
       selectedPackages: [] as Package[],
       packageArtifacts: {} as { [key: string]: Artifact[] }, // packages to their artifacts, this is like a cache for package
       loadingPackages: {} as { [key: string]: boolean },
-      expandedPackages: [] as string[],
       selPkgArtifacts: {} as { [key: string]: Artifact[] },  // selected artifacts within each package, [package id, array of artifact]
       packagesLoading: false,
       artifactSearch: {} as { [key: string]: string },
@@ -674,8 +687,8 @@ export default {
         this.checkingTrLoading = false
       }
     },
-    async loadPackageArtifacts(pkgId: string) {
-      if (this.packageArtifacts[pkgId]) return // already loaded
+    async loadPackageArtifacts(pkgId: string, reload: boolean = false) {
+      if (this.packageArtifacts[pkgId] && !reload) return // already loaded
       const cpiDest = this.deliveryRequest?.SourceTenant?.CpiEndpoint.name
       if (!cpiDest) return
       this.loadingPackages[pkgId] = true
@@ -757,12 +770,7 @@ export default {
       removed.forEach(p => {
         delete this.packageArtifacts[p.Id]
         delete this.selPkgArtifacts[p.Id]
-        this.expandedPackages = this.expandedPackages.filter(id => id !== p.Id)
       })
-    },
-    expandedPackages(newVal: string[], oldVal: string[]) {
-      const added = newVal.filter(id => !(oldVal || []).includes(id))
-      added.forEach(id => this.loadPackageArtifacts(id))
     },
     selPkgArtifacts: {
       handler(newVal: { [key: string]: Artifact[] }) {
