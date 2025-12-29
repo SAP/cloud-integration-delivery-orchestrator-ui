@@ -699,13 +699,13 @@ export default {
     stateType(op: ArtifactTenantOperation) {
       // op request state to tag type mapping('default' | 'primary' | 'info' | 'success' | 'warning' | 'error')
       const delIndex = this.deleteOps.findIndex(delOp => delOp.ArtifactTechID === op.ArtifactTechID && delOp.ArtifactVersion === op.ArtifactVersion)
-      if (delIndex >= 0) return 'error' // to be deleted
+      if (delIndex >= 0) return '1' // to be deleted
       const addIndex = this.addOps.findIndex(addOp => addOp.ArtifactTechID === op.ArtifactTechID && addOp.ArtifactVersion === op.ArtifactVersion)
-      if (addIndex >= 0) return 'success' // to be added
+      if (addIndex >= 0) return '4' // to be added
       const draftIndex = this.draftSourceOps?.findIndex(draftOp => draftOp.op.ID === op.ID)
-      if (draftIndex >= 0) return 'warning' // drafted
-      if (op.RequestState === 'NOT_REQUESTED') return 'default'
-      return 'info'
+      if (draftIndex >= 0) return '3' // drafted
+      if (op.RequestState === 'NOT_REQUESTED') return '5'
+      return '10'
     },
     handleSelectPackage(event: CustomEvent) {
       const selectedItems = event.detail.items as Array<{ id: string; text: string; additionalText: string }>

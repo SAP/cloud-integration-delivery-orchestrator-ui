@@ -1,26 +1,20 @@
 <template>
-    <n-tag :key="'sel-' + i + '-' + artOp.ArtifactTechID + '@' + artOp.ArtifactVersion" :type="stageType" size="medium"
-        :bordered="false" strong>
+    <ui5-tag 
+        :id="`sel-${i}-${artOp.ArtifactTechID}@${artOp.ArtifactVersion}`" 
+        :key="`sel-${i}-${artOp.ArtifactTechID}@${artOp.ArtifactVersion}`"
+        design="Set2"
+        :color-scheme="stageType"
+        @click.stop="openArtifactDetails(artOp)">
 
         {{ artOp.ArtifactTechID }}@{{ artOp.ArtifactVersion }}
-        <n-divider vertical />
-
+        -
         TR: {{ artOp.TransportRequestNumber }}
-
-        <n-popover trigger="hover" placement="top">
-            <template #trigger>
-                <n-icon size="18" @click.stop="openArtifactDetails(artOp)">
-                    <Info16Regular :size="30" />
-                </n-icon>
-            </template>
-            Show Details
-        </n-popover>
-    </n-tag>
+    </ui5-tag>
 </template>
 <script setup lang="ts">
 import type { ArtifactTenantOperation, Artifact } from '@/service/model';
-import { Info16Regular } from '@vicons/fluent'
-import { computed, ref } from 'vue';
+import "@ui5/webcomponents/dist/Tag.js";
+
 const props = defineProps<{
     artOp: ArtifactTenantOperation
     i: number
