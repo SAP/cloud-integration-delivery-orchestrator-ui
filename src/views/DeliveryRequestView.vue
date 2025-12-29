@@ -366,10 +366,10 @@
             <n-skeleton style="width: 60%;" />
             <n-skeleton style="width: 70%;" />
           </n-flex>
-          <n-card v-else hoverable size="large">
+          <div v-else>
             <DeliveryFlowView :delivery-request="deliveryRequest" :cpi-tenants="cpiTenants"
               :tenant-to-ops="tenantToOps" />
-          </n-card>
+          </div>
         </div>
       </ui5-wizard-step>
     </ui5-wizard>

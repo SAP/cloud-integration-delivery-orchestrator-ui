@@ -4,7 +4,7 @@
         :nodes="graph.nodes"
         :edges="graph.edges"
         style="width: 100%; min-height: 300px;"
-        :nodes-draggable="true"
+        :nodes-draggable="false"
         :pan-on-drag="true"
         :zoom-on-scroll="false" 
         :zoom-on-pinch="false"
