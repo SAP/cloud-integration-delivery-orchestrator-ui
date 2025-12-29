@@ -239,34 +239,28 @@
                   </div>
                   <div v-else>
                     <n-flex>
-                      <n-input v-model:value="artifactSearch[pkg.Id]" size="small"
-                        placeholder="Filter artifacts (id / version / type)" clearable
-                        style="max-width:320px; margin-bottom:8px" />
-                      <n-button tertiary size="tiny" @click="selectAllFiltered(pkg.Id)"
-                        :disabled="!filteredArtifacts(pkg.Id).length">Select All Filtered</n-button>
-                      <n-button tertiary size="tiny" @click="clearSelections(pkg.Id)"
-                        :disabled="!(selPkgArtifacts[pkg.Id] || []).length">Clear Selected</n-button>
-                      <n-text depth="1" type="info" style="font-size:12px; margin-left:auto">
-                        Hint: click Info16Regular icon on an artifact tag to view details
-                      </n-text>
+                      <ui5-input id="input-filter-artifacts" @input="handleFilterArtifacts(pkg.Id)"
+                        placeholder="Filter artifacts (id/version/type)"
+                        show-clear-icon/>
+                      
+                      <ui5-button design="Transparent" @click="selectAllFiltered(pkg.Id)"
+                        :disabled="!filteredArtifacts(pkg.Id).length">Select All Filtered
+                      </ui5-button>
+                      <ui5-button design="Transparent" @click="clearSelections(pkg.Id)"
+                        :disabled="!(selPkgArtifacts[pkg.Id] || []).length">Clear Selected
+                      </ui5-button>
                     </n-flex>
 
                     <!-- Artifact list section -->
-                    <n-scrollbar
-                      style="max-height:260px; border:1px solid var(--n-border-color); padding:6px; border-radius:4px">
-                      <div style="display:flex; flex-wrap:wrap; gap:6px">
-                        <ui5-segmented-button items-fit-content selection-mode="Multiple"
-                          v-for="a in filteredArtifacts(pkg.Id)" :key="pkg.Id + '-' + a.TechID + '@' + a.Version">
-
-                          <ui5-segmented-button-item :selected="isArtifactSelected(pkg.Id, a)" @click="toggleArtifact(pkg.Id, a)">
-                            {{ a.TechID }}@{{ a.Version }}
-                          </ui5-segmented-button-item>
-
-                          <ui5-segmented-button-item icon="italic-text" @click="openArtifactDetails(a)" tooltip="Show Details" />
-
-                        </ui5-segmented-button>
-                      </div>
-                    </n-scrollbar>
+                    <div style="max-height:240px; overflow:auto; padding:6px; display:flex; flex-wrap:wrap; gap:6px;">
+                      <ui5-segmented-button v-for="a in filteredArtifacts(pkg.Id)" 
+                        :key="pkg.Id + '-' + a.TechID + '@' + a.Version" items-fit-content selection-mode="Multiple">
+                        <ui5-segmented-button-item :selected="isArtifactSelected(pkg.Id, a)" @click="toggleArtifact(pkg.Id, a)">
+                          {{ a.TechID }}@{{ a.Version }}
+                        </ui5-segmented-button-item>
+                        <ui5-segmented-button-item icon="italic-text" @click="openArtifactDetails(a)" tooltip="Show Details" />
+                      </ui5-segmented-button>
+                    </div>
                   </div>
                 </div>
               </ui5-panel>
@@ -434,6 +428,7 @@ import "@ui5/webcomponents/dist/Avatar.js";
 import "@ui5/webcomponents/dist/Button.js";
 import "@ui5/webcomponents/dist/List.js";
 import "@ui5/webcomponents/dist/ListItemStandard.js";
+import "@ui5/webcomponents/dist/Input.js";
 
 import "@ui5/webcomponents-icons/dist/action-settings.js";
 import "@ui5/webcomponents-icons/dist/chain-link.js";
@@ -721,6 +716,10 @@ export default {
         })
         .filter((pkg): pkg is Package => pkg !== null)
       this.selectedPackages = selectedPkgs
+    },
+    handleFilterArtifacts(pkgId: string) {
+      const input = document.getElementById("input-filter-artifacts");
+      if (input) this.artifactSearch[pkgId] = (input as HTMLInputElement).value
     }
 
   },
