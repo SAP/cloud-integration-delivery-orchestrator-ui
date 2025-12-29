@@ -214,7 +214,7 @@
                 </div>
 
                 <ui5-multi-combobox v-else show-clear-icon show-select-all @selection-change="handleSelectPackage"
-                  style="width: 60%;">
+                  style="width: 40%;">
                   <ui5-mcb-item v-for="pkg in packageOptions" :id="pkg.value.Id" :key="pkg.value.Id"
                     :text="pkg.value.Name" :additional-text="`${pkg.value.Version}`"
                     :selected="selectedPackages.some(p => p.Id === pkg.value.Id)" />
@@ -306,9 +306,9 @@
       </ui5-wizard-step>
 
       <!-- Step 2: Approve -->
-      <ui5-wizard-step id="step2" title-text="Request Approvals">
+      <ui5-wizard-step id="step2" title-text="Request Approval">
         <div style="display: flex;flex-direction: column">
-          <ui5-title>Request Approvals</ui5-title><br />
+          <ui5-title>Request Approval</ui5-title><br />
           <n-skeleton v-if="approveInfo.loading" style="width: 50%;" />
           <n-flex vertical v-else-if="!deliveryRequest.ApprovedBy">
             <n-auto-complete style="width: 40%;" :options="approverOptions" :loading="searchApproverLoading"
@@ -353,10 +353,14 @@
 
       <!-- Step 3: Delivery Flow -->
       <ui5-wizard-step id="step3" title-text="Delivery Flow">
-        <div style="display: flex; flex-direction: column;">
+        <div style="display: flex; flex-direction: row; margin-bottom: 15px;">
           <ui5-title>Delivery Flow</ui5-title><br />
-          <ui5-button @click="onSyncDrStatus">Sync Status</ui5-button>
-          <ui5-button @click="showFlowModal = true" :disabled="loadingCpiTenants">Show Detail</ui5-button>
+          <ui5-segmented-button style="margin-left: 12px;">
+            <ui5-segmented-button-item @click="onSyncDrStatus" icon="synchronize" tooltip="Sync Status" />
+            <ui5-segmented-button-item @click="showFlowModal = true" :disabled="loadingCpiTenants" icon="show" tooltip="Show Detail" />
+          </ui5-segmented-button>
+        </div>
+        <div style="display: flex; flex-direction: column;">
           <n-flex v-if="loadingCpiTenants" vertical>
             <n-skeleton style="width: 50%;" />
             <n-skeleton style="width: 60%;" />
@@ -436,6 +440,8 @@ import "@ui5/webcomponents-icons/dist/share.js";
 import "@ui5/webcomponents-icons/dist/laptop.js";
 import "@ui5/webcomponents-icons/dist/refresh.js";
 import "@ui5/webcomponents-icons/dist/italic-text.js";
+import "@ui5/webcomponents-icons/dist/synchronize.js";
+import "@ui5/webcomponents-icons/dist/show.js";
 import "@ui5/webcomponents/dist/Dialog.js";
 import "@ui5/webcomponents/dist/Panel.js";
 import "@ui5/webcomponents/dist/BusyIndicator.js";

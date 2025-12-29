@@ -6,7 +6,7 @@
         style="width: 100%; min-height: 300px;"
         :nodes-draggable="true"
         :pan-on-drag="true"
-        :zoom-on-scroll="true" 
+        :zoom-on-scroll="false" 
         :zoom-on-pinch="false"
         fit-view-on-init
     >
