@@ -24,7 +24,7 @@
     </div>
   </ui5-bar>
   <ui5-table overflow-mode="Popin" :style="{ width: tableWidth }" @row-click="handleRowClick" 
-    :loading="loading" loading-delay="500"
+    :loading="loading" loading-delay="0"
     row-action-count="1">
     <ui5-table-selection-single id="selection" slot="features" @change="handleCheck"></ui5-table-selection-single>
     <ui5-illustrated-message slot="noData" name="NoData"></ui5-illustrated-message>

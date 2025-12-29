@@ -231,24 +231,31 @@
                     </n-divider>
                     <div style="margin-top:6px">
                       <!-- Loading Skeleton -->
-                      <div v-if="packagesLoading" style="max-width:420px">
-                        <n-skeleton text style="width: 60%" :repeat="1" />
-                        <n-skeleton text style="width: 80%; margin-top:8px" :repeat="1" />
-                        <n-skeleton text style="width: 40%; margin-top:8px" :repeat="1" />
-                      </div>
+                      <ui5-busy-indicator v-if="packagesLoading" active :delay="0"
+                        style="display:flex; justify-content:center; align-items:center; width:100%; height: 70px;"
+                        >
+                      </ui5-busy-indicator>
                       <!-- Packages Select -->
                       <div v-else>
-                        <n-select v-model:value="selectedPackages" :options="packageOptions" multiple clearable
-                          filterable placeholder="Select packages from this tenant" style="width: 420px"
-                          :disabled="!packageOptions.length" />
-                        <div v-if="!packageOptions.length" style="margin-top:6px">
-                          <n-text depth="3" type="warning">No packages found for this tenant.</n-text>
+                        <div v-if="!packageOptions || !packageOptions.length" style="margin-top:6px">
+                            <ui5-illustrated-message name="NoData" design="Dot" title-text="No Artifacts found in this tenant" />
                         </div>
+
+                        <ui5-multi-combobox v-else show-clear-icon show-select-all @selection-change="handleSelectPackage" style="width: 60%;">
+                          <ui5-mcb-item
+                            v-for="pkg in packageOptions"
+                            :id="pkg.value.Id"
+                            :key="pkg.value.Id"
+                            :text="pkg.value.Name"
+                            :additional-text="`${pkg.value.Version}`"
+                            :selected="selectedPackages.some(p => p.Id === pkg.value.Id)"
+                          />
+                        </ui5-multi-combobox>
                       </div>
                     </div>
                     <!-- Package & Artifacts Section -->
                     <div v-if="selectedPackages.length" style="margin-top:16px; width:100%">
-                      <n-text depth="3" strong>Artifacts (select to include):</n-text>
+                      <ui5-text style="color: var(--sapTitleColor); font-size: var(--sapGroup_Title_FontSize);">Artifacts (select to include):</ui5-text>
                       <ui5-panel v-for="pkg in selectedPackages" :key="pkg.Id" 
                         :header-text="`${pkg.Name} - ${pkg.Version}`"
                         @toggle="loadPackageArtifacts(pkg.Id)"
@@ -500,6 +507,9 @@ import "@ui5/webcomponents-fiori/dist/IllustratedMessage.js";
 import "@ui5/webcomponents-fiori/dist/illustrations/NoData.js";
 import "@ui5/webcomponents/dist/SegmentedButton.js";
 import "@ui5/webcomponents/dist/SegmentedButtonItem.js";
+import "@ui5/webcomponents/dist/MultiComboBox.js";
+import "@ui5/webcomponents/dist/MultiComboBoxItem.js";
+
 
 export default {
   name: 'TransportPlanView',
@@ -761,6 +771,16 @@ export default {
       if (draftIndex >= 0) return 'warning' // drafted
       if (op.RequestState === 'NOT_REQUESTED') return 'default'
       return 'info'
+    },
+    handleSelectPackage(event: CustomEvent) {
+      const selectedItems = event.detail.items as Array<{ id: string; text: string; additionalText: string }>
+      const selectedPkgs = selectedItems
+        .map(item => {
+          const pkgOption = this.packageOptions.find(opt => opt.value.Id === item.id)
+          return pkgOption ? pkgOption.value : null
+        })
+        .filter((pkg): pkg is Package => pkg !== null)
+      this.selectedPackages = selectedPkgs
     }
 
   },
