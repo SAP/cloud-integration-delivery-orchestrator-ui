@@ -1,33 +1,21 @@
 <template>
   <!-- Modals -->
   <!-- Flow Modal -->
-  <ui5-dialog
-    v-if="!loadingCpiTenants"
-    header-text="Delivery Flow"
-    :open="showFlowModal"
-    style="width: 60%; height: 80%;"
-    draggable
-    @before-close="showFlowModal = false"
-  >
-    <CpiTransportFlowView 
-      :delivery-request="deliveryRequest"
-      :cpi-tenants="cpiTenants"
-      :tenant-to-ops="tenantToOps" />
+  <ui5-dialog v-if="!loadingCpiTenants" header-text="Delivery Flow" :open="showFlowModal"
+    style="width: 60%; height: 80%;" draggable @before-close="showFlowModal = false">
+    <CpiTransportFlowView :delivery-request="deliveryRequest" :cpi-tenants="cpiTenants" :tenant-to-ops="tenantToOps" />
 
     <ui5-toolbar slot="footer">
-        <ui5-toolbar-button class="dialogCloser" design="Transparent" text="Cancel" 
-          @click="showFlowModal = false"/>
+      <ui5-toolbar-button class="dialogCloser" design="Transparent" text="Cancel" @click="showFlowModal = false" />
     </ui5-toolbar>
   </ui5-dialog>
 
 
-  <ui5-dialog :open="showArtifactDetails" :header-text="`Artifact Details #${artifactOpDetial.ID || ''}`" 
-    style="width: 35%;"
-    draggable
-    @before-close="showArtifactDetails = false"
-  >
-    <n-tag round size="small" type="warning" v-show="draftSourceOps.find(d => d.op.ID === artifactOpDetial.ID)">DRAFT</n-tag>
-    <n-tag round size="small" type="success" 
+  <ui5-dialog :open="showArtifactDetails" :header-text="`Artifact Details #${artifactOpDetial.ID || ''}`"
+    style="width: 35%;" draggable @before-close="showArtifactDetails = false">
+    <n-tag round size="small" type="warning"
+      v-show="draftSourceOps.find(d => d.op.ID === artifactOpDetial.ID)">DRAFT</n-tag>
+    <n-tag round size="small" type="success"
       v-show="addOps.find(a => a.ArtifactTechID === artifactOpDetial.ArtifactTechID && a.ArtifactVersion === artifactOpDetial.ArtifactVersion)">
       NEW
     </n-tag>
@@ -59,7 +47,8 @@
       <n-flex vertical>
         <n-flex>
           <n-text depth="3" strong>Version History</n-text>
-          <n-button type="info" strong tertiary v-if="!loadingArtifactHistory && !artifactVersionHistory.length" @click="loadVersionHistory">Load</n-button>
+          <n-button type="info" strong tertiary v-if="!loadingArtifactHistory && !artifactVersionHistory.length"
+            @click="loadVersionHistory">Load</n-button>
         </n-flex>
         <div v-if="loadingArtifactHistory">
           <n-skeleton text style="width: 60%; margin-top:8px" :repeat="3" />
@@ -68,7 +57,7 @@
           {{ h.comment }} - {{ h.createdBy }} - {{ h.semanticVersion }} - {{ h.createdDate }}
         </div>
       </n-flex>
-      <n-divider :style="{margin: 5+'px'}" dashed/>
+      <n-divider :style="{ margin: 5 + 'px' }" dashed />
       <!-- ops details -->
       <n-flex vertical v-if='Object.keys(artifactOpDetial).length'>
         <n-flex>
@@ -91,20 +80,19 @@
           <n-text v-if="!isEditingTr">
             {{ editingTrNumber || '-' }}
           </n-text>
-          <n-input
-            v-show="isEditingTr"
-            v-model:value="editingTrNumber"
-            size="small"
-            style="width:90px"
-            placeholder="TR number"
-            @keyup.enter="checkTr(artifactOpDetial)"
-          />
-          <n-button tertiary round type="info" v-show="!isEditingTr" @click="isEditingTr = true" aria-label="Edit TR">edit</n-button>
-          <n-button tertiary round type="info" v-show="isEditingTr && draftSourceOps.find(d => d.op.ID === artifactOpDetial.ID)" @click="revertTr">revert</n-button>
-          <n-button tertiary round type="info" :loading="checkingTrLoading" v-show="isEditingTr" @click="checkTr(artifactOpDetial)">
+          <n-input v-show="isEditingTr" v-model:value="editingTrNumber" size="small" style="width:90px"
+            placeholder="TR number" @keyup.enter="checkTr(artifactOpDetial)" />
+          <n-button tertiary round type="info" v-show="!isEditingTr" @click="isEditingTr = true"
+            aria-label="Edit TR">edit</n-button>
+          <n-button tertiary round type="info"
+            v-show="isEditingTr && draftSourceOps.find(d => d.op.ID === artifactOpDetial.ID)"
+            @click="revertTr">revert</n-button>
+          <n-button tertiary round type="info" :loading="checkingTrLoading" v-show="isEditingTr"
+            @click="checkTr(artifactOpDetial)">
             check
           </n-button>
-          <n-button tertiary round type="info" v-show="isEditingTr" @click="{isEditingTr = false; editingTrNumber = artifactOpDetial.TransportRequestNumber}">
+          <n-button tertiary round type="info" v-show="isEditingTr"
+            @click="{ isEditingTr = false; editingTrNumber = artifactOpDetial.TransportRequestNumber }">
             cancel
           </n-button>
           <n-button tertiary round type="info">auto generate</n-button>
@@ -115,19 +103,17 @@
     </n-flex>
 
     <ui5-toolbar slot="footer">
-        <ui5-toolbar-button 
-          design="Emphasized"
-          :text="isArtifactSelected(artifactDetail.PackageID, artifactDetail) ? 'Unselect' : 'Select'"
-          @click="toggleArtifact(artifactDetail.PackageID, artifactDetail)">
-        </ui5-toolbar-button>
-        <ui5-toolbar-button text="Disable"/>
-        <ui5-toolbar-button class="dialogCloser" design="Transparent" text="Cancel"
-            @click="showArtifactDetails = false"
-        />
+      <ui5-toolbar-button design="Emphasized"
+        :text="isArtifactSelected(artifactDetail.PackageID, artifactDetail) ? 'Unselect' : 'Select'"
+        @click="toggleArtifact(artifactDetail.PackageID, artifactDetail)">
+      </ui5-toolbar-button>
+      <ui5-toolbar-button text="Disable" />
+      <ui5-toolbar-button class="dialogCloser" design="Transparent" text="Cancel"
+        @click="showArtifactDetails = false" />
     </ui5-toolbar>
   </ui5-dialog>
 
-  
+
   <!-- end modal -->
   <ui5-dynamic-page id="page" show-footer>
     <ui5-dynamic-page-title slot="titleArea">
@@ -148,29 +134,31 @@
 
       <ui5-toolbar class="actionsBar" id="actionsToolbar" slot="actionsBar" design="Transparent">
         <ui5-toolbar-button text="Edit" @click="onEditDr" v-if="!isEditingDr"></ui5-toolbar-button>
-        <ui5-toolbar-button text="Delete" @click="deleteDr" v-if="!isEditingDr" design="Transparent"></ui5-toolbar-button>
+        <ui5-toolbar-button text="Delete" @click="deleteDr" v-if="!isEditingDr"
+          design="Transparent"></ui5-toolbar-button>
 
         <ui5-toolbar-button text="Save" @click="updateDr" v-if="isEditingDr"></ui5-toolbar-button>
-        <ui5-toolbar-button text="Cancel" @click="refresh" v-if="isEditingDr" design="Cancel" ></ui5-toolbar-button>
+        <ui5-toolbar-button text="Cancel" @click="refresh" v-if="isEditingDr" design="Cancel"></ui5-toolbar-button>
       </ui5-toolbar>
 
       <ui5-toolbar class="navigationBar" slot="navigationBar" design="Transparent">
-          <ui5-toolbar-button design="Transparent" icon="share"></ui5-toolbar-button>
-          <ui5-toolbar-button design="Transparent" icon="action-settings"></ui5-toolbar-button>
+        <ui5-toolbar-button design="Transparent" icon="share"></ui5-toolbar-button>
+        <ui5-toolbar-button design="Transparent" icon="action-settings"></ui5-toolbar-button>
       </ui5-toolbar>
     </ui5-dynamic-page-title>
 
     <ui5-dynamic-page-header slot="headerArea">
       <div class="product-info">
         <div class="product-info-cell">
-            <ui5-label>Version/Delivery</ui5-label>
-            <p class="text availability">{{ deliveryRequest.DeliveryRule?.Name }}</p>
+          <ui5-label>Version/Delivery</ui5-label>
+          <p class="text availability">{{ deliveryRequest.DeliveryRule?.Name }}</p>
         </div>
         <div class="product-info-cell">
-            <ui5-label>JIRA</ui5-label>
-            <p class="text price">
-              <ui5-link :href="deliveryRequest.JiraLink" target="_blank" icon="chain-link" :disabled="jira.includes('Invalid')">{{ jira }}</ui5-link>
-            </p>
+          <ui5-label>JIRA</ui5-label>
+          <p class="text price">
+            <ui5-link :href="deliveryRequest.JiraLink" target="_blank" icon="chain-link"
+              :disabled="jira.includes('Invalid')">{{ jira }}</ui5-link>
+          </p>
         </div>
         <div class="product-info-cell">
           <ui5-label>Created By </ui5-label>
@@ -182,8 +170,8 @@
         <div class="product-info-cell">
           <ui5-label>Updated By </ui5-label>
           <p v-if="deliveryRequest.UpdatedBy" class="text product-description">
-            {{ uaaUsers[deliveryRequest.UpdatedBy]?.email ?? (uaaUserInfo(deliveryRequest.UpdatedBy), '') }} 
-              {{ toLocalTime(deliveryRequest.UpdatedAt) }}
+            {{ uaaUsers[deliveryRequest.UpdatedBy]?.email ?? (uaaUserInfo(deliveryRequest.UpdatedBy), '') }}
+            {{ toLocalTime(deliveryRequest.UpdatedAt) }}
           </p>
         </div>
       </div>
@@ -194,209 +182,191 @@
         <!-- Step 1: Prepare -->
         <ui5-wizard-step id="step1" title-text="Select Packages & Artifacts">
           <div style="display: flex; min-height: 200px; flex-direction: column;">
-            <ui5-title>Select Packages & Artifacts</ui5-title><br/>
-                  <n-flex vertical v-if="!deliveryRequest.SourceTenant">
-                    <n-skeleton text height="20px" style="width: 40%" />
-                    <n-skeleton text height="20px" style="width: 50%" />
-                    <n-skeleton text height="20px" style="width: 60%" />
-                    
-                  </n-flex>
-                  <n-flex vertical v-else style="gap:8px">
-                    <!-- cpi tenants selection -->
-                    <n-divider dashed title-placement="center"
-                      style="margin:0 0 10px 0; font-weight:600; letter-spacing:.5px">
-                      Source CPI Tenant
-                    </n-divider>
-                    <n-flex justify="center">
-                      <n-text depth="3" strong>
-                        {{ deliveryRequest.SourceTenant.Name }} #{{ deliveryRequest.SourceTenant.ID }}
-                        <n-divider vertical />
-                      </n-text>
-                      <n-text depth="3" strong>
-                        <a :href="cpiTenantLink" target="_blank" rel="noopener noreferrer">
-                          {{ cpiTenantLink }}
-                        </a>
-                      </n-text>
-                        
-                    </n-flex>
+            <ui5-title>Select Packages & Artifacts</ui5-title><br />
+            <n-flex vertical v-if="!deliveryRequest.SourceTenant">
+              <n-skeleton text height="20px" style="width: 40%" />
+              <n-skeleton text height="20px" style="width: 50%" />
+              <n-skeleton text height="20px" style="width: 60%" />
 
-                    <!-- packages & artifacts section -->
-                    <n-divider dashed title-placement="center"
-                      style="margin:0 0 10px 0; font-weight:600; letter-spacing:.5px">
-                      Packages({{ selectedPackages.length }})
-                    </n-divider>
-                    <div style="margin-top:6px">
-                      <!-- Loading Skeleton -->
-                      <ui5-busy-indicator v-if="packagesLoading" active :delay="0"
-                        style="display:flex; justify-content:center; align-items:center; width:100%; height: 70px;"
-                        >
-                      </ui5-busy-indicator>
-                      <!-- Packages Select -->
-                      <div v-else>
-                        <div v-if="!packageOptions || !packageOptions.length" style="margin-top:6px">
-                            <ui5-illustrated-message name="NoData" design="Dot" title-text="No Artifacts found in this tenant" />
+            </n-flex>
+            <n-flex vertical v-else style="gap:8px">
+              <!-- cpi tenants selection -->
+              <n-divider dashed title-placement="center"
+                style="margin:0 0 10px 0; font-weight:600; letter-spacing:.5px">
+                Source CPI Tenant
+              </n-divider>
+              <n-flex justify="center">
+                <n-text depth="3" strong>
+                  {{ deliveryRequest.SourceTenant.Name }} #{{ deliveryRequest.SourceTenant.ID }}
+                  <n-divider vertical />
+                </n-text>
+                <n-text depth="3" strong>
+                  <a :href="cpiTenantLink" target="_blank" rel="noopener noreferrer">
+                    {{ cpiTenantLink }}
+                  </a>
+                </n-text>
+
+              </n-flex>
+
+              <!-- packages & artifacts section -->
+              <n-divider dashed title-placement="center"
+                style="margin:0 0 10px 0; font-weight:600; letter-spacing:.5px">
+                Packages({{ selectedPackages.length }})
+              </n-divider>
+              <div style="margin-top:6px">
+                <!-- Loading Skeleton -->
+                <ui5-busy-indicator v-if="packagesLoading" active :delay="0"
+                  style="display:flex; justify-content:center; align-items:center; width:100%; height: 70px;">
+                </ui5-busy-indicator>
+                <!-- Packages Select -->
+                <div v-else>
+                  <div v-if="!packageOptions || !packageOptions.length" style="margin-top:6px">
+                    <ui5-illustrated-message name="NoData" design="Dot"
+                      title-text="No Artifacts found in this tenant" />
+                  </div>
+
+                  <ui5-multi-combobox v-else show-clear-icon show-select-all @selection-change="handleSelectPackage"
+                    style="width: 60%;">
+                    <ui5-mcb-item v-for="pkg in packageOptions" :id="pkg.value.Id" :key="pkg.value.Id"
+                      :text="pkg.value.Name" :additional-text="`${pkg.value.Version}`"
+                      :selected="selectedPackages.some(p => p.Id === pkg.value.Id)" />
+                  </ui5-multi-combobox>
+                </div>
+              </div>
+              <!-- Package & Artifacts Section -->
+              <div v-if="selectedPackages.length" style="margin-top:16px; width:100%">
+                <ui5-text style="color: var(--sapTitleColor); font-size: var(--sapGroup_Title_FontSize);">Artifacts
+                  (select to include):</ui5-text>
+                <ui5-panel v-for="pkg in selectedPackages" :key="pkg.Id" :header-text="`${pkg.Name} - ${pkg.Version}`"
+                  @toggle="loadPackageArtifacts(pkg.Id)" collapsed style="margin: 10px 0;">
+                  <ui5-busy-indicator v-if="loadingPackages[pkg.Id] || !packageArtifacts[pkg.Id]" active :delay="0"
+                    style="display:flex; justify-content:center; align-items:center; width:100%; height: 80px;">
+                  </ui5-busy-indicator>
+                  <div v-else>
+                    <div v-if="(packageArtifacts[pkg.Id] || []).length === 0">
+                      <ui5-illustrated-message name="NoData" design="Dot">
+                        <div slot="subtitle">
+                          <ui5-button icon="refresh" design="Transparent"
+                            @click="loadPackageArtifacts(pkg.Id, true)"></ui5-button>
                         </div>
-
-                        <ui5-multi-combobox v-else show-clear-icon show-select-all @selection-change="handleSelectPackage" style="width: 60%;">
-                          <ui5-mcb-item
-                            v-for="pkg in packageOptions"
-                            :id="pkg.value.Id"
-                            :key="pkg.value.Id"
-                            :text="pkg.value.Name"
-                            :additional-text="`${pkg.value.Version}`"
-                            :selected="selectedPackages.some(p => p.Id === pkg.value.Id)"
-                          />
-                        </ui5-multi-combobox>
-                      </div>
+                      </ui5-illustrated-message>
                     </div>
-                    <!-- Package & Artifacts Section -->
-                    <div v-if="selectedPackages.length" style="margin-top:16px; width:100%">
-                      <ui5-text style="color: var(--sapTitleColor); font-size: var(--sapGroup_Title_FontSize);">Artifacts (select to include):</ui5-text>
-                      <ui5-panel v-for="pkg in selectedPackages" :key="pkg.Id" 
-                        :header-text="`${pkg.Name} - ${pkg.Version}`"
-                        @toggle="loadPackageArtifacts(pkg.Id)"
-                        collapsed
-                        style="margin: 10px 0;"
-                        >
-                        <ui5-busy-indicator 
-                          v-if="loadingPackages[pkg.Id] || !packageArtifacts[pkg.Id]"
-                          active
-                          :delay="0"
-                          style="display:flex; justify-content:center; align-items:center; width:100%; height: 80px;"
-                          >
-                        </ui5-busy-indicator>
-                        <div v-else>
-                          <div v-if="(packageArtifacts[pkg.Id] || []).length === 0">
-                            <ui5-illustrated-message name="NoData" design="Dot">
-                              <div slot="subtitle">
-                                <ui5-button icon="refresh" design="Transparent" @click="loadPackageArtifacts(pkg.Id, true)"></ui5-button>
-                              </div>
-                            </ui5-illustrated-message>
-                          </div>
-                          <div v-else>
-                            <n-flex>
-                              <n-input v-model:value="artifactSearch[pkg.Id]" size="small"
-                                placeholder="Filter artifacts (id / version / type)" clearable
-                                style="max-width:320px; margin-bottom:8px" />
-                              <n-button tertiary size="tiny" @click="selectAllFiltered(pkg.Id)"
-                                :disabled="!filteredArtifacts(pkg.Id).length">Select All Filtered</n-button>
-                              <n-button tertiary size="tiny" @click="clearSelections(pkg.Id)"
-                                :disabled="!(selPkgArtifacts[pkg.Id] || []).length">Clear Selected</n-button>
-                              <n-text depth="1" type="info" style="font-size:12px; margin-left:auto">
-                                Hint: click Info16Regular icon on an artifact tag to view details
-                              </n-text>
-                            </n-flex>
-
-                            <!-- Artifact list section -->
-                            <n-scrollbar
-                              style="max-height:260px; border:1px solid var(--n-border-color); padding:6px; border-radius:4px">
-                              <div style="display:flex; flex-wrap:wrap; gap:6px">
-                                <ui5-segmented-button
-                                  items-fit-content
-                                  selection-mode="Multiple"
-                                  v-for="a in filteredArtifacts(pkg.Id)"
-                                  :key="pkg.Id + '-' + a.TechID + '@' + a.Version"
-                                  @click="toggleArtifact(pkg.Id, a)">
-
-                                  <ui5-segmented-button-item :selected="isArtifactSelected(pkg.Id, a)">
-                                    {{ a.TechID }}@{{ a.Version }}
-                                  </ui5-segmented-button-item>
-
-                                  <ui5-segmented-button-item 
-                                    icon="italic-text" @click="openArtifactDetails(a)" tooltip="Show Details"
-                                  />
-                                </ui5-segmented-button>
-                              </div>
-                            </n-scrollbar>
-                          </div>
-                        </div>
-                      </ui5-panel>
-                    </div>
-                    <!-- selected Artifacts list -->
-                    <n-flex vertical v-if="selArtifactOps.length || deleteOps.length" style="margin-top:18px">
-                      <n-divider dashed title-placement="center"
-                        style="margin:0 0 10px 0; font-weight:600; letter-spacing:.5px">
-                        Selected Artifacts ({{ selArtifactOps.length }})
-                      </n-divider>
-                      <n-flex vertical>
-                        <n-spin :show="updatingOps" :delay="500">
-                          <!-- old(source) artifacts + draft source artifacts -->
-                          <n-flex>
-                            <ArtifactOpTag v-for="(op, i) in sourceOps" 
-                              :i="i" :art-op="op" :stage-type="stateType(op)" 
-                              @open-artifact-details="openArtifactDetails"/>
-                          </n-flex>
-                          <!-- artifacts to be added -->
-                          <n-flex vertical>
-                            <n-text type="success" depth="3" strong v-if="addOps && addOps.length > 0">New: </n-text>
-                            <n-flex>
-                              <ArtifactOpTag v-for="(op, i) in addOps" :i="i" :art-op="op" :stage-type="stateType(op)" @open-artifact-details="openArtifactDetails"/>
-                            </n-flex>
-                          </n-flex> 
-                          <!-- artifacts to be deleted -->
-                          <n-flex vertical>
-                            <n-text type="error" depth="3" strong v-if="deleteOps && deleteOps.length > 0">To be Deleted: </n-text>
-                            <n-flex>
-                              <ArtifactOpTag v-for="(op, i) in deleteOps" :i="i" :art-op="op" :stage-type="stateType(op)" @open-artifact-details="openArtifactDetails"/>
-                            </n-flex>
-                          </n-flex>
-                        </n-spin>
+                    <div v-else>
+                      <n-flex>
+                        <n-input v-model:value="artifactSearch[pkg.Id]" size="small"
+                          placeholder="Filter artifacts (id / version / type)" clearable
+                          style="max-width:320px; margin-bottom:8px" />
+                        <n-button tertiary size="tiny" @click="selectAllFiltered(pkg.Id)"
+                          :disabled="!filteredArtifacts(pkg.Id).length">Select All Filtered</n-button>
+                        <n-button tertiary size="tiny" @click="clearSelections(pkg.Id)"
+                          :disabled="!(selPkgArtifacts[pkg.Id] || []).length">Clear Selected</n-button>
+                        <n-text depth="1" type="info" style="font-size:12px; margin-left:auto">
+                          Hint: click Info16Regular icon on an artifact tag to view details
+                        </n-text>
                       </n-flex>
-                      <ui5-button design="Emphasized" @click="updateDr" style="width:10%"> Update </ui5-button>
+
+                      <!-- Artifact list section -->
+                      <n-scrollbar
+                        style="max-height:260px; border:1px solid var(--n-border-color); padding:6px; border-radius:4px">
+                        <div style="display:flex; flex-wrap:wrap; gap:6px">
+                          <ui5-segmented-button items-fit-content selection-mode="Multiple"
+                            v-for="a in filteredArtifacts(pkg.Id)" :key="pkg.Id + '-' + a.TechID + '@' + a.Version"
+                            @click="toggleArtifact(pkg.Id, a)">
+
+                            <ui5-segmented-button-item :selected="isArtifactSelected(pkg.Id, a)">
+                              {{ a.TechID }}@{{ a.Version }}
+                            </ui5-segmented-button-item>
+
+                            <ui5-segmented-button-item icon="italic-text" @click="openArtifactDetails(a)"
+                              tooltip="Show Details" />
+                          </ui5-segmented-button>
+                        </div>
+                      </n-scrollbar>
+                    </div>
+                  </div>
+                </ui5-panel>
+              </div>
+              <!-- selected Artifacts list -->
+              <n-flex vertical v-if="selArtifactOps.length || deleteOps.length" style="margin-top:18px">
+                <n-divider dashed title-placement="center"
+                  style="margin:0 0 10px 0; font-weight:600; letter-spacing:.5px">
+                  Selected Artifacts ({{ selArtifactOps.length }})
+                </n-divider>
+                <n-flex vertical>
+                  <n-spin :show="updatingOps" :delay="500">
+                    <!-- old(source) artifacts + draft source artifacts -->
+                    <n-flex>
+                      <ArtifactOpTag v-for="(op, i) in sourceOps" :i="i" :art-op="op" :stage-type="stateType(op)"
+                        @open-artifact-details="openArtifactDetails" />
                     </n-flex>
-                  </n-flex>
+                    <!-- artifacts to be added -->
+                    <n-flex vertical>
+                      <n-text type="success" depth="3" strong v-if="addOps && addOps.length > 0">New: </n-text>
+                      <n-flex>
+                        <ArtifactOpTag v-for="(op, i) in addOps" :i="i" :art-op="op" :stage-type="stateType(op)"
+                          @open-artifact-details="openArtifactDetails" />
+                      </n-flex>
+                    </n-flex>
+                    <!-- artifacts to be deleted -->
+                    <n-flex vertical>
+                      <n-text type="error" depth="3" strong v-if="deleteOps && deleteOps.length > 0">To be Deleted:
+                      </n-text>
+                      <n-flex>
+                        <ArtifactOpTag v-for="(op, i) in deleteOps" :i="i" :art-op="op" :stage-type="stateType(op)"
+                          @open-artifact-details="openArtifactDetails" />
+                      </n-flex>
+                    </n-flex>
+                  </n-spin>
+                </n-flex>
+                <ui5-button design="Emphasized" @click="updateDr" style="width:10%"> Update </ui5-button>
+              </n-flex>
+            </n-flex>
           </div>
         </ui5-wizard-step>
 
         <!-- Step 2: Approve -->
         <ui5-wizard-step id="step2" title-text="Request Approvals">
           <div style="display: flex;flex-direction: column">
-            <ui5-title>Request Approvals</ui5-title><br/>
-                  <n-skeleton v-if="approveInfo.loading" style="width: 50%;" />
-                  <n-flex vertical v-else-if="!deliveryRequest.ApprovedBy">
-                    <n-auto-complete
-                      style="width: 40%;"
-                      :options="approverOptions"
-                      :loading="searchApproverLoading"
-                      :value="searchApprover"
-                      placeholder="Search Approvers"
-                      @update:value="(v:string) => { searchApprover = v; handleSearchArrover(v)}"
-                      @select="(v: UserInfo) => { handleSelectApprover(v) }"
-                      clearable
-                      clear-after-select
-                      />
-                    <n-text depth="3" strong>Approvers:</n-text>
-                    <n-flex>
-                      <span v-for="(user_id, _) in deliveryRequest.Approvers">
-                        <n-spin v-if="!(uaaUsers[user_id]?.email ?? (uaaUserInfo(user_id), ''))" :size="15"/>
-                        <n-tag v-else closable @close="handleUnselectApprover(user_id)">
-                          {{ uaaUsers[user_id]?.email }}
-                        </n-tag>
-                      </span>
+            <ui5-title>Request Approvals</ui5-title><br />
+            <n-skeleton v-if="approveInfo.loading" style="width: 50%;" />
+            <n-flex vertical v-else-if="!deliveryRequest.ApprovedBy">
+              <n-auto-complete style="width: 40%;" :options="approverOptions" :loading="searchApproverLoading"
+                :value="searchApprover" placeholder="Search Approvers"
+                @update:value="(v: string) => { searchApprover = v; handleSearchArrover(v) }"
+                @select="(v: UserInfo) => { handleSelectApprover(v) }" clearable clear-after-select />
+              <n-text depth="3" strong>Approvers:</n-text>
+              <n-flex>
+                <span v-for="(user_id, _) in deliveryRequest.Approvers">
+                  <n-spin v-if="!(uaaUsers[user_id]?.email ?? (uaaUserInfo(user_id), ''))" :size="15" />
+                  <n-tag v-else closable @close="handleUnselectApprover(user_id)">
+                    {{ uaaUsers[user_id]?.email }}
+                  </n-tag>
+                </span>
+              </n-flex>
 
-                    </n-flex>
+              <n-flex style="margin-top:20px">
+                <!-- Approve/Skip Approval button -->
+                <n-popover trigger="hover">
+                  <template #trigger>
+                    <ui5-button :disabled="approveInfo.disable" :design="approveInfo.disable ? 'Attention' : 'Positive'"
+                      @click="handleApprove">
+                      {{ approveInfo.display }}
+                    </ui5-button>
+                  </template>
+                  <n-text strong depth="3" v-if="approveInfo.disable">Cannot approve your own request</n-text>
+                  <n-text strong depth="3" v-else>Force Deliver</n-text>
+                </n-popover>
+                <n-button v-if="deliveryRequest.Approvers" ghost type="info" @click="handleRequestApprove">Send To
+                  Approvers</n-button>
 
-                    <n-flex style="margin-top:20px">
-                      <!-- Approve/Skip Approval button -->
-                      <n-popover trigger="hover">
-                        <template #trigger>
-                          <ui5-button :disabled="approveInfo.disable" :design="approveInfo.disable ? 'Attention':'Positive'" @click="handleApprove" >
-                            {{ approveInfo.display }}
-                          </ui5-button>
-                        </template>
-                        <n-text strong depth="3" v-if="approveInfo.disable">Cannot approve your own request</n-text>
-                        <n-text strong depth="3" v-else>Force Deliver</n-text>
-                      </n-popover>
-                      <n-button v-if="deliveryRequest.Approvers" ghost type="info" @click="handleRequestApprove">Send To Approvers</n-button>
-
-                    </n-flex>
-                  </n-flex>
-                  <n-flex vertical v-else>
-                    <n-text depth="3" strong type="success">
-                      Approved By 
-                      {{ uaaUsers[deliveryRequest.ApprovedBy]?.email ?? (uaaUserInfo(deliveryRequest.ApprovedBy), '') }}
-                    </n-text>
-                  </n-flex>
+              </n-flex>
+            </n-flex>
+            <n-flex vertical v-else>
+              <n-text depth="3" strong type="success">
+                Approved By
+                {{ uaaUsers[deliveryRequest.ApprovedBy]?.email ?? (uaaUserInfo(deliveryRequest.ApprovedBy), '') }}
+              </n-text>
+            </n-flex>
           </div>
         </ui5-wizard-step>
 
@@ -404,17 +374,17 @@
         <ui5-wizard-step id="step3" title-text="Delivery Flow">
           <div style="display: flex; flex-direction: column;">
             <ui5-title>Delivery Flow</ui5-title><br />
-                  <ui5-button @click="onSyncDrStatus">Sync Status</ui5-button>
-                  <ui5-button @click="showFlowModal = true" :disabled="loadingCpiTenants">Show Detail</ui5-button>
-                  <n-flex v-if="loadingCpiTenants" vertical>
-                  <n-skeleton style="width: 50%;" />
-                  <n-skeleton style="width: 60%;" />
-                  <n-skeleton style="width: 70%;" />
-                </n-flex>
-                <n-card v-else hoverable size="large">
-                  <DeliveryFlowView :delivery-request="deliveryRequest" :cpi-tenants="cpiTenants"
-                    :tenant-to-ops="tenantToOps" />
-                </n-card>
+            <ui5-button @click="onSyncDrStatus">Sync Status</ui5-button>
+            <ui5-button @click="showFlowModal = true" :disabled="loadingCpiTenants">Show Detail</ui5-button>
+            <n-flex v-if="loadingCpiTenants" vertical>
+              <n-skeleton style="width: 50%;" />
+              <n-skeleton style="width: 60%;" />
+              <n-skeleton style="width: 70%;" />
+            </n-flex>
+            <n-card v-else hoverable size="large">
+              <DeliveryFlowView :delivery-request="deliveryRequest" :cpi-tenants="cpiTenants"
+                :tenant-to-ops="tenantToOps" />
+            </n-card>
           </div>
         </ui5-wizard-step>
       </ui5-wizard>
@@ -536,7 +506,7 @@ export default {
       artifactVersionHistory: [] as ArtifactVersionHistoryItem[],
       editingTrNumber: '' as string, // tr number being edited, will assign to artifactOpDetial when saved
       checkingTrLoading: false,
-      draftSourceOps: [] as {op: ArtifactTenantOperation, newTr: string, oldTr: string}[], // operations being drafted (source ops only)
+      draftSourceOps: [] as { op: ArtifactTenantOperation, newTr: string, oldTr: string }[], // operations being drafted (source ops only)
       loadingArtifactHistory: false,
       showFlowModal: false,
       deleteOps: [] as ArtifactTenantOperation[], // indexes of operations to be deleted
@@ -554,9 +524,9 @@ export default {
   },
   methods: {
     handleUnselectApprover(user_id: string) {
-        if (!this.deliveryRequest.Approvers) return
-        const idx = this.deliveryRequest.Approvers.indexOf(user_id)
-        if (idx > -1) this.deliveryRequest.Approvers.splice(idx, 1)
+      if (!this.deliveryRequest.Approvers) return
+      const idx = this.deliveryRequest.Approvers.indexOf(user_id)
+      if (idx > -1) this.deliveryRequest.Approvers.splice(idx, 1)
     },
     async uaaUserInfo(userId: string) {
       if (this.uaaUsers[userId]) return this.uaaUsers[userId]
@@ -596,8 +566,8 @@ export default {
     },
     revertTr() {
       const draft = this.draftSourceOps.find(d => d.op.ID === this.artifactOpDetial.ID)
-      this.artifactOpDetial.TransportRequestNumber 
-        = this.editingTrNumber 
+      this.artifactOpDetial.TransportRequestNumber
+        = this.editingTrNumber
         = draft!.oldTr
       this.draftSourceOps = this.draftSourceOps.filter(d => d.op.ID !== draft!.op.ID)
       this.isEditingTr = false
@@ -609,7 +579,7 @@ export default {
       // load packages in this cpi tenant
       const cpiEndpoint = this.deliveryRequest.SourceTenant.CpiEndpoint.name
       this.packagesLoading = true
-      if(!this.tenantPkgs.length) this.tenantPkgs = await GetPackages(cpiEndpoint)
+      if (!this.tenantPkgs.length) this.tenantPkgs = await GetPackages(cpiEndpoint)
 
       await Promise.all( // load all artifacts for selected packages
         this.sourceOps.map(op => this.loadPackageArtifacts(op.Artifact.PackageID))
@@ -671,7 +641,7 @@ export default {
         if (!draftOp || originalTrNumber === newTrNumber) return
         const indraft = this.draftSourceOps.map(d => d.op).find(draft => draft.ID === draftOp.ID)
         if (!indraft) {
-          this.draftSourceOps.push({op: draftOp, newTr: newTrNumber, oldTr: originalTrNumber})
+          this.draftSourceOps.push({ op: draftOp, newTr: newTrNumber, oldTr: originalTrNumber })
         } else {
           indraft.TransportRequestNumber = newTrNumber
         }
@@ -719,13 +689,13 @@ export default {
     },
     async loadVersionHistory() {
       const baseUrl = new URL(this.deliveryRequest.SourceTenant.CpiEndpoint.url)
-      const {PackageID, TechID} = this.artifactDetail || {}
+      const { PackageID, TechID } = this.artifactDetail || {}
       try {
         this.loadingArtifactHistory = true
         // NOTE: request has no interception when calling cpi-cookie-service, should manually handel exceptions.
         // Same with auto generate TR.
         this.artifactVersionHistory = await GetArtifactVersionHistory(`${baseUrl.protocol}//${baseUrl.host}`, PackageID, TechID)
-      } catch(e: any) {
+      } catch (e: any) {
         window.$message?.error(`Failed to load artifact version history: ${e?.message ?? String(e) ?? ''}`)
       } finally {
         this.loadingArtifactHistory = false
@@ -787,7 +757,7 @@ export default {
         const removeIdx = removed
           .filter(a => {
             const op = this.sourceOps.find(op => op.ArtifactTechID === a.TechID && op.ArtifactVersion === a.Version) || {} as ArtifactTenantOperation
-            if (op.RequestState !== 'NOT_REQUESTED') 
+            if (op.RequestState !== 'NOT_REQUESTED')
               window.$message?.warning?.(`Cannot remove artifact ${a.TechID}@${a.Version} as its request state is ${op.RequestState}`)
             return op.RequestState === 'NOT_REQUESTED' // can only remove not requested artifacts. Other states are in delivery process
           })
@@ -815,7 +785,7 @@ export default {
       },
       deep: true,
     }
-  
+
   },
   computed: {
     allOps(): ArtifactTenantOperation[] { //will not change unless refresh
@@ -833,10 +803,10 @@ export default {
     tenantToOps(): { [key: number]: { [key: string]: ArtifactTenantOperation } } { // only used in delivert flow view
       return TenantOps(this.allOps) || {} // cpi tenant ID - map[trNumber]ArtifactTenantOperation
     },
-    approveInfo(): {disable: boolean, display: string, loading: boolean} {
+    approveInfo(): { disable: boolean, display: string, loading: boolean } {
       const createdBy = this.uaaUsers[this.deliveryRequest.CreatedBy]?.email
       const currentEmail = this.currentUser?.email
-      if (!createdBy || !currentEmail) return {loading: true, disable: false, display: 'Approve'}
+      if (!createdBy || !currentEmail) return { loading: true, disable: false, display: 'Approve' }
       const disable = !this.deliveryRequest.DeliveryRule?.SkipApprove && currentEmail === createdBy // disable self approval
       return {
         disable: disable,
@@ -872,77 +842,79 @@ export default {
 
 <style scoped>
 .text {
-    display: inline-block;
-    font-size: var(--sapFontSize);
-    font-family: var(--sapFontFamily);
-    color: var(--sapTextColor);
-    line-height: normal;
-    white-space: pre-line;
-    word-wrap: break-word;
-    cursor: text;
-    margin: 0;
+  display: inline-block;
+  font-size: var(--sapFontSize);
+  font-family: var(--sapFontFamily);
+  color: var(--sapTextColor);
+  line-height: normal;
+  white-space: pre-line;
+  word-wrap: break-word;
+  cursor: text;
+  margin: 0;
 }
 
 .text:nth-of-type(2) {
-    margin-left: 4rem;
+  margin-left: 4rem;
 }
 
 .product-info {
-    display: flex;
-    flex-wrap: wrap;
+  display: flex;
+  flex-wrap: wrap;
 }
 
 .product-info [ui5-avatar],
 .product-info .product-info-cell {
-    margin-right: 2rem;
-    margin-bottom: 1rem; 
+  margin-right: 2rem;
+  margin-bottom: 1rem;
 }
 
 .product-info-cell {
-    display: flex;
-    gap: 5px;
-    flex-direction: column;
+  display: flex;
+  gap: 5px;
+  flex-direction: column;
 }
 
 .product-description {
-    display: inline;
-    max-width: 300px;
+  display: inline;
+  max-width: 300px;
 }
 
 .availability {
-   font-size: 1.2rem;
-   color: var(--sapPositiveTextColor);
+  font-size: 1.2rem;
+  color: var(--sapPositiveTextColor);
 }
 
 .price {
-    font-size: 1.2rem;
-    color: var(--sapTextColor);
+  font-size: 1.2rem;
+  color: var(--sapTextColor);
 }
 
 .actionsBar {
-    padding: 0.8rem 0 0 1rem;
+  padding: 0.8rem 0 0 1rem;
 }
 
-.navigationBar{
-    padding: 0.8rem 0 0 0;
+.navigationBar {
+  padding: 0.8rem 0 0 0;
 }
 
 .snapped-title-heading {
-    display: flex;
-    align-items: center;
-    position: relative;
+  display: flex;
+  align-items: center;
+  position: relative;
 }
+
 .snapped-title-heading [ui5-avatar] {
-    position: absolute;
-    top: 0;
+  position: absolute;
+  top: 0;
 }
+
 .snapped-title-heading [ui5-title] {
-    font-family: var(--sapObjectHeader_Title_FontFamily);
-    color: var(--sapObjectHeader_Title_TextColor);
-    padding: 0.3125rem 0 0 0;
-    font-size: var(--sapObjectHeader_Title_SnappedFontSize);
-    text-overflow: ellipsis;
-    min-width: 0;
-    margin-left: 4rem;
+  font-family: var(--sapObjectHeader_Title_FontFamily);
+  color: var(--sapObjectHeader_Title_TextColor);
+  padding: 0.3125rem 0 0 0;
+  font-size: var(--sapObjectHeader_Title_SnappedFontSize);
+  text-overflow: ellipsis;
+  min-width: 0;
+  margin-left: 4rem;
 }
 </style>
