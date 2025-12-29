@@ -190,15 +190,11 @@
     </ui5-dynamic-page-header>
     <div>
       <!-- Generate Delivery Request -->
-      <n-card>
-        <n-grid x-gap="40" :cols="5">
-          <!-- step lists -->
-          <n-gi span="4">
-            <n-steps vertical :current="current" @update:current="handleCurrent">
-              <!-- parse yaml step -->
-              <n-step>
-                <template #title> Prepare </template>
-                <n-card hoverable size="medium">
+      <ui5-wizard id="wiz">
+        <!-- Step 1: Prepare -->
+        <ui5-wizard-step id="step1" title-text="Select Packages & Artifacts">
+          <div style="display: flex; min-height: 200px; flex-direction: column;">
+            <ui5-title>Select Packages & Artifacts</ui5-title><br/>
                   <n-flex vertical v-if="!deliveryRequest.SourceTenant">
                     <n-skeleton text height="20px" style="width: 40%" />
                     <n-skeleton text height="20px" style="width: 50%" />
@@ -349,12 +345,13 @@
                       <ui5-button design="Emphasized" @click="updateDr" style="width:10%"> Update </ui5-button>
                     </n-flex>
                   </n-flex>
-                </n-card>
-              </n-step>
+          </div>
+        </ui5-wizard-step>
 
-              <n-step>
-                <template #title> Approve </template>
-                <n-card hoverable size="medium">
+        <!-- Step 2: Approve -->
+        <ui5-wizard-step id="step2" title-text="Request Approvals">
+          <div style="display: flex;flex-direction: column">
+            <ui5-title>Request Approvals</ui5-title><br/>
                   <n-skeleton v-if="approveInfo.loading" style="width: 50%;" />
                   <n-flex vertical v-else-if="!deliveryRequest.ApprovedBy">
                     <n-auto-complete
@@ -400,16 +397,16 @@
                       {{ uaaUsers[deliveryRequest.ApprovedBy]?.email ?? (uaaUserInfo(deliveryRequest.ApprovedBy), '') }}
                     </n-text>
                   </n-flex>
-                </n-card>
+          </div>
+        </ui5-wizard-step>
 
-              </n-step>
-              <n-step>
-                <template #title> 
-                  Delivery Flow
-                  <ui5-button @click="onSyncDrStatus" style="margin: 0 20px;">Sync Status</ui5-button>
+        <!-- Step 3: Delivery Flow -->
+        <ui5-wizard-step id="step3" title-text="Delivery Flow">
+          <div style="display: flex; flex-direction: column;">
+            <ui5-title>Delivery Flow</ui5-title><br />
+                  <ui5-button @click="onSyncDrStatus">Sync Status</ui5-button>
                   <ui5-button @click="showFlowModal = true" :disabled="loadingCpiTenants">Show Detail</ui5-button>
-                </template>
-                <n-flex v-if="loadingCpiTenants" vertical>
+                  <n-flex v-if="loadingCpiTenants" vertical>
                   <n-skeleton style="width: 50%;" />
                   <n-skeleton style="width: 60%;" />
                   <n-skeleton style="width: 70%;" />
@@ -418,21 +415,9 @@
                   <DeliveryFlowView :delivery-request="deliveryRequest" :cpi-tenants="cpiTenants"
                     :tenant-to-ops="tenantToOps" />
                 </n-card>
-              </n-step>
-            </n-steps>
-          </n-gi>
-          <n-gi span="2"> 
-            Log 
-            <n-flex vertical>
-              <n-alert v-for="(condition, i) in deliveryRequest.Conditions" :key="i">
-                {{ condition.State }} - {{ condition.Message }}
-              </n-alert>
-            </n-flex>
-          </n-gi>
-
-
-        </n-grid>
-      </n-card>
+          </div>
+        </ui5-wizard-step>
+      </ui5-wizard>
     </div>
 
     <ui5-bar slot="footerArea" design="FloatingFooter">
@@ -440,7 +425,7 @@
       <ui5-button id="cancel-edit" slot="endContent">Close</ui5-button>
     </ui5-bar>
   </ui5-dynamic-page>
-  
+
 </template>
 
 <script lang="ts">
@@ -510,6 +495,8 @@ import "@ui5/webcomponents/dist/SegmentedButtonItem.js";
 import "@ui5/webcomponents/dist/MultiComboBox.js";
 import "@ui5/webcomponents/dist/MultiComboBoxItem.js";
 
+import "@ui5/webcomponents-fiori/dist/Wizard.js";
+import "@ui5/webcomponents-fiori/dist/WizardStep.js";
 
 export default {
   name: 'TransportPlanView',
@@ -603,9 +590,6 @@ export default {
       await Approve(this.deliveryRequest.ID, '')
       await this.refresh()
       window.$message?.success?.('Delivery Request approved.')
-    },
-    handleCurrent(current: number) {
-      this.current = current
     },
     onEditDr() {
       this.isEditingDr = true
