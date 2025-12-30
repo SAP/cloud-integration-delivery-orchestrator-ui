@@ -220,6 +220,7 @@ export interface UserInfo {
   id: string
   userName: string
   email: string
+  origin: string
   groups: {
     value: string
     display: string

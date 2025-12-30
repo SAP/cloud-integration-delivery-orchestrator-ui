@@ -517,7 +517,7 @@ export default {
       this.searchTimer = setTimeout(async () => {
         this.searchApproverLoading = true
         const options = await UaaEmailSearch(query)
-        this.approverOptions = options.map(a => ({ label: `${a.email}(${a.userName})`, value: a }))
+        this.approverOptions = options.map(a => ({ label: `${a.email}(${a.userName}) - ${a.origin}`, value: a }))
         this.searchApproverLoading = false
       }, 800)
     },
