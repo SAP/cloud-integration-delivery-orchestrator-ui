@@ -675,20 +675,21 @@ export default {
         this.artifactVersionHistory = await GetArtifactVersionHistory(`${baseUrl.protocol}//${baseUrl.host}`, PackageID, TechID)
       } catch (error: any) {
         const resp = error?.response?.data
-        window.$message?.error(`Failed to load artifact version history: ${resp?.message ?? resp?.error ?? ''}`, { duration: 30 * 1000 })
+        window.$message?.error(`Failed to load artifact version history: ${resp?.message ?? resp?.error ?? ''}`, { duration: 30 * 1000, closable: true })
       } finally {
         this.loadingArtifactHistory = false
       }
-      console.log(this.artifactVersionHistory)
     },
     async handleGenTr() {
       const baseUrl = new URL(this.deliveryRequest.SourceTenant.CpiEndpoint.url)
       const { PackageID, TechID } = this.artifactDetail || {}
       try {
-        const {tr_info, tr_number} = await GenTransportRequest(`${baseUrl.protocol}//${baseUrl.host}`, PackageID, TechID, '')
+        const {tr_info, tr_number} = await GenTransportRequest(`${baseUrl.protocol}//${baseUrl.host}`, PackageID, TechID, `${this.currentUser?.email} transport`)
+        this.editingTrNumber = tr_number
+        window.$message?.success(`Generated transport request: ${tr_number}`, { duration: 30 * 1000, closable: true })
       } catch (error: any) {
         const resp = error?.response?.data
-        window.$message?.error(`Failed to load artifact version history: ${resp?.message ?? resp?.error ?? ''}`, { duration: 30 * 1000 })
+        window.$message?.error(`Failed to generate transport request: ${resp?.message ?? resp?.error ?? ''}`, { duration: 30 * 1000, closable: true })
       }
 
     },
