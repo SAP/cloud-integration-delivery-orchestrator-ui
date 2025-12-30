@@ -149,19 +149,19 @@ export const CheckTenantStatus = async (cpi_tenant: string) => {
 
 export const InitCpiTenant = async (cpi_tenant: string) => {
   const {data} = await axios.post(
-    '/cpi-cookie-service/api/transport_request',
+    '/cpi-cookie-service/api/init_tenant',
     {
-      cpi_tenant
+      cpi_tenant: cpi_tenant
     },
-    { timeout: 8 * 1000 }
+    { timeout: 60 * 1000 }
   )
   return data
 }
 
 export const GenTransportRequest = async (
+  cpi_tenant_url: string,
   target_package_tech_name: string,
-  target_artifact_name: string,
-  cpi_tenant: string,
+  target_artifact_name: string,  
   comment: string
 ) => {
   const { data } = await axios.post(
@@ -169,7 +169,7 @@ export const GenTransportRequest = async (
     {
       target_package_tech_name,
       target_artifact_name,
-      cpi_tenant,
+      cpi_tenant: cpi_tenant_url,
       comment
     },
     { timeout: 8 * 1000 }

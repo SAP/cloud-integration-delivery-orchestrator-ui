@@ -95,7 +95,7 @@
             @click="{ isEditingTr = false; editingTrNumber = artifactOpDetial.TransportRequestNumber }">
             cancel
           </n-button>
-          <n-button tertiary round type="info">auto generate</n-button>
+          <n-button tertiary round type="info" @click="handleGenTr">auto generate</n-button>
         </n-flex>
 
       </n-flex>
@@ -400,6 +400,7 @@ import {
   UaaUserInfo,
   CheckTrExistence,
   CurrentUser,
+  GenTransportRequest,
 } from '@/service/api'
 import { toLocalTime } from '@/service/consts'
 import { VueFlow } from '@vue-flow/core'
@@ -672,12 +673,24 @@ export default {
         // NOTE: request has no interception when calling cpi-cookie-service, should manually handel exceptions.
         // Same with auto generate TR.
         this.artifactVersionHistory = await GetArtifactVersionHistory(`${baseUrl.protocol}//${baseUrl.host}`, PackageID, TechID)
-      } catch (e: any) {
-        window.$message?.error(`Failed to load artifact version history: ${e?.message ?? String(e) ?? ''}`)
+      } catch (error: any) {
+        const resp = error?.response?.data
+        window.$message?.error(`Failed to load artifact version history: ${resp?.message ?? resp?.error ?? ''}`, { duration: 30 * 1000 })
       } finally {
         this.loadingArtifactHistory = false
       }
       console.log(this.artifactVersionHistory)
+    },
+    async handleGenTr() {
+      const baseUrl = new URL(this.deliveryRequest.SourceTenant.CpiEndpoint.url)
+      const { PackageID, TechID } = this.artifactDetail || {}
+      try {
+        const {tr_info, tr_number} = await GenTransportRequest(`${baseUrl.protocol}//${baseUrl.host}`, PackageID, TechID, '')
+      } catch (error: any) {
+        const resp = error?.response?.data
+        window.$message?.error(`Failed to load artifact version history: ${resp?.message ?? resp?.error ?? ''}`, { duration: 30 * 1000 })
+      }
+
     },
     openArtifactDetails(a: Artifact, op?: ArtifactTenantOperation) {
       this.artifactDetail = a

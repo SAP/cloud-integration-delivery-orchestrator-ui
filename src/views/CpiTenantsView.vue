@@ -45,7 +45,7 @@
 import { defineComponent, h } from 'vue'
 import DataTable from '@/components/DataTable.vue'
 import { cpiTenantColums, type ToolBar, type RowAction } from '@/service/consts'
-import { DeleteCpiTenant, GetCPIApiEndpoints, GetCpiTenants, GetTransportNodes, UpsertCpiTenant } from '@/service/api'
+import { CheckTenantStatus, DeleteCpiTenant, GetCPIApiEndpoints, GetCpiTenants, GetTransportNodes, InitCpiTenant, UpsertCpiTenant } from '@/service/api'
 import type { CpiTenant, TransportNode, ApiEndpoint } from '@/service/model'
 import "@ui5/webcomponents/dist/TableRowAction.js";
 import "@ui5/webcomponents-icons/dist/connected.js";
@@ -72,7 +72,7 @@ export default defineComponent({
                     text: 'check connection',
                     interactive: true
                 }),
-                func: (row: CpiTenant) => this.handleEditRowAction(row)
+                func: (row: CpiTenant) => this.handleCheckConn(row)
             },
             {
             render: () => h('ui5-table-row-action', {
@@ -80,7 +80,7 @@ export default defineComponent({
                     text: 'launch',
                     interactive: true
                 }),
-                func: (row: CpiTenant) => this.handleEditRowAction(row)
+                func: (row: CpiTenant) => this.handleLaunch(row)
             }
         ]
         return {
@@ -129,9 +129,25 @@ export default defineComponent({
             this.selectedCpiTenant = { ...rows[0] }
             this.showModal = true
         },
-        handleEditRowAction(row: CpiTenant) {
-            this.selectedCpiTenant = { ...row }
-            this.showModal = true
+        async handleCheckConn(row: CpiTenant) {
+            const baseUrl = new URL(row.CpiEndpoint.url)
+            try {
+                const {message} = await CheckTenantStatus(`${baseUrl.protocol}//${baseUrl.host}`)
+                window.$message.success(message, { duration: 10 * 1000, closable: true })
+            } catch (error: any) {
+                const resp = error?.response?.data
+                window.$message.error(`Failed to check tenant status: ${resp?.message ?? resp?.error ?? ''}`,  { duration: 30 * 1000 })
+            }
+        },
+        async handleLaunch(row: CpiTenant) {
+            const baseUrl = new URL(row.CpiEndpoint.url)
+            try {
+                const {message} = await InitCpiTenant(`${baseUrl.protocol}//${baseUrl.host}`)
+                window.$message.success(message, { duration: 10 * 1000, closable: true })
+            } catch (error: any) {
+                const resp = error?.response?.data
+                window.$message.error(`Failed to launch tenant: ${resp?.message ?? resp?.error ?? ''}`, { duration: 30 * 1000 })
+            }
         },
         onSelectNode(node: TransportNode) {
             this.selectedCpiTenant.TransportNodeID = node.id
