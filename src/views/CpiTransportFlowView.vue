@@ -55,7 +55,7 @@ const nodes = computed<Node[]>(() => {
         },
         position: { x: 0, y: 0 },
         type: 'cpi-transport',
-        width: 600,
+        width: 800,
         height: 200
     })
     })

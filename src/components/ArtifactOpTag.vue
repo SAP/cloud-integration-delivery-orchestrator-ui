@@ -4,7 +4,8 @@
         :key="`sel-${i}-${artOp.ArtifactTechID}@${artOp.ArtifactVersion}`"
         design="Set2"
         :color-scheme="stageType"
-        @click.stop="openArtifactDetails(artOp)">
+        @click.stop="openArtifactDetails(artOp)"
+        interactive>
 
         {{ artOp.ArtifactTechID }}@{{ artOp.ArtifactVersion }}
         -

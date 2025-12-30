@@ -7,11 +7,14 @@
         <div style="display: flex; flex-wrap: raw; gap: 4px; margin: 16px 16px;">
           <ui5-tag design="Set2" color-scheme="5" v-for="t in props.data.tenants">{{ t?.Name }}</ui5-tag>
         </div>
-        <ui5-segmented-button v-if="!props.data.isSource" style="display:flex; flex-direction: row-reverse;">
-          <ui5-segmented-button-item @click="handleDeliver">Deliver</ui5-segmented-button-item>
-          <ui5-segmented-button-item @click="handleImportOnly" :disabled="disableImport">Import Only</ui5-segmented-button-item>
-          <ui5-segmented-button-item @click="handleDeployOnly" :disabled="disableDeploy">Deploy Only</ui5-segmented-button-item>
-        </ui5-segmented-button>
+        <div v-if="!props.data.isSource"
+          class="compact-button-container">
+          <ui5-segmented-button>
+            <ui5-segmented-button-item @click="handleDeliver">Deliver</ui5-segmented-button-item>
+            <ui5-segmented-button-item @click="handleImportOnly" :disabled="disableImport">Import Only</ui5-segmented-button-item>
+            <ui5-segmented-button-item @click="handleDeployOnly" :disabled="disableDeploy">Deploy Only</ui5-segmented-button-item>
+          </ui5-segmented-button>
+        </div>
 
     </ui5-card>
 
@@ -118,3 +121,18 @@ function handleDeployOnly() {
 }
 
 </script>
+
+<style scoped>
+.compact-button-container {
+  display: flex;
+  flex-direction: row-reverse;
+  transform: scale(0.75);
+  transform-origin: top right;
+  margin: 0 10px;
+}
+
+/* 使用 CSS 变量来控制 UI5 组件内部样式 */
+.compact-button-container ui5-segmented-button {
+  --sapFontSize: 0.75rem;
+}
+</style>

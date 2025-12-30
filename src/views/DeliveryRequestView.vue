@@ -238,10 +238,11 @@
                     </ui5-illustrated-message>
                   </div>
                   <div v-else>
-                    <n-flex>
+                    <div style="display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0;">
                       <ui5-input id="input-filter-artifacts" @input="handleFilterArtifacts(pkg.Id)"
                         placeholder="Filter artifacts (id/version/type)"
-                        show-clear-icon/>
+                        show-clear-icon
+                        style="width: 20%;"/>
                       
                       <ui5-button design="Transparent" @click="selectAllFiltered(pkg.Id)"
                         :disabled="!filteredArtifacts(pkg.Id).length">Select All Filtered
@@ -249,7 +250,7 @@
                       <ui5-button design="Transparent" @click="clearSelections(pkg.Id)"
                         :disabled="!(selPkgArtifacts[pkg.Id] || []).length">Clear Selected
                       </ui5-button>
-                    </n-flex>
+                    </div>
 
                     <!-- Artifact list section -->
                     <div style="max-height:240px; overflow:auto; padding:6px; display:flex; flex-wrap:wrap; gap:6px;">
@@ -270,10 +271,7 @@
               <ui5-title size="H6">
                 Selected Artifacts ({{ selArtifactOps.length }})
               </ui5-title>
-              <ui5-busy-indicator v-if="updatingOps"
-                active :delay="0" style="display:flex; justify-content:center; align-items:center; width:100%; height: 70px;"
-              />
-              <div v-else style="display: flex; flex-direction: column; gap:10px">
+              <div style="display: flex; flex-direction: column; gap:10px">
                 <!-- old(source) artifacts + draft source artifacts -->
                 <div style="display: flex; flex-direction: row; gap: 8px; flex-wrap: wrap;">
                   <ArtifactOpTag v-for="(op, i) in sourceOps" :i="i" :art-op="op" :stage-type="stateType(op)"
@@ -299,7 +297,7 @@
                   </div>
                 </div>
               </div>
-              <ui5-button design="Emphasized" @click="updateDr" style="width:10%; margin-top: 10px;"> Update </ui5-button>
+              <ui5-button design="Emphasized" @click="updateDr" style="width:10%; margin-top: 10px;" :loading="updatingOps" :delay="0"> Update </ui5-button>
             </div>
           </div>
         </div>
@@ -404,8 +402,6 @@ import {
   CurrentUser,
 } from '@/service/api'
 import { toLocalTime } from '@/service/consts'
-import { Edit16Regular, Delete28Regular, Info16Regular } from '@vicons/fluent'
-import { SaveAltRound, StartTwotone, CancelOutlined } from '@vicons/material'
 import { VueFlow } from '@vue-flow/core'
 import CpiTransportNode from '@/components/CpiTransportNode.vue'
 import type { DeliveryRequest, CpiTenant, Package, Artifact, ArtifactVersionHistoryItem, ArtifactTenantOperation, UserInfo } from '@/service/model'
@@ -458,12 +454,6 @@ import "@ui5/webcomponents-fiori/dist/WizardStep.js";
 export default {
   name: 'TransportPlanView',
   components: {
-    Edit16Regular,
-    Delete28Regular,
-    SaveAltRound,
-    StartTwotone,
-    CancelOutlined,
-    Info16Regular,
     VueFlow,
     CpiTransportNode,
     DeliveryFlowView,
