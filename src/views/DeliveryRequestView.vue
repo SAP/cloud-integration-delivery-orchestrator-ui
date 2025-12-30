@@ -330,16 +330,11 @@
 
             <div style="display: flex; margin-top:20px">
               <!-- Approve/Skip Approval button -->
-              <n-popover trigger="hover">
-                <template #trigger>
-                  <ui5-button :disabled="approveInfo.disable" :design="approveInfo.disable ? 'Attention' : 'Positive'"
-                    @click="handleApprove">
-                    {{ approveInfo.display }}
-                  </ui5-button>
-                </template>
-                <ui5-label v-if="approveInfo.disable">Cannot approve your own request</ui5-label>
-                <ui5-label v-else>Force Deliver</ui5-label>
-              </n-popover>
+              <ui5-button :disabled="approveInfo.disable" :design="approveInfo.disable ? 'Attention' : 'Positive'"
+                @click="handleApprove"
+                :tooltip="approveInfo.disable ? 'Cannot approve your own request' : 'Force Deliver'">
+                {{ approveInfo.display }}
+              </ui5-button>
               <ui5-button design="Transparent" v-if="deliveryRequest.Approvers" @click="handleRequestApprove">Send To
                 Approvers</ui5-button>
 
