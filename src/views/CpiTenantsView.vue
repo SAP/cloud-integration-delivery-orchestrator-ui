@@ -28,13 +28,14 @@
             <n-button type="primary" @click="onSave">Save</n-button>
         </template>
     </n-modal>
-    <data-table 
-        title="Cpi Tenants" 
-        :columns="cpiTenantColums" 
-        :data="cpiTenants" 
+    <data-table
+        title="Cpi Tenants"
+        :columns="cpiTenantColums"
+        :data="cpiTenants"
         :custom-tool-bars="toolBars"
-        :handle-add="handleAdd" 
+        :handle-add="handleAdd"
         :row-key="(row: CpiTenant) => row.ID"
+        :row-actions="rowActions"
         :key="cpiTenants.length"
         :loading="loading" />
 
@@ -43,9 +44,12 @@
 <script lang="ts">
 import { defineComponent, h } from 'vue'
 import DataTable from '@/components/DataTable.vue'
-import { cpiTenantColums, type ToolBar } from '@/service/consts'
+import { cpiTenantColums, type ToolBar, type RowAction } from '@/service/consts'
 import { DeleteCpiTenant, GetCPIApiEndpoints, GetCpiTenants, GetTransportNodes, UpsertCpiTenant } from '@/service/api'
 import type { CpiTenant, TransportNode, ApiEndpoint } from '@/service/model'
+import "@ui5/webcomponents/dist/TableRowAction.js";
+import "@ui5/webcomponents-icons/dist/connected.js";
+import "@ui5/webcomponents-icons/dist/initiative.js";
 export default defineComponent({
     components: { DataTable },
     data() {
@@ -61,11 +65,30 @@ export default defineComponent({
                 func: (rows: CpiTenant[]) => {this.handleEdit(rows)}
             }
         ]
+        const rowActions: RowAction<CpiTenant>[] = [
+            {
+                render: () => h('ui5-table-row-action', {
+                    icon: 'connected',
+                    text: 'check connection',
+                    interactive: true
+                }),
+                func: (row: CpiTenant) => this.handleEditRowAction(row)
+            },
+            {
+            render: () => h('ui5-table-row-action', {
+                    icon: 'initiative',
+                    text: 'launch',
+                    interactive: true
+                }),
+                func: (row: CpiTenant) => this.handleEditRowAction(row)
+            }
+        ]
         return {
             cpiTenantColums,
             cpiTenants: [] as CpiTenant[],
             showModal: false,
             toolBars,
+            rowActions,
             selectedCpiTenant: {} as CpiTenant,
             transportNodes: [] as TransportNode[],
             cpiEndpoints: [] as ApiEndpoint[],
@@ -104,6 +127,10 @@ export default defineComponent({
                 return
             }
             this.selectedCpiTenant = { ...rows[0] }
+            this.showModal = true
+        },
+        handleEditRowAction(row: CpiTenant) {
+            this.selectedCpiTenant = { ...row }
             this.showModal = true
         },
         onSelectNode(node: TransportNode) {

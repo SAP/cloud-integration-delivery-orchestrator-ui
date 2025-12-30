@@ -134,6 +134,48 @@ export const CheckArtifactNodeStatus = (artifacts: Artifact[]) => {
   return http.post('/api/v1/tms/artifactStatus', { artifacts }) as Promise<Artifact[]>;
 }
 
+export const CheckTenantStatus = async (cpi_tenant: string) => {
+  const {data} = await axios.get(
+    '/cpi-cookie-service/api/check_tenant_status',
+    {
+      params: {
+        cpi_tenant: cpi_tenant,
+      },
+      timeout: 8*1000
+    }
+  )
+  return data
+}
+
+export const InitCpiTenant = async (cpi_tenant: string) => {
+  const {data} = await axios.post(
+    '/cpi-cookie-service/api/transport_request',
+    {
+      cpi_tenant
+    },
+    { timeout: 8 * 1000 }
+  )
+  return data
+}
+
+export const GenTransportRequest = async (
+  target_package_tech_name: string,
+  target_artifact_name: string,
+  cpi_tenant: string,
+  comment: string
+) => {
+  const { data } = await axios.post(
+    '/cpi-cookie-service/api/transport_request',
+    {
+      target_package_tech_name,
+      target_artifact_name,
+      cpi_tenant,
+      comment
+    },
+    { timeout: 8 * 1000 }
+  )
+  return data
+}
 
 // cpi cookie service
 // version history
@@ -232,10 +274,6 @@ export const DeriveArtifactOpAgg = (op: ArtifactTenantOperation) => {
   if (op.ImportState !== 'NOT_STARTED') return op.ImportState
   if (op.RequestState !== 'NOT_REQUESTED') return op.RequestState
   return 'NOT_REQUESTED'
-}
-
-export const DeriveOverallAgg = () => {
-
 }
 
 export const DeriveNodeAgg = (ops: ArtifactTenantOperation[]): AggregateStatus => {

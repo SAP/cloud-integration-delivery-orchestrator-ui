@@ -1,6 +1,6 @@
 import { NTag, type DataTableColumns } from 'naive-ui'
 import type { ApiEndpoint, Artifact, Package, TransportGroup, TransportNode, NodeTransportRequest, CpiTenant, DeliveryRule, DeliveryRequest } from './model'
-import { h } from 'vue'
+import { h, type VNode } from 'vue'
 import "@ui5/webcomponents/dist/Tag.js";
 import "@ui5/webcomponents-icons/dist/chain-link.js";
 import "@ui5/webcomponents/dist/Link.js";
@@ -406,6 +406,11 @@ export const stepTypeOptions: { [key: string]: string } = {
 export interface ToolBar<T = any> {
   text: String
   func(rows: T[]): void | Promise<void>
+}
+
+export interface RowAction<T = any> {
+  render: () => VNode | string
+  func: (row: T) => void | Promise<void>
 }
 
 // maps Step status to naive-ui status: wait, process, finish, error

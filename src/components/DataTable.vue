@@ -23,9 +23,9 @@
 
     </div>
   </ui5-bar>
-  <ui5-table overflow-mode="Popin" :style="{ width: tableWidth }" @row-click="handleRowClick" 
+  <ui5-table overflow-mode="Popin" :style="{ width: tableWidth }" @row-click="handleRowClick"
     :loading="loading" loading-delay="0"
-    row-action-count="1">
+    :row-action-count="rowActionCount">
     <ui5-table-selection-single id="selection" slot="features" @change="handleCheck"></ui5-table-selection-single>
     <ui5-illustrated-message slot="noData" name="NoData"></ui5-illustrated-message>
     <ui5-table-header-row slot="headerRow">
@@ -40,6 +40,13 @@
         <span v-else>{{ col }}</span>
       </ui5-table-cell>
       <ui5-table-row-action-navigation v-if="rowClick" slot="actions" interactive></ui5-table-row-action-navigation>
+      <template v-for="(action, aIndex) in rowActions" :key="`action-${rKey}-${aIndex}`">
+        <component
+          :is="action.render()"
+          slot="actions"
+          @click="handleRowAction(action, row)">
+        </component>
+      </template>
     </ui5-table-row>
   </ui5-table>
 </template>
@@ -56,7 +63,7 @@ const VNodeRenderer = defineComponent({
     return this.$props.vnode
   }
 })
-import { type ToolBar } from '@/service/consts'
+import { type ToolBar, type RowAction } from '@/service/consts'
 import "@ui5/webcomponents/dist/Table.js";
 import "@ui5/webcomponents/dist/TableRow.js";
 import "@ui5/webcomponents/dist/TableCell.js";
@@ -88,7 +95,8 @@ export default defineComponent({
     handleAdd: { type: Function },
     loading: { type: Boolean },
     enableSearch: { type: Boolean, default: true },
-    rowClick: { type: Function as PropType<(row: any) => void> }
+    rowClick: { type: Function as PropType<(row: any) => void> },
+    rowActions: { type: Array as PropType<RowAction[]> }
   },
   data() {
     const rowProps = (row: any) => {
@@ -140,6 +148,9 @@ export default defineComponent({
     handleRowClick(event: any) {
       const rkey = event.detail.row.rowKey
       this.data[rkey] && this.rowClick && this.rowClick(this.data[rkey])
+    },
+    handleRowAction(action: RowAction, row: any) {
+      action.func(row)
     },
     handlePopinToggle(hidden: boolean) {
       const headerIds = (this.displayColumns as any[]).map((header: any, i: number) => `header-id-${header?.key ?? i}`)
@@ -221,6 +232,13 @@ export default defineComponent({
     },
     displayColumns(): any[] {
       return (this.columns as any[]).filter((c: any) => c?.type !== 'selection')
+    },
+    rowActionCount(): number {
+      let count = this.rowClick ? 1 : 0
+      if (this.rowActions) {
+        count += this.rowActions.length
+      }
+      return count
     }
   },
   mounted() {
