@@ -1,21 +1,19 @@
 <template>
-    <n-card :id="props.id" :title="props.data.label" size="small" style="height: 100%; width: 100%;">
-        <template #header-extra>
-          <n-tag v-if="props.data.isSource" type="success" size="small" :bordered="false">Source</n-tag>
-          <n-tag v-else :type="'warning'" size="small" :bordered="false">{{ groupStateAggr }}</n-tag>
-        </template>
-        <n-flex>
-          <n-tag type="info" v-for="t in props.data.tenants">{{ t?.Name }}</n-tag>
-        </n-flex>
-        <template #action>
-          <n-flex justify="space-between" :size="[1,0]" v-if="!props.data.isSource">
-            <n-button size="tiny" strong quaternary type="info" @click="handleDeliver">Deliver</n-button>
-            <n-button size="tiny" quaternary type="info" @click="handleImportOnly" :disabled="disableImport"> Import Only</n-button>
-            <n-button size="tiny" quaternary type="info" @click="handleDeployOnly" :disabled="disableDeploy"> Deploy Only</n-button>
-          </n-flex>
-        </template>
+    <ui5-card :id="props.id" style="height: 100%; width: 100%;">
+        <ui5-card-header slot="header" :title-text="props.data.label" interactive>
+          <ui5-tag v-if="props.data.isSource" slot="action" design="Set2" color-scheme="4"> Source </ui5-tag>
+          <ui5-tag v-else color-scheme="Warning" slot="action" :design="aggrDesign" > {{ groupStateAggr }} </ui5-tag>
+        </ui5-card-header>
+        <div style="display: flex; flex-wrap: raw; gap: 4px; margin: 16px 16px;">
+          <ui5-tag design="Set2" color-scheme="5" v-for="t in props.data.tenants">{{ t?.Name }}</ui5-tag>
+        </div>
+        <ui5-segmented-button v-if="!props.data.isSource" style="display:flex; flex-direction: row-reverse;">
+          <ui5-segmented-button-item @click="handleDeliver">Deliver</ui5-segmented-button-item>
+          <ui5-segmented-button-item @click="handleImportOnly" :disabled="disableImport">Import Only</ui5-segmented-button-item>
+          <ui5-segmented-button-item @click="handleDeployOnly" :disabled="disableDeploy">Deploy Only</ui5-segmented-button-item>
+        </ui5-segmented-button>
 
-    </n-card>
+    </ui5-card>
 
 
     <Handle v-if="!props.data.isTail" type="source" :position="Position.Right"/>
@@ -26,9 +24,16 @@
 <script setup lang="ts">
 import { DeriveNodeAgg } from '@/service/api';
 import type { ArtifactTenantOperation, CpiTenant } from '@/service/model';
-import type { AggregateStatus } from '@/service/statuses';
+import { aggregateStatusToUi5Design, type AggregateStatus } from '@/service/statuses';
 import { Handle, Position } from '@vue-flow/core'
 import { computed } from 'vue';
+import "@ui5/webcomponents/dist/Button.js";
+import "@ui5/webcomponents/dist/Card.js";
+import "@ui5/webcomponents/dist/CardHeader.js";
+import "@ui5/webcomponents/dist/Icon.js";
+import "@ui5/webcomponents/dist/Tag.js";
+import "@ui5/webcomponents/dist/SegmentedButton.js";
+import "@ui5/webcomponents/dist/SegmentedButtonItem.js";
 const props = defineProps<{
     id: string
     data: {
@@ -90,7 +95,10 @@ const groupStateAggr = computed(() => {
     }) as AggregateStatus
 
     return overall
+})
 
+const aggrDesign = computed(() =>{
+  return aggregateStatusToUi5Design(groupStateAggr.value)
 })
 
 const emit = defineEmits<{
