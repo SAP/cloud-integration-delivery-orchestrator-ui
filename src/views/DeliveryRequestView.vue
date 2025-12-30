@@ -76,26 +76,30 @@
         </n-flex>
         <!-- Transport Request Number -->
         <n-text depth="3" strong>Transport Request Number</n-text>
-        <n-flex>
-          <n-text v-if="!isEditingTr">
-            {{ editingTrNumber || '-' }}
-          </n-text>
-          <n-input v-show="isEditingTr" v-model:value="editingTrNumber" size="small" style="width:90px"
-            placeholder="TR number" @keyup.enter="checkTr(artifactOpDetial)" />
-          <n-button tertiary round type="info" v-show="!isEditingTr" @click="isEditingTr = true"
-            aria-label="Edit TR">edit</n-button>
-          <n-button tertiary round type="info"
-            v-show="isEditingTr && draftSourceOps.find(d => d.op.ID === artifactOpDetial.ID)"
-            @click="revertTr">revert</n-button>
-          <n-button tertiary round type="info" :loading="checkingTrLoading" v-show="isEditingTr"
-            @click="checkTr(artifactOpDetial)">
-            check
-          </n-button>
-          <n-button tertiary round type="info" v-show="isEditingTr"
-            @click="{ isEditingTr = false; editingTrNumber = artifactOpDetial.TransportRequestNumber }">
-            cancel
-          </n-button>
-          <n-button tertiary round type="info" @click="handleGenTr">auto generate</n-button>
+        <n-flex vertical style="gap: 8px">
+          <n-flex>
+            <n-text v-if="!isEditingTr">
+              {{ editingTrNumber || '-' }}
+            </n-text>
+            <ui5-input v-show="isEditingTr" v-model="editingTrNumber" style="width:20%"
+              placeholder="TR number" @keyup.enter="checkTr(artifactOpDetial)" />
+            <ui5-button v-show="!isEditingTr" @click="isEditingTr = true"
+              design="Transparent">edit</ui5-button>
+            <ui5-button
+              v-show="isEditingTr && draftSourceOps.find(d => d.op.ID === artifactOpDetial.ID)"
+              @click="revertTr" design="Transparent">revert</ui5-button>
+            <ui5-button :loading="checkingTrLoading" v-show="isEditingTr"
+              @click="checkTr(artifactOpDetial)" design="Transparent">
+              check
+            </ui5-button>
+            <ui5-button v-show="isEditingTr"
+              @click="{ isEditingTr = false; editingTrNumber = artifactOpDetial.TransportRequestNumber }"
+              design="Transparent">
+              cancel
+            </ui5-button>
+            <ui5-button :loading="generatingTrLoading" @click="handleGenTr" design="Transparent">auto generate</ui5-button>
+          </n-flex>
+          <n-text v-if="trInfo" depth="3" style="white-space: pre-wrap;">{{ trInfo }}</n-text>
         </n-flex>
 
       </n-flex>
@@ -484,6 +488,8 @@ export default {
       artifactVersionHistory: [] as ArtifactVersionHistoryItem[],
       editingTrNumber: '' as string, // tr number being edited, will assign to artifactOpDetial when saved
       checkingTrLoading: false,
+      generatingTrLoading: false,
+      trInfo: '' as string, //临时存储生成的 tr_info
       draftSourceOps: [] as { op: ArtifactTenantOperation, newTr: string, oldTr: string }[], // operations being drafted (source ops only)
       loadingArtifactHistory: false,
       showFlowModal: false,
@@ -684,12 +690,17 @@ export default {
       const baseUrl = new URL(this.deliveryRequest.SourceTenant.CpiEndpoint.url)
       const { PackageID, TechID } = this.artifactDetail || {}
       try {
+        this.generatingTrLoading = true
+        this.isEditingTr = true
         const {tr_info, tr_number} = await GenTransportRequest(`${baseUrl.protocol}//${baseUrl.host}`, PackageID, TechID, `${this.currentUser?.email} transport`)
         this.editingTrNumber = tr_number
+        this.trInfo = tr_info
         window.$message?.success(`Generated transport request: ${tr_number}`, { duration: 30 * 1000, closable: true })
       } catch (error: any) {
         const resp = error?.response?.data
         window.$message?.error(`Failed to generate transport request: ${resp?.message ?? resp?.error ?? ''}`, { duration: 30 * 1000, closable: true })
+      } finally {
+        this.generatingTrLoading = false
       }
 
     },
@@ -699,6 +710,7 @@ export default {
       this.artifactVersionHistory = []
       this.artifactOpDetial = op || {} as ArtifactTenantOperation
       this.editingTrNumber = this.artifactOpDetial.TransportRequestNumber
+      this.trInfo = ''
       this.isEditingTr = false
     },
     async onSyncDrStatus() {
