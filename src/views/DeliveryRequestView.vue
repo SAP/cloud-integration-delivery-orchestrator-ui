@@ -13,74 +13,74 @@
 
   <ui5-dialog :open="showArtifactDetails" :header-text="`Artifact Details #${artifactOpDetial.ID || ''}`"
     style="width: 35%;" draggable @before-close="showArtifactDetails = false">
-    <n-tag round size="small" type="warning"
-      v-show="draftSourceOps.find(d => d.op.ID === artifactOpDetial.ID)">DRAFT</n-tag>
-    <n-tag round size="small" type="success"
+    <ui5-tag design="Warning"
+      v-show="draftSourceOps.find(d => d.op.ID === artifactOpDetial.ID)">DRAFT</ui5-tag>
+    <ui5-tag design="Positive"
       v-show="addOps.find(a => a.ArtifactTechID === artifactOpDetial.ArtifactTechID && a.ArtifactVersion === artifactOpDetial.ArtifactVersion)">
       NEW
-    </n-tag>
+    </ui5-tag>
 
-    <n-flex vertical style="gap:12px">
+    <div style="display: flex; flex-direction: column; gap:12px">
       <div style="display:flex; gap:16px; flex-wrap:wrap">
         <div>
-          <n-text depth="3" strong>Package</n-text>
+          <ui5-label>Package</ui5-label>
           <div style="margin-top:4px">{{ artifactDetail.PackageID }}</div>
         </div>
         <div>
-          <n-text depth="3" strong>ID</n-text>
+          <ui5-label>ID</ui5-label>
           <div style="margin-top:4px">{{ artifactDetail.TechID }}</div>
         </div>
         <div>
-          <n-text depth="3" strong>Version</n-text>
+          <ui5-label>Version</ui5-label>
           <div style="margin-top:4px">{{ artifactDetail.Version }}</div>
         </div>
         <div v-if="artifactDetail.Type">
-          <n-text depth="3" strong>Type</n-text>
+          <ui5-label>Type</ui5-label>
           <div style="margin-top:4px">{{ artifactDetail.Type }}</div>
         </div>
         <div>
-          <n-text depth="3" strong>Description</n-text>
+          <ui5-label>Description</ui5-label>
           <div style="margin-top:4px">{{ artifactDetail.Description }}</div>
         </div>
       </div>
       <!-- Version history -->
-      <n-flex vertical>
-        <n-flex>
-          <n-text depth="3" strong>Version History</n-text>
-          <n-button type="info" strong tertiary v-if="!loadingArtifactHistory && !artifactVersionHistory.length"
-            @click="loadVersionHistory">Load</n-button>
-        </n-flex>
+      <div style="display: flex; flex-direction: column">
+        <div style="display: flex">
+          <ui5-label>Version History</ui5-label>
+          <ui5-button design="Transparent" v-if="!loadingArtifactHistory && !artifactVersionHistory.length"
+            @click="loadVersionHistory">Load</ui5-button>
+        </div>
         <div v-if="loadingArtifactHistory">
-          <n-skeleton text style="width: 60%; margin-top:8px" :repeat="3" />
+          <ui5-busy-indicator active :delay="0" style="width: 60%; margin-top:8px" />
         </div>
         <div v-else v-for="h in artifactVersionHistory">
           {{ h.comment }} - {{ h.createdBy }} - {{ h.semanticVersion }} - {{ h.createdDate }}
         </div>
-      </n-flex>
-      <n-divider :style="{ margin: 5 + 'px' }" dashed />
+      </div>
+      <hr :style="{ border: '1px dashed #ccc', margin: '5px' }" />
       <!-- ops details -->
-      <n-flex vertical v-if='Object.keys(artifactOpDetial).length'>
-        <n-flex>
+      <div style="display: flex; flex-direction: column" v-if='Object.keys(artifactOpDetial).length'>
+        <div style="display: flex">
           <div>
-            <n-text depth="3" strong>Request State</n-text>
+            <ui5-label>Request State</ui5-label>
             <div style="margin-top:4px">{{ artifactOpDetial.RequestState }}</div>
           </div>
           <div>
-            <n-text depth="3" strong>Import State</n-text>
+            <ui5-label>Import State</ui5-label>
             <div style="margin-top:4px">{{ artifactOpDetial.ImportState }}</div>
           </div>
           <div>
-            <n-text depth="3" strong>Deploy State</n-text>
+            <ui5-label>Deploy State</ui5-label>
             <div style="margin-top:4px">{{ artifactOpDetial.DeployState }}</div>
           </div>
-        </n-flex>
+        </div>
         <!-- Transport Request Number -->
-        <n-text depth="3" strong>Transport Request Number</n-text>
-        <n-flex vertical style="gap: 8px">
-          <n-flex>
-            <n-text v-if="!isEditingTr">
+        <ui5-label>Transport Request Number</ui5-label>
+        <div style="display: flex; flex-direction: column; gap: 8px">
+          <div style="display: flex">
+            <span v-if="!isEditingTr">
               {{ editingTrNumber || '-' }}
-            </n-text>
+            </span>
             <ui5-input v-show="isEditingTr" v-model="editingTrNumber" style="width:20%"
               placeholder="TR number" @keyup.enter="checkTr(artifactOpDetial)" />
             <ui5-button v-show="!isEditingTr" @click="isEditingTr = true"
@@ -98,13 +98,13 @@
               cancel
             </ui5-button>
             <ui5-button :loading="generatingTrLoading" @click="handleGenTr" design="Transparent">auto generate</ui5-button>
-          </n-flex>
-          <n-text v-if="trInfo" depth="3" style="white-space: pre-wrap;">{{ trInfo }}</n-text>
-        </n-flex>
+          </div>
+          <span v-if="trInfo" style="white-space: pre-wrap;">{{ trInfo }}</span>
+        </div>
 
-      </n-flex>
+      </div>
 
-    </n-flex>
+    </div>
 
     <ui5-toolbar slot="footer">
       <ui5-toolbar-button design="Emphasized"
@@ -285,7 +285,7 @@
                 </div>
                 <!-- artifacts to be added -->
                 <div style="display: flex; flex-direction: column;">
-                  <n-text type="success" depth="3" strong v-if="addOps && addOps.length > 0">New: </n-text>
+                  <ui5-label v-if="addOps && addOps.length > 0">New: </ui5-label>
                   <div style="display: flex; flex-direction: row; gap: 8px; flex-wrap: wrap;">
                     <ArtifactOpTag v-for="(op, i) in addOps" :i="i" :art-op="op" :stage-type="stateType(op)"
                       @open-artifact-details="openArtifactDetails" />
@@ -293,8 +293,9 @@
                 </div>
                 <!-- artifacts to be deleted -->
                 <div style="display: flex; flex-direction: column;">
-                  <n-text type="error" depth="3" strong v-if="deleteOps && deleteOps.length > 0">To be Deleted:
-                  </n-text>
+                  <ui5-label v-if="deleteOps && deleteOps.length > 0">
+                    To be Deleted:
+                  </ui5-label>
                   <div style="display: flex; flex-direction: row; gap: 8px; flex-wrap: wrap;">
                     <ArtifactOpTag v-for="(op, i) in deleteOps" :i="i" :art-op="op" :stage-type="stateType(op)"
                       @open-artifact-details="openArtifactDetails" />
@@ -311,23 +312,23 @@
       <ui5-wizard-step id="step2" title-text="Request Approval">
         <div style="display: flex;flex-direction: column">
           <ui5-title>Request Approval</ui5-title><br />
-          <n-skeleton v-if="approveInfo.loading" style="width: 50%;" />
-          <n-flex vertical v-else-if="!deliveryRequest.ApprovedBy">
+          <ui5-busy-indicator v-if="approveInfo.loading" active :delay="0" />
+          <div style="display: flex; flex-direction: column" v-else-if="!deliveryRequest.ApprovedBy">
             <n-auto-complete style="width: 40%;" :options="approverOptions" :loading="searchApproverLoading"
               :value="searchApprover" placeholder="Search Approvers"
               @update:value="(v: string) => { searchApprover = v; handleSearchArrover(v) }"
               @select="(v: UserInfo) => { handleSelectApprover(v) }" clearable clear-after-select />
-            <n-text depth="3" strong>Approvers:</n-text>
-            <n-flex>
+            <ui5-label>Approvers:</ui5-label>
+            <div style="display: flex">
               <span v-for="(user_id, _) in deliveryRequest.Approvers">
-                <n-spin v-if="!(uaaUsers[user_id]?.email ?? (uaaUserInfo(user_id), ''))" :size="15" />
-                <n-tag v-else closable @close="handleUnselectApprover(user_id)">
+                <ui5-busy-indicator v-if="!(uaaUsers[user_id]?.email ?? (uaaUserInfo(user_id), ''))" active :delay="0" size="M" />
+                <ui5-tag v-else @close="handleUnselectApprover(user_id)">
                   {{ uaaUsers[user_id]?.email }}
-                </n-tag>
+                </ui5-tag>
               </span>
-            </n-flex>
+            </div>
 
-            <n-flex style="margin-top:20px">
+            <div style="display: flex; margin-top:20px">
               <!-- Approve/Skip Approval button -->
               <n-popover trigger="hover">
                 <template #trigger>
@@ -336,20 +337,20 @@
                     {{ approveInfo.display }}
                   </ui5-button>
                 </template>
-                <n-text strong depth="3" v-if="approveInfo.disable">Cannot approve your own request</n-text>
-                <n-text strong depth="3" v-else>Force Deliver</n-text>
+                <ui5-label v-if="approveInfo.disable">Cannot approve your own request</ui5-label>
+                <ui5-label v-else>Force Deliver</ui5-label>
               </n-popover>
-              <n-button v-if="deliveryRequest.Approvers" ghost type="info" @click="handleRequestApprove">Send To
-                Approvers</n-button>
+              <ui5-button design="Transparent" v-if="deliveryRequest.Approvers" @click="handleRequestApprove">Send To
+                Approvers</ui5-button>
 
-            </n-flex>
-          </n-flex>
-          <n-flex vertical v-else>
-            <n-text depth="3" strong type="success">
+            </div>
+          </div>
+          <div style="display: flex; flex-direction: column" v-else>
+            <ui5-label>
               Approved By
               {{ uaaUsers[deliveryRequest.ApprovedBy]?.email ?? (uaaUserInfo(deliveryRequest.ApprovedBy), '') }}
-            </n-text>
-          </n-flex>
+            </ui5-label>
+          </div>
         </div>
       </ui5-wizard-step>
 
@@ -363,11 +364,9 @@
           </ui5-segmented-button>
         </div>
         <div style="display: flex; flex-direction: column;">
-          <n-flex v-if="loadingCpiTenants" vertical>
-            <n-skeleton style="width: 50%;" />
-            <n-skeleton style="width: 60%;" />
-            <n-skeleton style="width: 70%;" />
-          </n-flex>
+          <div v-if="loadingCpiTenants" style="display: flex; flex-direction: column">
+            <ui5-busy-indicator active :delay="0" />
+          </div>
           <div v-else>
             <DeliveryFlowView :delivery-request="deliveryRequest" :cpi-tenants="cpiTenants"
               :tenant-to-ops="tenantToOps" />
