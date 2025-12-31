@@ -4,7 +4,7 @@
           <ui5-tag v-if="props.data.isSource" slot="action" design="Set2" color-scheme="4"> Source </ui5-tag>
           <ui5-tag v-else color-scheme="Warning" slot="action" :design="aggrDesign" > {{ groupStateAggr }} </ui5-tag>
         </ui5-card-header>
-        <div style="display: flex; flex-wrap: raw; gap: 4px; margin: 16px 16px;">
+        <div class="tags-scroll-container">
           <ui5-tag design="Set2" color-scheme="5" v-for="t in props.data.tenants">{{ t?.Name }}</ui5-tag>
         </div>
         <div v-if="!props.data.isSource"
@@ -123,12 +123,23 @@ function handleDeployOnly() {
 </script>
 
 <style scoped>
-.compact-button-container {
+ui5-card {
   display: flex;
-  flex-direction: row-reverse;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.tags-scroll-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 0 16px;
+  max-height: 100px;
+  overflow-y: auto;
+}
+
+.compact-button-container {
   transform: scale(0.75);
-  transform-origin: top right;
-  margin: 0 10px;
 }
 
 /* 使用 CSS 变量来控制 UI5 组件内部样式 */
