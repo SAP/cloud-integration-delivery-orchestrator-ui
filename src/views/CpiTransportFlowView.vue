@@ -56,7 +56,7 @@ const nodes = computed<Node[]>(() => {
         position: { x: 0, y: 0 },
         type: 'cpi-transport',
         width: 800,
-        height: 200
+        height: 400
     })
     })
     const sourceNodeID = props.deliveryRequest.SourceTenant.TransportNodeID
