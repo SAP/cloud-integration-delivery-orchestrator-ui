@@ -1,5 +1,6 @@
 <template>
     <VueFlow 
+        key="cpi-transport-flow-view"
         :nodes="graph.nodes" 
         :edges="graph.edges" 
         :nodes-draggable="false"
