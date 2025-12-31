@@ -1,9 +1,13 @@
 <template>
   <!-- Modals -->
   <!-- Flow Modal -->
-  <ui5-dialog v-if="!loadingCpiTenants" header-text="Delivery Flow" :open="showFlowModal"
-    style="width: 60%; height: 80%;" draggable @before-close="showFlowModal = false">
-    <CpiTransportFlowView :delivery-request="deliveryRequest" :cpi-tenants="cpiTenants" :tenant-to-ops="tenantToOps" />
+  <ui5-dialog v-if="!loadingCpiTenants" 
+    header-text="Delivery Flow" 
+    :open="showFlowModal"
+    style="width: 70%; height: 80%;" draggable 
+    @before-close="showFlowModal = false">
+    
+    <CpiTransportFlowView style="width: 100%; height: 100%;" :delivery-request="deliveryRequest" :cpi-tenants="cpiTenants" :tenant-to-ops="tenantToOps" />
 
     <ui5-toolbar slot="footer">
       <ui5-toolbar-button class="dialogCloser" design="Transparent" text="Cancel" @click="showFlowModal = false" />
