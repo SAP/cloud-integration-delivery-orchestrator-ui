@@ -2,7 +2,11 @@
     <VueFlow 
         :nodes="graph.nodes" 
         :edges="graph.edges" 
-        fit-view-on-init 
+        fit-view-on-init
+        :nodes-draggable="false"
+        :pan-on-drag="true"
+        :zoom-on-scroll="true" 
+        :zoom-on-pinch="false"
         :style="{ height: graph.height + 'px', width: '100%' }" >
         <template #node-cpi-transport="props" >
           <CpiTransportNode
