@@ -809,9 +809,10 @@ export default {
       const currentEmail = this.currentUser?.email
       if (!createdBy || !currentEmail) return { loading: true, disable: false, display: 'Approve' }
       const disable = !this.deliveryRequest.DeliveryRule?.SkipApprove && currentEmail === createdBy // disable self approval
+      const allowApprove = currentEmail !== createdBy
       return {
         disable: disable,
-        display: disable ? 'Approve' : 'Skip Approval',
+        display: allowApprove ? 'Approve' : 'Skip Approval',
         loading: false
       }
     },
