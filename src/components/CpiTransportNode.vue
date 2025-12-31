@@ -98,7 +98,7 @@ function disableDeploy(op: ArtifactTenantOperation) {
           <ui5-table-header-cell width="120px">Deploy State</ui5-table-header-cell>
           <ui5-table-header-cell width="150px">Actions</ui5-table-header-cell>
         </ui5-table-header-row>
-        <ui5-table-row v-for="op in ops" :key="`${op.ArtifactTechID}@${op.ArtifactVersion}`">
+        <ui5-table-row v-for="op in ops" :key="`${op.ArtifactTechID}@${op.ArtifactVersion}`" overflow-mode="Scroll">
             <ui5-table-cell>
               <ui5-label>{{ op.ArtifactTechID }}</ui5-label>
             </ui5-table-cell>
