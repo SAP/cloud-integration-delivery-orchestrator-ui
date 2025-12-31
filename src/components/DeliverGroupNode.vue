@@ -4,16 +4,17 @@
           <ui5-tag v-if="props.data.isSource" slot="action" design="Set2" color-scheme="4"> Source </ui5-tag>
           <ui5-tag v-else color-scheme="Warning" slot="action" :design="aggrDesign" > {{ groupStateAggr }} </ui5-tag>
         </ui5-card-header>
-        <div class="tags-scroll-container">
-          <ui5-tag design="Set2" color-scheme="5" v-for="t in props.data.tenants">{{ t?.Name }}</ui5-tag>
-        </div>
-        <div v-if="!props.data.isSource"
-          class="compact-button-container">
-          <ui5-segmented-button>
-            <ui5-segmented-button-item @click="handleDeliver">Deliver</ui5-segmented-button-item>
-            <ui5-segmented-button-item @click="handleImportOnly" :disabled="disableImport">Import Only</ui5-segmented-button-item>
-            <ui5-segmented-button-item @click="handleDeployOnly" :disabled="disableDeploy">Deploy Only</ui5-segmented-button-item>
-          </ui5-segmented-button>
+        <div class="card-content">
+          <div class="tags-scroll-container">
+            <ui5-tag design="Set2" color-scheme="5" v-for="t in props.data.tenants">{{ t?.Name }}</ui5-tag>
+          </div>
+          <div v-if="!props.data.isSource" class="compact-button-container">
+            <ui5-segmented-button>
+              <ui5-segmented-button-item @click="handleDeliver">Deliver</ui5-segmented-button-item>
+              <ui5-segmented-button-item @click="handleImportOnly" :disabled="disableImport">Import Only</ui5-segmented-button-item>
+              <ui5-segmented-button-item @click="handleDeployOnly" :disabled="disableDeploy">Deploy Only</ui5-segmented-button-item>
+            </ui5-segmented-button>
+          </div>
         </div>
 
     </ui5-card>
@@ -123,10 +124,12 @@ function handleDeployOnly() {
 </script>
 
 <style scoped>
-ui5-card {
+.card-content {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
+  height: 100%;
+  overflow: hidden;
 }
 
 .tags-scroll-container {
@@ -136,6 +139,7 @@ ui5-card {
   padding: 0 16px;
   max-height: 100px;
   overflow-y: auto;
+  box-sizing: border-box;
 }
 
 .compact-button-container {
