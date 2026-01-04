@@ -17,6 +17,7 @@
             @deploy-all="onDeployAll"
           />
         </template>
+        <MiniMap pannable zoomable />
     </VueFlow>
 </template>
 
@@ -26,6 +27,7 @@ import { VueFlow, type Edge, type Node } from '@vue-flow/core'
 import { DeployOps, ImportOps, layoutNodes } from '@/service/api';
 import type { ArtifactTenantOperation, CpiTenant, DeliveryRequest, TransportNode, TransportRoute } from '@/service/model';
 import CpiTransportNode from '@/components/CpiTransportNode.vue';
+import { MiniMap } from '@vue-flow/minimap'
 
 const props = defineProps({
     deliveryRequest: {
