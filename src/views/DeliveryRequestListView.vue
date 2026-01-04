@@ -47,9 +47,10 @@
         </ui5-text>
       </div>
     </div>
-    <div slot="footer" style="display: flex; justify-content: flex-end; gap: 0.5rem; padding: 1rem 0 0 0;">
-      <ui5-button design="Positive" @click="onCreate">Create</ui5-button>
-    </div>
+    <ui5-toolbar slot="footer">
+      <ui5-toolbar-button class="dialogCloser" design="Emphasized" text="Create" @click="onCreate"></ui5-toolbar-button>
+      <ui5-toolbar-button class="dialogCloser" design="Transparent" text="Cancel" @click="showModal = false"></ui5-toolbar-button>
+    </ui5-toolbar>
   </ui5-dialog>
   <data-table
     title="Delivery Requests"
@@ -78,6 +79,8 @@ import "@ui5/webcomponents/dist/Select.js";
 import "@ui5/webcomponents/dist/Tag.js";
 import "@ui5/webcomponents/dist/Text.js";
 import "@ui5/webcomponents/dist/Option.js";
+import "@ui5/webcomponents/dist/Toolbar.js"
+import "@ui5/webcomponents/dist/ToolbarButton.js"
 export default defineComponent({
   components: { DataTable },
   data(){
