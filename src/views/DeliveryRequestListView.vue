@@ -18,7 +18,7 @@
           <ui5-option
             v-for="option in deliveryRuleOptions"
             :id="`delivery-rule-option-${option.value.ID}`"
-            :value="option.value.ID"
+            :value="String(option.value.ID)"
             :additional-text="`#${option.value.ID}`"
             :selected="selectedDeliveryRequest.DeliveryRule?.ID === option.value.ID"
             :disabled="option.disabled"
@@ -100,7 +100,7 @@ export default defineComponent({
   },
   methods: {
     handleRuleChange(event: any) {
-      const selectedId = event.target.value
+      const selectedId = Number(event.target.value)
       const selectedOption = this.deliveryRuleOptions.find(op => op.value.ID === selectedId)
       if (selectedOption) {
         this.selectedDeliveryRequest.DeliveryRule = selectedOption.value
