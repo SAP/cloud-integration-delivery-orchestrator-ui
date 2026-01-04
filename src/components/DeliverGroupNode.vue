@@ -86,17 +86,32 @@ const groupStateAggr = computed(() => {
       'DEPLOYING',
       'DEPLOY_FAILED',
       'DEPLOYED',
-      'ROLLBACKING',
-      'ROLLED_BACK',
       'CANCELED',
       'Error',
     ]
     const rank = (s: AggregateStatus) => order.indexOf(s)
+
+    // Check if any tenant is still in IMPORTING or earlier stage
+    const hasImportingOrEarlier = tenantStates.some(state =>
+      rank(state as AggregateStatus) <= rank('IMPORTING')
+    )
+
+    // If any tenant is still importing or in earlier stage, cap the overall state at IMPORTING
+    const maxAllowedState = hasImportingOrEarlier ? 'IMPORTING' : 'Error'
+
     const overall = tenantStates.reduce((acc, cur) => {
-      return rank(cur as AggregateStatus) > rank(acc as AggregateStatus)
-      ? (cur as AggregateStatus)
-      : (acc as AggregateStatus)
-    }) as AggregateStatus
+      const curRank = rank(cur as AggregateStatus)
+      const accRank = rank(acc as AggregateStatus)
+      const maxAllowedRank = rank(maxAllowedState)
+
+      // Cap current state at maxAllowedState
+      const cappedCur = curRank > maxAllowedRank ? maxAllowedState : cur
+      const cappedAcc = accRank > maxAllowedRank ? maxAllowedState : acc
+
+      return rank(cappedCur as AggregateStatus) > rank(cappedAcc as AggregateStatus)
+        ? (cappedCur as AggregateStatus)
+        : (cappedAcc as AggregateStatus)
+    }, 'UNKNOWN' as AggregateStatus)
 
     return overall
 })

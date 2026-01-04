@@ -496,7 +496,7 @@ export default {
       // handle approvers
       searchApproverLoading: false,
       approverOptions: [] as { label: string; value: UserInfo }[],
-      searchTimer: null as number | null,
+      searchTimer: null as ReturnType<typeof setTimeout> | null,
       searchApprover: '',
       uaaUsers: {} as { [key: string]: UserInfo }, // userId - userEmail
       currentUser: {} as UserInfo,

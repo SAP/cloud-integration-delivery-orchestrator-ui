@@ -21,9 +21,7 @@ export type DeployState =
   | 'DEPLOY_DISABLED'
   | 'IN_PROGRESS'
   | 'FAILED'
-  | 'COMPLETE'
-  | 'ROLLBACKING'
-  | 'ROLLED_BACK';
+  | 'COMPLETE';
 
 // Aggregate Status (public surface)
 export type AggregateStatus =
@@ -40,8 +38,6 @@ export type AggregateStatus =
   | 'DEPLOYING'
   | 'DEPLOY_FAILED' // can re-deploy
   | 'DEPLOYED'
-  | 'ROLLBACKING'
-  | 'ROLLED_BACK'
   | 'CANCELED'
   | 'Error';  // error status
 
@@ -62,7 +58,7 @@ const DESIGN_SETS = {
   Positive: new Set<AggregateStatus>(['DEPLOYED']),
   Negative: new Set<AggregateStatus>(['FAILED', 'IMPORT_FAILED', 'DEPLOY_FAILED', 'Error']),
   Information: new Set<AggregateStatus>(['IN_PROGRESS', 'IMPORTING', 'DEPLOYING']),
-  Critical: new Set<AggregateStatus>(['AWAITING_IMPORT', 'AWAITING_DEPLOY', 'WAITING_APPROVAL', 'IMPORTED', 'CANCELED', 'ROLLBACKING', 'ROLLED_BACK']),
+  Critical: new Set<AggregateStatus>(['AWAITING_IMPORT', 'AWAITING_DEPLOY', 'WAITING_APPROVAL', 'IMPORTED', 'CANCELED']),
   Neutral: new Set<AggregateStatus>(['UNKNOWN', 'PENDING'])
 } as const
 

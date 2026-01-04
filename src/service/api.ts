@@ -276,6 +276,7 @@ export const DeriveArtifactOpAgg = (op: ArtifactTenantOperation) => {
   return 'NOT_REQUESTED'
 }
 
+// derive aggregate status of a cpi tenant based on its artifact operations
 export const DeriveNodeAgg = (ops: ArtifactTenantOperation[]): AggregateStatus => {
   if (ops.length === 0) return 'UNKNOWN'
 
@@ -290,33 +291,67 @@ export const DeriveNodeAgg = (ops: ArtifactTenantOperation[]): AggregateStatus =
   // 1. Request phase error overrides others
   if (any(requestStates, ['FAILED'])) return 'Error'
 
-  // 2. Rollback scenarios
-  if (any(deployStates, ['ROLLBACKING'])) return 'ROLLBACKING'
-  if (all(deployStates, ['ROLLED_BACK'])) return 'ROLLED_BACK'
+  // 2. Import failures / progress / completion (import failure has higher priority than deploy failure)
+  if (any(importStates, ['FAILED'])) return 'IMPORT_FAILED'
+  if (any(importStates, ['IN_PROGRESS'])) return 'IMPORTING'
+  if (any(importStates, ['QUEUED'])) return 'AWAITING_IMPORT'
 
   // 3. Deployment failures / progress / completion
   if (any(deployStates, ['FAILED'])) return 'DEPLOY_FAILED'
   if (all(deployStates, ['COMPLETE'])) return 'DEPLOYED'
-  if (all(deployStates, ['IN_PROGRESS'])) return 'DEPLOYING'
+  if (any(deployStates, ['IN_PROGRESS'])) return 'DEPLOYING'
   if (all(deployStates, ['QUEUED'])) return 'AWAITING_DEPLOY'
-  if (any(deployStates, ['IN_PROGRESS', 'QUEUED'])) return 'DEPLOYING'
 
-  // 4. Import failures / progress / completion leading to deploy waiting
-  if (any(importStates, ['FAILED'])) return 'IMPORT_FAILED'
-  if (all(importStates, ['COMPLETE'])) {
-    // All imports done; if no deploy has started yet -> awaiting deploy
-    if (all(deployStates, ['NOT_STARTED'])) return 'AWAITING_DEPLOY'
-    return 'IMPORTED' // Fallback if mixed states not covered
+  // 4. Import completed, but deploy not started yet
+  if (all(importStates, ['COMPLETE']) && all(deployStates, ['NOT_STARTED'])) {
+    return 'AWAITING_DEPLOY'
   }
-  if (any(importStates, ['IN_PROGRESS'])) return 'IMPORTING'
-  if (any(importStates, ['QUEUED'])) return 'AWAITING_IMPORT'
+  // 5. Import completed with mixed deploy states (QUEUED mixed with other states)
+  if (all(importStates, ['COMPLETE']) && deployStates.length > 0) {
+    return 'IMPORTED'
+  }
 
-  // 5. Awaiting import / pending transport request readiness
+  // 6. Awaiting import / pending transport request readiness
   const allRequestsReady = requestStates.length > 0 && all(requestStates, ['READY'])
   if (allRequestsReady) return 'AWAITING_IMPORT'
   if (any(requestStates, ['REQUESTING', 'NOT_REQUESTED'])) return 'PENDING'
 
   return 'UNKNOWN'
+}
+
+// Aggregate multiple tenant states into a single group state
+// This is used to calculate the overall status of a delivery group with multiple tenants
+// Priority: Failed/InProgress states > Normal states (earliest stage)
+export const DeriveGroupAgg = (tenantStates: AggregateStatus[]): AggregateStatus => {
+  if (tenantStates.length === 0) return 'UNKNOWN'
+
+  // Define priority order: states earlier in array have higher priority
+  // Error states have highest priority, then in-progress, then earliest stage
+  const order: AggregateStatus[] = [
+    'Error',              // Highest priority - critical error
+    'DEPLOY_FAILED',      // Deployment failure
+    'IMPORT_FAILED',      // Import failure
+    'CANCELED',           // Canceled operation
+    'PENDING',            // Earliest stage - pending
+    'WAITING_APPROVAL',   // Waiting for approval
+    'AWAITING_IMPORT',    // Waiting to import
+    'AWAITING_DEPLOY',    // Waiting to deploy
+    'DEPLOYING',          // In progress - deployment
+    'IMPORTING',          // In progress - import
+    'IMPORTED',           // Imported, ready for deploy
+    'DEPLOYED',           // Successfully deployed
+    'UNKNOWN',            // Lowest priority
+  ]
+  const rank = (s: AggregateStatus) => order.indexOf(s)
+
+  // Reduce by taking the state with higher priority (lower index = higher priority)
+  const overall = tenantStates.reduce((acc, cur) => {
+    const accRank = rank(acc)
+    const curRank = rank(cur)
+    return curRank < accRank ? cur : acc
+  })
+
+  return overall
 }
 
 import dagre from '@dagrejs/dagre'
