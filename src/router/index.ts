@@ -8,11 +8,14 @@ const deliveryRequestCounts = async (): Promise<AppCount> => {
     Total: number
     StatusCounts: Record<AggregateStatus, number>
   }
+  const failed = (counts.StatusCounts.IMPORT_FAILED ?? 0) + (counts.StatusCounts.DEPLOY_FAILED ?? 0)
+  const inProgress = (counts.StatusCounts.IMPORTING ?? 0) + (counts.StatusCounts.DEPLOYING ?? 0)
   return {
     Total: counts.Total,
     StatusCounts: {
-      'pending': counts.StatusCounts.PENDING,
       'waiting approval': counts.StatusCounts.WAITING_APPROVAL,
+      'in progress': inProgress,
+      'failed': failed,
     }
   }
 }

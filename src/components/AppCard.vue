@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { AppCount } from '@/service/model'
-import { ref, onMounted, withDefaults, defineProps, computed } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import "@ui5/webcomponents/dist/Card.js"
 import "@ui5/webcomponents/dist/CardHeader.js"
@@ -43,24 +43,40 @@ onMounted(async () => {
     <div class="card-content">
       <ui5-text style="color: var(--sapPositiveColor); font-size: 2rem;">{{ appCount.Total || 0 }}</ui5-text>
       <ui5-text> Total</ui5-text>
-      <span v-for="key in Object.keys(appCount.StatusCounts || {})" :key="key">
-        <span v-if="appCount.StatusCounts?.[key]" style="margin-left: 10px;">
-          <ui5-text :style="{ color: 'var(--sapCriticalColor)', fontSize: '1.25rem' }">
-            {{ appCount.StatusCounts?.[key] }}
-          </ui5-text>
-          {{ key }}
+      <div class="status-counts">
+        <span v-for="key in Object.keys(appCount.StatusCounts || {})" :key="key" class="status-item">
+          <span v-if="appCount.StatusCounts?.[key]">
+            <ui5-text class="status-count">
+              {{ appCount.StatusCounts?.[key] }}
+            </ui5-text>
+              {{ key }}
+          </span>
         </span>
-      </span>
+      </div>
     </div>
-
   </ui5-card>
 
 </template>
 
 <style scoped>
 .card-content {
-  width: 100%;
-  padding-left: 16px;
-  padding-right: 16px;
+  margin-left: 16px;
+}
+
+.status-counts {
+  margin-top: 0.625rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.625rem;
+}
+
+.status-item {
+  display: flex;
+  align-items: center;
+}
+
+.status-count {
+  color: var(--sapCriticalColor);
+  font-size: 1.25rem;
 }
 </style>
