@@ -1,36 +1,56 @@
 <template>
-  <n-modal v-model:show="showModal" preset="dialog">
-    <template #header>
-      <div>Create Delivery Request</div>
-    </template>
-    <n-flex vertical>
-      <n-text strong depth="3">Name:</n-text>
-      <n-input v-model:value="selectedDeliveryRequest.Name" placeholder="Delivery Plan Name" />
-      <n-text strong depth="3">JIRA Link:</n-text>
-      <n-input v-model:value="selectedDeliveryRequest.JiraLink" placeholder="Jira Link" />
-      <n-text strong depth="3">Delivery Rule:</n-text>
-      <n-select
-        v-model:value="selectedDeliveryRequest.DeliveryRule"
-        :options="deliveryRuleOptions"
-        placeholder="Select Delivery Rule"
-        clearable
-      />
-      <n-text strong depth="3">Included Tenants:</n-text>
-      <n-flex>
-        <n-tag type="info" v-for="v in selectedDeliveryRequest.DeliveryRule?.IncludedTenants" :key="v.ID">
-          {{ v.Name }}
-        </n-tag>
-      </n-flex>
-      <n-text strong depth="3">Allowed Version Pattern:</n-text>
-      <n-text depth="3" v-if="selectedDeliveryRequest.DeliveryRule">
-        {{ selectedDeliveryRequest.DeliveryRule.VersionPattern }}
-      </n-text>
-
-    </n-flex>
-    <template #action>
-      <n-button type="info" @click="onCreate">Create</n-button>
-    </template>
-  </n-modal>
+  <ui5-dialog :open="showModal" @close="showModal = false" header-text="Create Delivery Request" style="width: 30rem;">
+    <div class="dialog-content" style="display: flex; flex-direction: column; gap: 1rem; padding: 1rem 0;">
+      <div>
+        <ui5-label style="font-weight: bold;">Name:</ui5-label>
+        <ui5-input v-model="selectedDeliveryRequest.Name" placeholder="Delivery Request Name" style="width: 100%; margin-top: 0.5rem;" />
+      </div>
+      <div>
+        <ui5-label style="font-weight: bold;">JIRA Link:</ui5-label>
+        <ui5-input v-model="selectedDeliveryRequest.JiraLink" placeholder="Jira Link" style="width: 100%; margin-top: 0.5rem;" />
+      </div>
+      <div>
+        <ui5-label style="font-weight: bold;">Delivery Rule:</ui5-label>
+        <ui5-select
+          @change="handleRuleChange"
+          style="width: 100%; margin-top: 0.5rem;"
+        >
+          <ui5-option
+            v-for="option in deliveryRuleOptions"
+            :id="`delivery-rule-option-${option.value.ID}`"
+            :value="option.value.ID"
+            :additional-text="`#${option.value.ID}`"
+            :selected="selectedDeliveryRequest.DeliveryRule?.ID === option.value.ID"
+            :disabled="option.disabled"
+          >
+            {{ option.label }}
+          </ui5-option>
+        </ui5-select>
+      </div>
+      <div>
+        <ui5-label style="font-weight: bold;">Included Tenants:</ui5-label>
+        <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.5rem;">
+          <ui5-tag
+            v-for="v in selectedDeliveryRequest.DeliveryRule?.IncludedTenants"
+            :key="v.ID"
+            design="Set2"
+            color-scheme="5"
+          >
+            {{ v.Name }}
+          </ui5-tag>
+        </div>
+      </div>
+      <div>
+        <ui5-label style="font-weight: bold;">Allowed Version Pattern:</ui5-label>
+        <ui5-text v-if="selectedDeliveryRequest.DeliveryRule" style="display: block; margin-top: 0.5rem;">
+          {{ selectedDeliveryRequest.DeliveryRule.VersionPattern }}
+        </ui5-text>
+      </div>
+    </div>
+    <div slot="footer" style="display: flex; justify-content: flex-end; gap: 0.5rem; padding: 1rem 0 0 0;">
+      <ui5-button design="Positive" @click="onCreate">Create</ui5-button>
+    </div>
+  </ui5-dialog>
   <data-table
     title="Delivery Requests"
     :columns="deliveryRequestColumns"
@@ -49,6 +69,15 @@ import DataTable from '@/components/DataTable.vue'
 import { deliveryRequestColumns, type ToolBar } from '@/service/consts'
 import { DeleteDeliveryRequest, GetDeliveryRequests, CreateDeliveryRequest, GetDeliveryRules, UaaUserInfo, } from '@/service/api';
 import type { DeliveryRequest, DeliveryRule, UserInfo } from '@/service/model';
+
+import "@ui5/webcomponents/dist/Dialog.js";
+import "@ui5/webcomponents/dist/Button.js";
+import "@ui5/webcomponents/dist/Input.js";
+import "@ui5/webcomponents/dist/Label.js";
+import "@ui5/webcomponents/dist/Select.js";
+import "@ui5/webcomponents/dist/Tag.js";
+import "@ui5/webcomponents/dist/Text.js";
+import "@ui5/webcomponents/dist/Option.js";
 export default defineComponent({
   components: { DataTable },
   data(){
@@ -70,6 +99,13 @@ export default defineComponent({
     }
   },
   methods: {
+    handleRuleChange(event: any) {
+      const selectedId = event.target.value
+      const selectedOption = this.deliveryRuleOptions.find(op => op.value.ID === selectedId)
+      if (selectedOption) {
+        this.selectedDeliveryRequest.DeliveryRule = selectedOption.value
+      }
+    },
     handleRowClick(row: DeliveryRequest) {
       this.$router.push({ path: `/delivery-request/${row.ID}` })
     },
