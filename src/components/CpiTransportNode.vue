@@ -78,15 +78,17 @@ function disableDeploy(op: ArtifactTenantOperation) {
 <template>
   <ui5-card style="height: 100%; width: 100%;" :title-text="data.Tenant.Name">
     <ui5-card-header slot="header" :title-text="data.Tenant.Name">
-      <div slot="action">
-        <ui5-tag v-if="data.IsSource" design="Set2" color-scheme="4">Source</ui5-tag>
-        <ui5-tag v-else :design="nodeAggDesign">
-          {{ nodeAggState }}
-        </ui5-tag>
-      </div>
-      <div slot="action" v-if="!data.IsSource">
-        <ui5-button @click="handleDeployAll" :disabled="nodeDeployDsiabled" style="margin: 0 10px;">Deploy All</ui5-button>
-        <ui5-button @click="handleImportAll" :disabled="nodeImportDisabled">Import All</ui5-button>
+      <div slot="action" style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+        <div>
+          <ui5-tag v-if="data.IsSource" design="Set2" color-scheme="4">Source</ui5-tag>
+          <ui5-tag v-else :design="nodeAggDesign">
+            {{ nodeAggState }}
+          </ui5-tag>
+        </div>
+        <div v-if="!data.IsSource">
+          <ui5-button @click="handleDeployAll" :disabled="nodeDeployDsiabled" style="margin: 0 10px;">Deploy All</ui5-button>
+          <ui5-button @click="handleImportAll" :disabled="nodeImportDisabled">Import All</ui5-button>
+        </div>
       </div>
     </ui5-card-header>
 
