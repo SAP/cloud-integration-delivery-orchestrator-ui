@@ -9,20 +9,48 @@
             <div style="font-weight: bold;">Name</div>
             <n-input v-model:value="selectedCpiTenant.Name" placeholder="Cpi Tenant Name, e.g. cpi-mmt-dev" />
             <div style="font-weight: bold;">TMS Node</div>
-            <n-select @update:value="onSelectNode"
-                :value="tmsNodeDisplay"
-                filterable
+            <ui5-select @change="onSelectNodeChange"
                 placeholder="Choose TMS Transport Nodes"
-                :options="transportNodesOptions"/>
+                style="width: 100%; margin-top: 0.5rem;">
+                <ui5-option
+                    v-for="node in transportNodes"
+                    :key="node.id"
+                    :value="node.id"
+                    :additional-text="node.description"
+                    :selected="selectedCpiTenant.TransportNodeID === node.id"
+                >
+                    {{ node.name }}
+                </ui5-option>
+            </ui5-select>
             <div style="font-weight: bold;">Cpi Api Endpoint</div>
-            <n-select @update:value="(e: ApiEndpoint) => selectedCpiTenant.CpiEndpoint=e"
-                :value="cpiEndpointDisplay"
-                filterable
+            <ui5-select @change="onSelectEndpointChange"
                 placeholder="Choose CPI Api Endpoint"
-                :options="CpiEndpointsOptions"/>
+                style="width: 100%; margin-top: 0.5rem;">
+                <ui5-option
+                    v-for="ep in cpiEndpoints"
+                    :key="ep.url"
+                    :value="ep.url"
+                    :additional-text="ep.url"
+                    :selected="selectedCpiTenant.CpiEndpoint?.url === ep.url"
+                >
+                    {{ ep.name }}
+                </ui5-option>
+            </ui5-select>
             <div style="font-weight: bold;">Tag</div>
-            <n-select v-model:value="selectedCpiTenant.Group" tag filterable placeholder="e.g. Dev, Test, Production"
-             :options="tagOptions"/>
+            <ui5-input
+                :value="selectedCpiTenant.Group || ''"
+                @change="onSelectTag"
+                placeholder="e.g. Dev, Test, Production"
+                showSuggestions
+                style="width: 100%; margin-top: 0.5rem;">
+                <ui5-suggestion-item
+                    v-for="tag in tagOptions"
+                    :key="tag.value"
+                    :text="tag.value"
+                >
+                    {{ tag.label }}
+                </ui5-suggestion-item>
+            </ui5-input>
         </div>
 
         <ui5-toolbar slot="footer">
@@ -55,6 +83,11 @@ import "@ui5/webcomponents-icons/dist/initiative.js";
 import "@ui5/webcomponents/dist/Dialog.js";
 import "@ui5/webcomponents/dist/Toolbar.js";
 import "@ui5/webcomponents/dist/ToolbarButton.js";
+import "@ui5/webcomponents/dist/Select.js";
+import "@ui5/webcomponents/dist/Option.js";
+import "@ui5/webcomponents/dist/Input.js";
+import "@ui5/webcomponents/dist/SuggestionItem.js";
+
 export default defineComponent({
     components: { DataTable },
     data() {
@@ -97,8 +130,6 @@ export default defineComponent({
             selectedCpiTenant: {} as CpiTenant,
             transportNodes: [] as TransportNode[],
             cpiEndpoints: [] as ApiEndpoint[],
-            transportNodesOptions: [] as {}[],
-            CpiEndpointsOptions: [] as {}[],
             loading: false
         }
     },
@@ -158,25 +189,34 @@ export default defineComponent({
             this.selectedCpiTenant.TransportNodeID = node.id
             this.selectedCpiTenant.TransportNodeName = node.name
             this.selectedCpiTenant.TransportNodeDescription = node.description
+        },
+        onSelectNodeChange(event: any) {
+            const selectedId = event.target.selectedOption.value
+            const node = this.transportNodes.find(n => n.id === selectedId)
+            if (node) {
+                this.onSelectNode(node)
+            }
+        },
+        onSelectEndpointChange(event: any) {
+            const selectedUrl = event.target.selectedOption.value
+            const endpoint = this.cpiEndpoints.find(ep => ep.url === selectedUrl)
+            if (endpoint) {
+                this.selectedCpiTenant.CpiEndpoint = endpoint
+            }
+        },
+        onSelectTag(event: any) {
+            this.selectedCpiTenant.Group = event.target.value
         }
     },
     async created() {
         await this.refresh()
         this.transportNodes = await GetTransportNodes() || []
         this.cpiEndpoints = await GetCPIApiEndpoints() || []
-        this.transportNodesOptions = this.transportNodes.map(node => ({ label: `${node.name}(${node.description})`, value: node }))
-        this.CpiEndpointsOptions = this.cpiEndpoints.map(ep => ({ label: `${ep.name}(${ep.url})`, value: ep }))
     },
     computed: {
         tagOptions(): { label: string; value: string }[] {
             const groups = Array.from(new Set(this.cpiTenants.map(t => t.Group).filter(g => g)))
             return groups.map(g => ({ label: g, value: g }))
-        },
-        tmsNodeDisplay() {
-            return this.selectedCpiTenant.TransportNodeName ? `${this.selectedCpiTenant.TransportNodeName}(${this.selectedCpiTenant.TransportNodeDescription})` : null
-        },
-        cpiEndpointDisplay() {
-            return this.selectedCpiTenant.CpiEndpoint ? `${this.selectedCpiTenant.CpiEndpoint.name}(${this.selectedCpiTenant.CpiEndpoint.url})` : null
         }
     }
 })

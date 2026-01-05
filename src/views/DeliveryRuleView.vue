@@ -4,6 +4,7 @@
         :header-text="selDeliveryRule.ID ? 'Edit Delivery Rule' : 'Create Delivery Rule'"
         :open="showModal"
         @close="showModal = false"
+        style="width: 30%;"
     >
         <div class="flex-vertical">
             <div style="font-weight: bold;">Name:</div>
@@ -13,16 +14,29 @@
             <n-input v-model:value="selDeliveryRule.VersionPattern" placeholder="e.g. 5.2.*, 6,2,*" />
 
             <div style="font-weight: bold; margin-top: 10px;">Included Tenants:</div>
-            <n-select
-                filterable
-                multiple
-                clearable
-                :options="tenantOptions"
-                @update:value="(v: CpiTenant[]) => selDeliveryRule.IncludedTenants = v"
-            />
+            <ui5-multi-combobox
+                show-clear-icon
+                show-select-all
+                @selection-change="handleTenantSelectionChange"
+                style="width: 100%; margin-top: 0.5rem;">
+                <ui5-mcb-item
+                    v-for="option in tenantOptions"
+                    :key="option.value.ID"
+                    :text="option.label"
+                    :additional-text="`#${option.value.ID}`"
+                    :selected="selDeliveryRule.IncludedTenants?.some(t => t.ID === option.value.ID)"
+                />
+            </ui5-multi-combobox>
 
             <div class="flex-row">
-                <n-tag type="info" v-for="tenant in selDeliveryRule.IncludedTenants" :key="tenant.ID">{{ tenant.Name }}</n-tag>
+                <ui5-tag
+                    v-for="tenant in selDeliveryRule.IncludedTenants"
+                    :key="tenant.ID"
+                    design="Set2"
+                    color-scheme="5"
+                >
+                    {{ tenant.Name }}
+                </ui5-tag>
             </div>
 
             <div style="font-weight: bold; margin-top: 10px;">
@@ -68,6 +82,9 @@ import type { DeliveryRule, CpiTenant, TransportRoute } from '@/service/model'
 import "@ui5/webcomponents/dist/Dialog.js";
 import "@ui5/webcomponents/dist/Toolbar.js";
 import "@ui5/webcomponents/dist/ToolbarButton.js";
+import "@ui5/webcomponents/dist/MultiComboBox.js";
+import "@ui5/webcomponents/dist/MultiComboBoxItem.js";
+import "@ui5/webcomponents/dist/Tag.js";
 
 export default defineComponent({
     components: { DataTable },
@@ -124,6 +141,13 @@ export default defineComponent({
         },
         handleSelect(value: CpiTenant[]) {
             this.selDeliveryRule.IncludedTenants = value
+        },
+        handleTenantSelectionChange(event: any) {
+            const selectedItems = event.target.selectedItems
+            const selectedTenants = selectedItems.map((item: any) => {
+                return this.cpiTenants.find(t => t.ID === parseInt(item.getAttribute('additional-text')?.replace('#', '')))
+            }).filter((t: any) => t)
+            this.selDeliveryRule.IncludedTenants = selectedTenants
         }
     },
     computed: {
@@ -158,7 +182,7 @@ export default defineComponent({
 .flex-vertical {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 8px;
 }
 
 .flex-row {
