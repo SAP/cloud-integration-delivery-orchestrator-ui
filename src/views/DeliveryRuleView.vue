@@ -7,23 +7,33 @@
         style="width: 30%;"
     >
         <div class="flex-vertical">
-            <div style="font-weight: bold;">Name:</div>
-            <n-input v-model:value="selDeliveryRule.Name" placeholder="Rule Name" />
+            <ui5-text style="font-weight: bold;">Name:</ui5-text>
+            <ui5-input
+                :value="selDeliveryRule.Name || ''"
+                @change="selDeliveryRule.Name = $event.target.value"
+                placeholder="Rule Name"
+                style="width: 100%;"
+            />
 
-            <div style="font-weight: bold; margin-top: 10px;">Version Pattern (regex):</div>
-            <n-input v-model:value="selDeliveryRule.VersionPattern" placeholder="e.g. 5.2.*, 6,2,*" />
+            <ui5-text style="font-weight: bold;">Version Pattern (regex):</ui5-text>
+            <ui5-input
+                :value="selDeliveryRule.VersionPattern || ''"
+                @change="selDeliveryRule.VersionPattern = $event.target.value"
+                placeholder="e.g. 5.2.*, 6,2,*"
+                style="width: 100%;"
+            />
 
-            <div style="font-weight: bold; margin-top: 10px;">Included Tenants:</div>
+            <ui5-text style="font-weight: bold;">Included Tenants:</ui5-text>
             <ui5-multi-combobox
                 show-clear-icon
                 show-select-all
                 @selection-change="handleTenantSelectionChange"
-                style="width: 100%; margin-top: 0.5rem;">
+                style="width: 80%;">
                 <ui5-mcb-item
                     v-for="option in tenantOptions"
-                    :key="option.value.ID"
+                    :id="String(option.value.ID)"
                     :text="option.label"
-                    :additional-text="`#${option.value.ID}`"
+                    :additional-text="String(option.value.ID)"
                     :selected="selDeliveryRule.IncludedTenants?.some(t => t.ID === option.value.ID)"
                 />
             </ui5-multi-combobox>
@@ -39,13 +49,21 @@
                 </ui5-tag>
             </div>
 
-            <div style="font-weight: bold; margin-top: 10px;">
-                Active: <n-switch v-model:value="selDeliveryRule.Active" />
-            </div>
-
-            <div style="font-weight: bold;">
-                Skip Approve:
-                <n-switch v-model:value="selDeliveryRule.SkipApprove" />
+            <div class="switch-row">
+                <div class="switch-item">
+                    <ui5-text style="margin-right: 0.5rem; font-weight: bold;">Active:</ui5-text>
+                    <ui5-switch
+                        :checked="selDeliveryRule.Active"
+                        @change="selDeliveryRule.Active = $event.target.checked"
+                    />
+                </div>
+                <div class="switch-item">
+                    <ui5-text style="margin-right: 0.5rem; font-weight: bold;">Skip Approve:</ui5-text>
+                    <ui5-switch
+                        :checked="selDeliveryRule.SkipApprove"
+                        @change="selDeliveryRule.SkipApprove = $event.target.checked"
+                    />
+                </div>
             </div>
         </div>
         <ui5-toolbar slot="footer">
@@ -82,9 +100,12 @@ import type { DeliveryRule, CpiTenant, TransportRoute } from '@/service/model'
 import "@ui5/webcomponents/dist/Dialog.js";
 import "@ui5/webcomponents/dist/Toolbar.js";
 import "@ui5/webcomponents/dist/ToolbarButton.js";
+import "@ui5/webcomponents/dist/Input.js";
+import "@ui5/webcomponents/dist/Switch.js";
 import "@ui5/webcomponents/dist/MultiComboBox.js";
 import "@ui5/webcomponents/dist/MultiComboBoxItem.js";
 import "@ui5/webcomponents/dist/Tag.js";
+import "@ui5/webcomponents/dist/Text.js";
 
 export default defineComponent({
     components: { DataTable },
@@ -143,9 +164,9 @@ export default defineComponent({
             this.selDeliveryRule.IncludedTenants = value
         },
         handleTenantSelectionChange(event: any) {
-            const selectedItems = event.target.selectedItems
+            const selectedItems = event.detail.items
             const selectedTenants = selectedItems.map((item: any) => {
-                return this.cpiTenants.find(t => t.ID === parseInt(item.getAttribute('additional-text')?.replace('#', '')))
+                return this.cpiTenants.find(t => t.ID === Number(item.id))
             }).filter((t: any) => t)
             this.selDeliveryRule.IncludedTenants = selectedTenants
         }
@@ -189,5 +210,15 @@ export default defineComponent({
     display: flex;
     gap: 8px;
     flex-wrap: wrap;
+}
+
+.switch-row {
+    display: flex;
+    gap: 2rem;
+}
+
+.switch-item {
+    display: flex;
+    align-items: center;
 }
 </style>
