@@ -1,17 +1,18 @@
 <!-- filepath: /Users/I589335/repos/mmt-devops-ui-cpi-delivery/src/views/DeliveryRuleView.vue -->
 <template>
-    <n-modal v-model:show="showModal" preset="dialog" :title="selDeliveryRule.ID ? 'Edit Delivery Rule' : 'Create Delivery Rule'">
-        <template #header>
-            <div>{{ selDeliveryRule.ID ? 'Edit Delivery Rule' : 'Create Delivery Rule' }}</div>
-        </template>
-        <n-flex vertical>
-            <n-text strong depth="3">Name:</n-text>
+    <ui5-dialog
+        :header-text="selDeliveryRule.ID ? 'Edit Delivery Rule' : 'Create Delivery Rule'"
+        :open="showModal"
+        @close="showModal = false"
+    >
+        <div class="flex-vertical">
+            <div style="font-weight: bold;">Name:</div>
             <n-input v-model:value="selDeliveryRule.Name" placeholder="Rule Name" />
 
-            <n-text strong depth="3" style="margin-top: 10px;">Version Pattern (regex):</n-text>
+            <div style="font-weight: bold; margin-top: 10px;">Version Pattern (regex):</div>
             <n-input v-model:value="selDeliveryRule.VersionPattern" placeholder="e.g. 5.2.*, 6,2,*" />
-            
-            <n-text strong depth="3" style="margin-top: 10px;">Included Tenants:</n-text>
+
+            <div style="font-weight: bold; margin-top: 10px;">Included Tenants:</div>
             <n-select
                 filterable
                 multiple
@@ -20,24 +21,24 @@
                 @update:value="(v: CpiTenant[]) => selDeliveryRule.IncludedTenants = v"
             />
 
-            <n-flex>
+            <div class="flex-row">
                 <n-tag type="info" v-for="tenant in selDeliveryRule.IncludedTenants" :key="tenant.ID">{{ tenant.Name }}</n-tag>
-            </n-flex>
+            </div>
 
-            <n-text strong depth="3" style="margin-top: 10px;">
+            <div style="font-weight: bold; margin-top: 10px;">
                 Active: <n-switch v-model:value="selDeliveryRule.Active" />
-            </n-text>
+            </div>
 
-            <n-text strong depth="3">
+            <div style="font-weight: bold;">
                 Skip Approve:
                 <n-switch v-model:value="selDeliveryRule.SkipApprove" />
-            </n-text>
-
-        </n-flex>
-        <template #action>
-            <n-button type="info" @click="onSave">Save</n-button>
-        </template>
-    </n-modal>
+            </div>
+        </div>
+        <ui5-toolbar slot="footer">
+            <ui5-toolbar-button design="Emphasized" text="Save" @click="onSave"></ui5-toolbar-button>
+            <ui5-toolbar-button design="Transparent" text="Cancel" @click="showModal = false"></ui5-toolbar-button>
+        </ui5-toolbar>
+    </ui5-dialog>
 
     <data-table
         title="Delivery Rules"
@@ -64,6 +65,10 @@ import {
 } from '@/service/api'
 import {deliveryRuleColumns} from '@/service/consts'
 import type { DeliveryRule, CpiTenant, TransportRoute } from '@/service/model'
+import "@ui5/webcomponents/dist/Dialog.js";
+import "@ui5/webcomponents/dist/Toolbar.js";
+import "@ui5/webcomponents/dist/ToolbarButton.js";
+
 export default defineComponent({
     components: { DataTable },
     data() {
@@ -148,3 +153,17 @@ export default defineComponent({
     }
 })
 </script>
+
+<style scoped>
+.flex-vertical {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.flex-row {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+</style>

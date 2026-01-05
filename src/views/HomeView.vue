@@ -10,14 +10,14 @@ const apps = router.getRoutes().filter(r => r.children.length > 0)
 <template>
   <div v-for="(router, index) in apps" :key="index" class="sub">
     <div class="subtitle"> {{ router.name }} </div>
-    <n-flex>
-      <AppCard v-for="(child, index) in router.children" 
-        :key="index" 
+    <div class="flex-row">
+      <AppCard v-for="(child, index) in router.children"
+        :key="index"
         :title="child.name as string"
         :meta="child.meta as { description?: string; statusCount?: () => Promise<AppCount>, width?: string, height?: string }"
         :path="`${router.path}/${child.path}`"
       />
-    </n-flex>
+    </div>
   </div>
 </template>
 
@@ -30,5 +30,11 @@ const apps = router.getRoutes().filter(r => r.children.length > 0)
 
 .sub {
   margin: 10px 50px;
+}
+
+.flex-row {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
 }
 </style>

@@ -1,33 +1,35 @@
 <template>
-    <n-modal v-model:show="showModal" preset="dialog" title="Dialog" style="width: 40%;">
-        <template #header>
-            <div>Create Cpi Tenant</div>
-        </template>
-        <n-flex vertical>
-            Name
+    <ui5-dialog
+        header-text="Create Cpi Tenant"
+        :open="showModal"
+        @close="showModal = false"
+        style="width: 40%;"
+    >
+        <div class="flex-vertical">
+            <div style="font-weight: bold;">Name</div>
             <n-input v-model:value="selectedCpiTenant.Name" placeholder="Cpi Tenant Name, e.g. cpi-mmt-dev" />
-            TMS Node
-            <n-select @update:value="onSelectNode" 
-                :value="tmsNodeDisplay" 
-                filterable 
+            <div style="font-weight: bold;">TMS Node</div>
+            <n-select @update:value="onSelectNode"
+                :value="tmsNodeDisplay"
+                filterable
                 placeholder="Choose TMS Transport Nodes"
                 :options="transportNodesOptions"/>
-            Cpi Api Endpoint
-            <n-select @update:value="(e: ApiEndpoint) => selectedCpiTenant.CpiEndpoint=e" 
+            <div style="font-weight: bold;">Cpi Api Endpoint</div>
+            <n-select @update:value="(e: ApiEndpoint) => selectedCpiTenant.CpiEndpoint=e"
                 :value="cpiEndpointDisplay"
-                filterable 
+                filterable
                 placeholder="Choose CPI Api Endpoint"
                 :options="CpiEndpointsOptions"/>
-            Tag
+            <div style="font-weight: bold;">Tag</div>
             <n-select v-model:value="selectedCpiTenant.Group" tag filterable placeholder="e.g. Dev, Test, Production"
              :options="tagOptions"/>
-        </n-flex>
+        </div>
 
-
-        <template #action>
-            <n-button type="primary" @click="onSave">Save</n-button>
-        </template>
-    </n-modal>
+        <ui5-toolbar slot="footer">
+            <ui5-toolbar-button design="Emphasized" text="Save" @click="onSave"></ui5-toolbar-button>
+            <ui5-toolbar-button design="Transparent" text="Cancel" @click="showModal = false"></ui5-toolbar-button>
+        </ui5-toolbar>
+    </ui5-dialog>
     <data-table
         title="Cpi Tenants"
         :columns="cpiTenantColums"
@@ -50,6 +52,9 @@ import type { CpiTenant, TransportNode, ApiEndpoint } from '@/service/model'
 import "@ui5/webcomponents/dist/TableRowAction.js";
 import "@ui5/webcomponents-icons/dist/connected.js";
 import "@ui5/webcomponents-icons/dist/initiative.js";
+import "@ui5/webcomponents/dist/Dialog.js";
+import "@ui5/webcomponents/dist/Toolbar.js";
+import "@ui5/webcomponents/dist/ToolbarButton.js";
 export default defineComponent({
     components: { DataTable },
     data() {
@@ -177,3 +182,11 @@ export default defineComponent({
 })
 
 </script>
+
+<style scoped>
+.flex-vertical {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+</style>
