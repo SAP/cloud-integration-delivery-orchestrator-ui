@@ -103,7 +103,7 @@
             </ui5-button>
             <ui5-button :loading="generatingTrLoading" @click="handleGenTr" design="Transparent">auto generate</ui5-button>
           </div>
-          <span v-if="trInfo" style="white-space: pre-wrap;">{{ trInfo }}</span>
+          <ui5-text v-if="trInfo" style="color: var(--sapPositiveColor); font-size: var(--sapFontSize);">{{ trInfo }}</ui5-text>
         </div>
 
       </div>
@@ -686,11 +686,16 @@ export default {
     },
     async handleGenTr() {
       const baseUrl = new URL(this.deliveryRequest.SourceTenant.CpiEndpoint.url)
-      const { PackageID, TechID } = this.artifactDetail || {}
+      const { PackageID, TechID, Version } = this.artifactDetail || {}
       try {
         this.generatingTrLoading = true
         this.isEditingTr = true
-        const {tr_info, tr_number} = await GenTransportRequest(`${baseUrl.protocol}//${baseUrl.host}`, PackageID, TechID, `${this.currentUser?.email} transport`)
+        const {tr_info, tr_number} = await GenTransportRequest(
+          `${baseUrl.protocol}//${baseUrl.host}`, 
+          PackageID, 
+          TechID, 
+          `Delivery Request #${this.deliveryRequest.ID}. Transport Request for artifact ${TechID}:${Version} in package ${PackageID} by ${this.currentUser?.email}`
+        )
         this.editingTrNumber = tr_number
         this.trInfo = tr_info
         window.$message?.success(`Generated transport request: ${tr_number}`, { duration: 30 * 1000, closable: true })
