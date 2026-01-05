@@ -35,6 +35,7 @@
                     :text="option.label"
                     :additional-text="String(option.value.ID)"
                     :selected="selDeliveryRule.IncludedTenants?.some(t => t.ID === option.value.ID)"
+                    :style="option.disabled ? 'pointer-events: none; opacity: 0.5;' : ''"
                 />
             </ui5-multi-combobox>
 
