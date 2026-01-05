@@ -17,6 +17,8 @@
 
 html,
 body {
+  margin: 8px;
+  padding: 0;
   background-color: var(--sapBackgroundColor);
   color: var(--sapTextColor);
   /* font-family: var(--sapFontFamily); */
