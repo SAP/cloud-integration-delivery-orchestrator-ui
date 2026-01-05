@@ -147,6 +147,7 @@ export const CheckTenantStatus = async (cpi_tenant: string) => {
   return data
 }
 
+// NOTE: cpi cookie service
 export const InitCpiTenant = async (cpi_tenant: string) => {
   const {data} = await axios.post(
     '/cpi-cookie-service/api/init_tenant',
@@ -161,14 +162,14 @@ export const InitCpiTenant = async (cpi_tenant: string) => {
 export const GenTransportRequest = async (
   cpi_tenant_url: string,
   target_package_tech_name: string,
-  target_artifact_name: string,  
+  target_artifact_id: string,
   comment: string
 ) => {
   const { data } = await axios.post(
     '/cpi-cookie-service/api/transport_request',
     {
       target_package_tech_name,
-      target_artifact_name,
+      target_artifact_name: target_artifact_id, // actually is artifact id, but in cpi native API context it's 'Name'
       cpi_tenant: cpi_tenant_url,
       comment
     },
@@ -177,7 +178,6 @@ export const GenTransportRequest = async (
   return data
 }
 
-// cpi cookie service
 // version history
 export const GetArtifactVersionHistory = async (
   cpiTenant: string,

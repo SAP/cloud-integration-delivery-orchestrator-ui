@@ -2,20 +2,41 @@ import axios from 'axios'
 
 const service = axios.create({})
 
+// Check if session is expired and redirect to logout
+const checkSessionExpired = (error: any) => {
+  if (error?.response?.status === 401) {
+    window.$message.warning(
+      'Session expired. Redirecting to login...',
+      {
+        closable: true,
+        duration: 3000
+      }
+    )
+    // Reload page to trigger re-login
+    setTimeout(() => {
+      window.location.reload()
+    }, 1000)
+    return true
+  }
+  return false
+}
+
 service.interceptors.request.use(
-  // TODO: may check auth token expiry here first, then refresh token if needed
-    config => {
-      return config
-    },
-    error => {
-      window.$message.error(`request failed: ${error}`,
-        {
-          closable: true,
-          duration: 1000*30
-        }
-      )
-      Promise.reject(error)
+  config => {
+    return config
+  },
+  error => {
+    if (checkSessionExpired(error)) {
+      return Promise.reject(error)
     }
+    window.$message.error(`request failed: ${error}`,
+      {
+        closable: true,
+        duration: 1000*30
+      }
+    )
+    return Promise.reject(error)
+  }
 )
 
 service.interceptors.response.use(
@@ -25,7 +46,11 @@ service.interceptors.response.use(
     return res.result
   },
   (error) => {
-    const content = error.response.data.msg ?? error.response.data.error ?? error.message
+    // Check for session expiry first
+    if (checkSessionExpired(error)) {
+      return Promise.reject(error)
+    }
+    const content = error.response?.data?.msg ?? error.response?.data?.error ?? error.message
     window.$message.error(
       content,
       {
