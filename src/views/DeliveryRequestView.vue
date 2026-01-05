@@ -218,7 +218,8 @@
               <div v-else>
                 <div v-if="!packageOptions || !packageOptions.length" style="margin-top:6px">
                   <ui5-illustrated-message name="NoData" design="Dot"
-                    title-text="No Artifacts found in this tenant" />
+                    :title-text="`No Packages found in Tenant(${deliveryRequest.SourceTenant.Name})`"
+                    :subtitle-text="`Please Retry...`" />
                 </div>
 
                 <ui5-multi-combobox v-else show-clear-icon show-select-all @selection-change="handleSelectPackage"

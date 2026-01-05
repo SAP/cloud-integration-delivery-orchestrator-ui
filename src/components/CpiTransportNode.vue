@@ -15,6 +15,8 @@ import "@ui5/webcomponents/dist/TableRow.js";
 import "@ui5/webcomponents/dist/TableCell.js";
 import "@ui5/webcomponents/dist/TableHeaderRow.js";
 import "@ui5/webcomponents/dist/TableHeaderCell.js";
+import "@ui5/webcomponents-fiori/dist/IllustratedMessage.js";
+import "@ui5/webcomponents-fiori/dist/illustrations/NoData.js";
 
 // Props: passed from VueFlow slot
 const props = defineProps({
@@ -88,7 +90,12 @@ function disableDeploy(op: ArtifactTenantOperation) {
       </div>
     </ui5-card-header>
 
-    <n-text v-if="!Object.keys(ops).length" depth="3" style="font-size:11px">No artifacts {{ data.IsSource ? '' : 'delivered here yet' }}</n-text>
+    <div v-if="!Object.keys(ops).length" style="margin-top:6px">
+      <ui5-illustrated-message name="NoData" design="Dot"
+        :subtitle-text="data.IsSource ? 'No artifacts available for import' : 'No artifacts available for import / deploy'"
+        :title-text="`No artifacts ${data.IsSource ? '' : 'delivered here yet'}`" />
+    </div>
+
     <ui5-table v-else overflow-mode="Scroll" style="max-height: 300px; overflow-y: auto;">
       <ui5-table-header-row slot="headerRow">
         <ui5-table-header-cell >Artifact</ui5-table-header-cell>
