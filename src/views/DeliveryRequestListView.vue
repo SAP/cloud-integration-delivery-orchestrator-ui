@@ -1,35 +1,33 @@
 <template>
   <ui5-dialog :open="showModal" @close="showModal = false" header-text="Create Delivery Request" style="width: 30rem;">
-    <div class="dialog-content" style="display: flex; flex-direction: column; gap: 1rem; padding: 1rem 0;">
+    <div class="dialog-content" style="display: flex; flex-direction: column; gap: 1rem;">
       <div>
         <ui5-label style="font-weight: bold;">Name:</ui5-label>
-        <ui5-input v-model="selectedDeliveryRequest.Name" placeholder="Delivery Request Name" style="width: 100%; margin-top: 0.5rem;" />
+        <ui5-input v-model="selectedDeliveryRequest.Name" placeholder="Delivery Request Name" style="width: 100%;" />
       </div>
       <div>
         <ui5-label style="font-weight: bold;">JIRA Link:</ui5-label>
-        <ui5-input v-model="selectedDeliveryRequest.JiraLink" placeholder="Jira Link" style="width: 100%; margin-top: 0.5rem;" />
+        <ui5-input v-model="selectedDeliveryRequest.JiraLink" placeholder="Jira Link" style="width: 100%;" />
       </div>
       <div>
         <ui5-label style="font-weight: bold;">Delivery Rule:</ui5-label>
-        <ui5-select
+        <ui5-combobox
+          :value="String(selectedDeliveryRequest.DeliveryRule?.Name || '')"
           @change="handleRuleChange"
-          style="width: 100%; margin-top: 0.5rem;"
-        >
-          <ui5-option
+          placeholder="Choose Delivery Rule"
+          style="width: 100%;">
+          <ui5-cb-item
             v-for="option in deliveryRuleOptions"
             :id="`delivery-rule-option-${option.value.ID}`"
-            :value="String(option.value.ID)"
             :additional-text="`#${option.value.ID}`"
-            :selected="selectedDeliveryRequest.DeliveryRule?.ID === option.value.ID"
+            :text="option.label"
             :disabled="option.disabled"
-          >
-            {{ option.label }}
-          </ui5-option>
-        </ui5-select>
+          />
+        </ui5-combobox>
       </div>
       <div>
         <ui5-label style="font-weight: bold;">Included Tenants:</ui5-label>
-        <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.5rem;">
+        <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
           <ui5-tag
             v-for="v in selectedDeliveryRequest.DeliveryRule?.IncludedTenants"
             :key="v.ID"
@@ -42,7 +40,7 @@
       </div>
       <div>
         <ui5-label style="font-weight: bold;">Allowed Version Pattern:</ui5-label>
-        <ui5-text v-if="selectedDeliveryRequest.DeliveryRule" style="display: block; margin-top: 0.5rem;">
+        <ui5-text v-if="selectedDeliveryRequest.DeliveryRule" style="display: block;">
           {{ selectedDeliveryRequest.DeliveryRule.VersionPattern }}
         </ui5-text>
       </div>
@@ -75,10 +73,10 @@ import "@ui5/webcomponents/dist/Dialog.js";
 import "@ui5/webcomponents/dist/Button.js";
 import "@ui5/webcomponents/dist/Input.js";
 import "@ui5/webcomponents/dist/Label.js";
-import "@ui5/webcomponents/dist/Select.js";
+import "@ui5/webcomponents/dist/ComboBox.js";
+import "@ui5/webcomponents/dist/ComboBoxItem.js";
 import "@ui5/webcomponents/dist/Tag.js";
 import "@ui5/webcomponents/dist/Text.js";
-import "@ui5/webcomponents/dist/Option.js";
 import "@ui5/webcomponents/dist/Toolbar.js"
 import "@ui5/webcomponents/dist/ToolbarButton.js"
 export default defineComponent({
@@ -103,8 +101,8 @@ export default defineComponent({
   },
   methods: {
     handleRuleChange(event: any) {
-      const selectedId = Number(event.target.value)
-      const selectedOption = this.deliveryRuleOptions.find(op => op.value.ID === selectedId)
+      const selectedId = event.target.value
+      const selectedOption = this.deliveryRuleOptions.find(op => op.label === selectedId)
       if (selectedOption) {
         this.selectedDeliveryRequest.DeliveryRule = selectedOption.value
       }

@@ -248,7 +248,7 @@
                   </div>
                   <div v-else>
                     <div style="display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0;">
-                      <ui5-input id="input-filter-artifacts" @input="handleFilterArtifacts(pkg.Id)"
+                      <ui5-input :id="`input-filter-artifacts-${pkg.Id}`" @input="handleFilterArtifacts(pkg.Id, $event)"
                         placeholder="Filter artifacts (id/version/type)"
                         show-clear-icon
                         style="width: 20%;"/>
@@ -743,9 +743,9 @@ export default {
         .filter((pkg): pkg is Package => pkg !== null)
       this.selectedPackages = selectedPkgs
     },
-    handleFilterArtifacts(pkgId: string) {
-      const input = document.getElementById("input-filter-artifacts");
-      if (input) this.artifactSearch[pkgId] = (input as HTMLInputElement).value
+    handleFilterArtifacts(pkgId: string, event: Event) {
+      const input = event.target as HTMLInputElement;
+      if (input) this.artifactSearch[pkgId] = input.value;
     }
 
   },
