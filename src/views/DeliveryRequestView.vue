@@ -325,7 +325,7 @@
               @update:value="(v: string) => { searchApprover = v; handleSearchArrover(v) }"
               @select="(v: UserInfo) => { handleSelectApprover(v) }" clearable clear-after-select />
             <ui5-label>Approvers:</ui5-label>
-            <div style="display: flex">
+            <div style="display: flex; gap: 10px;">
               <span v-for="(user_id, _) in deliveryRequest.Approvers">
                 <ui5-busy-indicator v-if="!(uaaUsers[user_id]?.email ?? (uaaUserInfo(user_id), ''))" active :delay="0" size="M" />
                 <ui5-tag v-else @close="handleUnselectApprover(user_id)">
