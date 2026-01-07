@@ -374,6 +374,25 @@
           </div>
         </div>
       </ui5-wizard-step>
+      <ui5-wizard-step id="step4" title-text="Logs">
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+          <ui5-title>Delivery Logs</ui5-title>
+          <div v-if="deliveryRequest.Conditions && deliveryRequest.Conditions.length">
+            <ui5-message-strip
+              v-for="(condition, index) in deliveryRequest.Conditions"
+              :key="index"
+              :design="conditionTypeToDesign(condition.State)"
+              :hide-close-button="true"
+              style="margin-bottom: 8px;">
+              <ui5-text>{{ condition.Message }}</ui5-text>
+              <ui5-text>{{ condition.CreatedAt }}</ui5-text>
+            </ui5-message-strip>
+          </div>
+          <ui5-illustrated-message v-else name="NoData" design="Dot"
+            title-text="No Logs Available"
+            subtitle-text="There are no Logs for this delivery request." />
+        </div>
+      </ui5-wizard-step>
     </ui5-wizard>
 
     <ui5-bar slot="footerArea" design="FloatingFooter">
@@ -414,7 +433,7 @@ import DeliveryFlowView from './DeliveryFlowView.vue'
 import CpiTransportFlowView from './CpiTransportFlowView.vue'
 import ArtifactOpTag from '@/components/ArtifactOpTag.vue'
 import { nextTick } from 'vue'
-import { aggregateStatusToUi5Design } from '@/service/statuses'
+import { aggregateStatusToUi5Design, conditionTypeToDesign } from '@/service/statuses'
 
 
 import "@ui5/webcomponents-fiori/dist/DynamicPage.js";
@@ -446,6 +465,7 @@ import "@ui5/webcomponents-icons/dist/show.js";
 import "@ui5/webcomponents/dist/Dialog.js";
 import "@ui5/webcomponents/dist/Panel.js";
 import "@ui5/webcomponents/dist/BusyIndicator.js";
+import "@ui5/webcomponents/dist/MessageStrip.js";
 import "@ui5/webcomponents-fiori/dist/IllustratedMessage.js";
 import "@ui5/webcomponents-fiori/dist/illustrations/NoData.js";
 import "@ui5/webcomponents/dist/SegmentedButton.js";
@@ -621,8 +641,8 @@ export default {
     // check TR number existence
     async checkTr(op: ArtifactTenantOperation) {
       this.checkingTrLoading = true
-      const originalTrNumber = op.TransportRequestNumber
-      const newTrNumber = this.editingTrNumber.trim() || ''
+      const originalTrNumber = op?.TransportRequestNumber || ''
+      const newTrNumber = this.editingTrNumber?.trim() || ''
       op.TransportRequestNumber = newTrNumber
       try {
         await CheckTrExistence(op, this.deliveryRequest.ID)
@@ -752,7 +772,8 @@ export default {
     handleFilterArtifacts(pkgId: string, event: Event) {
       const input = event.target as HTMLInputElement;
       if (input) this.artifactSearch[pkgId] = input.value;
-    }
+    },
+    conditionTypeToDesign,
 
   },
   watch: {

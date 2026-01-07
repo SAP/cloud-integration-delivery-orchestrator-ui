@@ -47,6 +47,20 @@ export type ConditionType =
   | 'Warn'
   | 'Success'
 
+// "Information" | "Positive" | "Negative" | "Critical" | "ColorSet1" | "ColorSet2"
+export const conditionTypeToDesign = (type: ConditionType): string => {
+  switch (type) {
+    case 'Error':
+      return 'Negative'
+    case 'Warn':
+      return 'Critical'
+    case 'Success':
+      return 'Positive'
+    default:
+      return 'Neutral'
+  }
+}
+
   export type Ui5Design = 
     |"Set1" | "Set2" | "Neutral" | "Information" | "Positive" | "Negative" | "Critical"
 
