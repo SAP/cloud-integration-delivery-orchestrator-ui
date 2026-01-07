@@ -16,7 +16,7 @@
 
 
   <ui5-dialog :open="showArtifactDetails" :header-text="`Artifact Details #${artifactOpDetial.ID || ''}`"
-    style="width: 35%;" draggable @before-close="showArtifactDetails = false">
+    style="width: 40%;" draggable @before-close="showArtifactDetails = false">
     <ui5-tag design="Warning"
       v-show="draftSourceOps.find(d => d.op.ID === artifactOpDetial.ID)">DRAFT</ui5-tag>
     <ui5-tag design="Positive"
@@ -42,8 +42,8 @@
         </ui5-table-row>
       </ui5-table>
       <!-- Version history -->
-      <div style="display: flex; flex-direction: column">
-        <div style="display: flex">
+      <div style="display: flex; flex-direction: column;">
+        <div style="display: flex; align-items: center; margin: 10px 0">
           <ui5-label>Version History</ui5-label>
           <ui5-button design="Transparent" v-if="!loadingArtifactHistory && !artifactVersionHistory.length"
             @click="loadVersionHistory">Load</ui5-button>
@@ -51,51 +51,58 @@
         <div v-if="loadingArtifactHistory">
           <ui5-busy-indicator active :delay="0" style="width: 60%; margin-top:8px" />
         </div>
-        <div v-else v-for="h in artifactVersionHistory">
-          {{ h.comment }} - {{ h.createdBy }} - {{ h.semanticVersion }} - {{ h.createdDate }}
-        </div>
+        <ui5-table v-else-if="artifactVersionHistory.length" overflow-mode="Scroll" style="height: 300px;" sticky>
+          <ui5-table-header-row slot="headerRow" sticky>
+            <ui5-table-header-cell min-width="250px">Comment</ui5-table-header-cell>
+            <ui5-table-header-cell>Created By</ui5-table-header-cell>
+            <ui5-table-header-cell width="90px">Version</ui5-table-header-cell>
+            <ui5-table-header-cell>Date</ui5-table-header-cell>
+          </ui5-table-header-row>
+          <ui5-table-row v-for="h in artifactVersionHistory" :key="h.semanticVersion">
+            <ui5-table-cell>{{ h.comment }}</ui5-table-cell>
+            <ui5-table-cell>{{ h.createdBy }}</ui5-table-cell>
+            <ui5-table-cell>{{ h.semanticVersion }}</ui5-table-cell>
+            <ui5-table-cell>{{ new Date(Number(h.createdDate)).toLocaleString('zh-CN') }}</ui5-table-cell>
+          </ui5-table-row>
+        </ui5-table>
       </div>
-      <hr :style="{ border: '1px dashed #ccc', margin: '5px' }" />
       <!-- ops details -->
       <div style="display: flex; flex-direction: column" v-if='Object.keys(artifactOpDetial).length'>
-        <div style="display: flex">
-          <div>
-            <ui5-label>Request State</ui5-label>
-            <div style="margin-top:4px">{{ artifactOpDetial.RequestState }}</div>
-          </div>
-          <div>
-            <ui5-label>Import State</ui5-label>
-            <div style="margin-top:4px">{{ artifactOpDetial.ImportState }}</div>
-          </div>
-          <div>
-            <ui5-label>Deploy State</ui5-label>
-            <div style="margin-top:4px">{{ artifactOpDetial.DeployState }}</div>
-          </div>
-        </div>
+        <ui5-table>
+          <ui5-table-header-row slot="headerRow">
+            <ui5-table-header-cell>Request State</ui5-table-header-cell>
+            <ui5-table-header-cell>Import State</ui5-table-header-cell>
+            <ui5-table-header-cell>Deploy State</ui5-table-header-cell>
+          </ui5-table-header-row>
+          <ui5-table-row>
+            <ui5-table-cell>{{ artifactOpDetial.RequestState }}</ui5-table-cell>
+            <ui5-table-cell>{{ artifactOpDetial.ImportState }}</ui5-table-cell>
+            <ui5-table-cell>{{ artifactOpDetial.DeployState }}</ui5-table-cell>
+          </ui5-table-row>
+        </ui5-table>
         <!-- Transport Request Number -->
-        <ui5-label>Transport Request Number</ui5-label>
+        <ui5-label style="margin: 10px 0;">Transport Request Number</ui5-label>
         <div style="display: flex; flex-direction: column; gap: 8px">
-          <div style="display: flex">
-            <span v-if="!isEditingTr">
-              {{ editingTrNumber || '-' }}
-            </span>
+          <div style="display: flex; align-items: center;">
+            <ui5-text v-if="!isEditingTr" style="margin: 0 15px;"> {{ editingTrNumber || '-' }} </ui5-text>
+            <div v-if="!isEditingTr" style="width: 1px; height: 20px; background-color: #ccc; margin: 0 10px;"></div>
             <ui5-input v-show="isEditingTr" v-model="editingTrNumber" style="width:20%"
               placeholder="TR number" @keyup.enter="checkTr(artifactOpDetial)" />
             <ui5-button v-show="!isEditingTr" @click="isEditingTr = true"
-              design="Transparent">edit</ui5-button>
+              design="Transparent">Edit</ui5-button>
             <ui5-button
               v-show="isEditingTr && draftSourceOps.find(d => d.op.ID === artifactOpDetial.ID)"
               @click="revertTr" design="Transparent">revert</ui5-button>
             <ui5-button :loading="checkingTrLoading" v-show="isEditingTr"
               @click="checkTr(artifactOpDetial)" design="Transparent">
-              check
+              Check
             </ui5-button>
             <ui5-button v-show="isEditingTr"
               @click="{ isEditingTr = false; editingTrNumber = artifactOpDetial.TransportRequestNumber }"
               design="Transparent">
-              cancel
+              Cancel
             </ui5-button>
-            <ui5-button :loading="generatingTrLoading" @click="handleGenTr" design="Transparent">auto generate</ui5-button>
+            <ui5-button :loading="generatingTrLoading" @click="handleGenTr" design="Transparent">Auto Generate</ui5-button>
           </div>
           <ui5-text v-if="trInfo" style="color: var(--sapPositiveColor); font-size: var(--sapFontSize);">{{ trInfo }}</ui5-text>
         </div>
