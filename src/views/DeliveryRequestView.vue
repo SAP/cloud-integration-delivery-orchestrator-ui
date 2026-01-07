@@ -25,28 +25,22 @@
     </ui5-tag>
 
     <div style="display: flex; flex-direction: column; gap:12px">
-      <div style="display:flex; gap:16px; flex-wrap:wrap">
-        <div>
-          <ui5-label>Package</ui5-label>
-          <div style="margin-top:4px">{{ artifactDetail.PackageID }}</div>
-        </div>
-        <div>
-          <ui5-label>ID</ui5-label>
-          <div style="margin-top:4px">{{ artifactDetail.TechID }}</div>
-        </div>
-        <div>
-          <ui5-label>Version</ui5-label>
-          <div style="margin-top:4px">{{ artifactDetail.Version }}</div>
-        </div>
-        <div v-if="artifactDetail.Type">
-          <ui5-label>Type</ui5-label>
-          <div style="margin-top:4px">{{ artifactDetail.Type }}</div>
-        </div>
-        <div>
-          <ui5-label>Description</ui5-label>
-          <div style="margin-top:4px">{{ artifactDetail.Description }}</div>
-        </div>
-      </div>
+      <ui5-table overflow-mode="Scroll">
+        <ui5-table-header-row slot="headerRow">
+          <ui5-table-header-cell min-width="150px">Package ID</ui5-table-header-cell>
+          <ui5-table-header-cell min-width="200px">Artifact ID</ui5-table-header-cell>
+          <ui5-table-header-cell>Version</ui5-table-header-cell>
+          <ui5-table-header-cell v-if="artifactDetail.Type">Type</ui5-table-header-cell>
+          <ui5-table-header-cell>Description</ui5-table-header-cell>
+        </ui5-table-header-row>
+        <ui5-table-row>
+          <ui5-table-cell style="word-break: break-all;">{{ artifactDetail.PackageID }}</ui5-table-cell>
+          <ui5-table-cell style="word-break: break-all;">{{ artifactDetail.TechID }}</ui5-table-cell>
+          <ui5-table-cell>{{ artifactDetail.Version }}</ui5-table-cell>
+          <ui5-table-cell v-if="artifactDetail.Type">{{ artifactDetail.Type }}</ui5-table-cell>
+          <ui5-table-cell>{{ artifactDetail.Description }}</ui5-table-cell>
+        </ui5-table-row>
+      </ui5-table>
       <!-- Version history -->
       <div style="display: flex; flex-direction: column">
         <div style="display: flex">
@@ -451,6 +445,11 @@ import "@ui5/webcomponents/dist/SegmentedButton.js";
 import "@ui5/webcomponents/dist/SegmentedButtonItem.js";
 import "@ui5/webcomponents/dist/MultiComboBox.js";
 import "@ui5/webcomponents/dist/MultiComboBoxItem.js";
+import "@ui5/webcomponents/dist/Table.js";
+import "@ui5/webcomponents/dist/TableRow.js";
+import "@ui5/webcomponents/dist/TableCell.js";
+import "@ui5/webcomponents/dist/TableHeaderRow.js";
+import "@ui5/webcomponents/dist/TableHeaderCell.js";
 
 import "@ui5/webcomponents-fiori/dist/Wizard.js";
 import "@ui5/webcomponents-fiori/dist/WizardStep.js";
