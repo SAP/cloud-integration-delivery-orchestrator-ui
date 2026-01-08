@@ -384,7 +384,7 @@
               :design="conditionTypeToDesign(condition.State)"
               :hide-close-button="true"
               style="margin-bottom: 8px;">
-              <ui5-text>{{ condition.Message }}</ui5-text>
+              <div style="white-space: pre-line;">{{ condition.Message }}</div>
               <ui5-text>{{ condition.CreatedAt }}</ui5-text>
             </ui5-message-strip>
           </div>
