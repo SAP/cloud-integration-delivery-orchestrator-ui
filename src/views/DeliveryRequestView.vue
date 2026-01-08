@@ -376,7 +376,7 @@
       </ui5-wizard-step>
       <ui5-wizard-step id="step4" title-text="Logs">
         <div style="display: flex; flex-direction: column; gap: 10px;">
-          <ui5-title>Delivery Logs</ui5-title>
+          <ui5-title>Logs</ui5-title>
           <div v-if="deliveryRequest.Conditions && deliveryRequest.Conditions.length">
             <ui5-message-strip
               v-for="(condition, index) in deliveryRequest.Conditions"
