@@ -211,10 +211,11 @@
           <div v-else style="display: flex; flex-direction: column; gap:10px">
             <!-- cpi tenants selection -->
             <ui5-title size="H6"> Source CPI Tenant </ui5-title>
-            <div style="display: flex; flex-direction: row; gap:15px">
+            <div style="display: flex; flex-direction: row; gap:12px; align-items: center;">
               <div style="display:flex; align-items:center; justify-content:center;">
                 {{ deliveryRequest.SourceTenant.Name }} #{{ deliveryRequest.SourceTenant.ID }}
               </div>
+              <div style="width: 1px; height: 20px; background: #ccc;"></div>
               <ui5-link :href="cpiTenantLink" target="_blank" rel="noopener noreferrer">
                 {{ cpiTenantLink }}
               </ui5-link>
