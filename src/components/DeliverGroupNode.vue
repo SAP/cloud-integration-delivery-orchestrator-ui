@@ -10,7 +10,6 @@
           </div>
           <div v-if="!props.data.isSource" class="compact-button-container">
             <ui5-segmented-button>
-              <ui5-segmented-button-item @click="handleDeliver">Deliver</ui5-segmented-button-item>
               <ui5-segmented-button-item @click="handleImportOnly" :disabled="disableImport">Import Only</ui5-segmented-button-item>
               <ui5-segmented-button-item @click="handleDeployOnly" :disabled="disableDeploy">Deploy Only</ui5-segmented-button-item>
             </ui5-segmented-button>
@@ -126,9 +125,6 @@ const emit = defineEmits<{
   (e: 'deploy-only', payload: { tenantIDs: number[] }): void
 }>()
 
-function handleDeliver() {
-  emit('deliver', {tenantIDs: props.data.tenants.map(t => t.ID)})
-}
 function handleImportOnly() {
   emit('import-only', {tenantIDs: props.data.tenants.map(t => t.ID)})
 }

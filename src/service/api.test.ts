@@ -80,6 +80,15 @@ describe('DeriveNodeAgg', () => {
       expect(DeriveNodeAgg(ops)).toBe('DEPLOYING')
     })
 
+    it('should return DEPLOYING when some deployments are IN_PROGRESS', () => {
+      const ops = [
+        createOp('READY', 'COMPLETE', 'IN_PROGRESS'),
+        createOp('READY', 'COMPLETE', 'IN_PROGRESS'),
+        createOp('READY', 'COMPLETE', 'COMPLETE')
+      ]
+      expect(DeriveNodeAgg(ops)).toBe('DEPLOYING')
+    })
+
     it('should return DEPLOYING when deployments are mixed IN_PROGRESS and QUEUED', () => {
       const ops = [
         createOp('READY', 'COMPLETE', 'IN_PROGRESS'),

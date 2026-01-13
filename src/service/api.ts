@@ -159,6 +159,7 @@ export const InitCpiTenant = async (cpi_tenant: string) => {
   return data
 }
 
+
 export const GenTransportRequest = async (
   cpi_tenant_url: string,
   target_package_tech_name: string,
@@ -254,6 +255,14 @@ export const RequestApprove = (drID: number, approvers: string[], comment: strin
 export const Approve = (drID: number, comment: string | []): Promise<DeliveryRequest> => {
   return http.post('/api/v1/deliveryRequest/approve', 
     {deliveryRequestID: drID, comment: comment})
+}
+
+export const DeliveryRuleCheck = async (drID: number, ops: ArtifactTenantOperation[]) => {
+  if (ops.length === 0) return Promise.resolve([])
+  await http.post(
+    '/api/v1/deliveryRule/ruleCheck',
+    {ops: ops, deliveryRequestID: drID}
+  )
 }
 
 // Cpi tenant operations mapping

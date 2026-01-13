@@ -11,7 +11,7 @@
         fit-view-on-init
     >
         <template #node-deliver-group="props">
-            <DeliverGroupNode v-bind="props" @deliver="onDeliver" @import-only="onImportOnly" @deploy-only="onDeployOnly"/>
+            <DeliverGroupNode v-bind="props" @import-only="onImportOnly" @deploy-only="onDeployOnly"/>
         </template>
     </VueFlow>
 
@@ -145,11 +145,6 @@ function groupLabel(childNodeIds: number[]): string {
 function groupKey(parentNodeID: number, childNodeIds: number[]): string {
     const cTenants = childNodeIds.map(id => nodeToTenant.value[id]?.Name).join(', ')
     return `n-group-${cTenants}-from-${nodeToTenant.value[parentNodeID]?.Name}`
-}
-
-async function onDeliver(payload: { tenantIDs: number[] }) {
-    await onImportOnly(payload)
-    await onDeployOnly(payload)
 }
 
 async function onImportOnly(payload: { tenantIDs: number[] }) {

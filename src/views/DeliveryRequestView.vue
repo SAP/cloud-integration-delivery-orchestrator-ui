@@ -17,12 +17,20 @@
 
   <ui5-dialog :open="showArtifactDetails" :header-text="`Artifact Details #${artifactOpDetial.ID || ''}`"
     style="width: 40%;" draggable @before-close="showArtifactDetails = false">
-    <ui5-tag design="Warning"
-      v-show="draftSourceOps.find(d => d.op.ID === artifactOpDetial.ID)">DRAFT</ui5-tag>
-    <ui5-tag design="Positive"
-      v-show="addOps.find(a => a.ArtifactTechID === artifactOpDetial.ArtifactTechID && a.ArtifactVersion === artifactOpDetial.ArtifactVersion)">
-      NEW
-    </ui5-tag>
+    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+      <ui5-label>Status: </ui5-label>
+      <ui5-tag 
+        design="Critical"
+        v-show="draftSourceOps.find(d => d.op.ID === artifactOpDetial.ID)">
+        DRAFT
+      </ui5-tag>
+      <ui5-tag 
+        design="Positive"
+        v-show="addOps.find(a => a.ArtifactTechID === artifactOpDetial.ArtifactTechID && a.ArtifactVersion === artifactOpDetial.ArtifactVersion)">
+        NEW
+      </ui5-tag>
+    </div>
+
 
     <div style="display: flex; flex-direction: column; gap:12px">
       <ui5-table overflow-mode="Scroll">
@@ -84,7 +92,11 @@
         <ui5-label style="margin: 10px 0;">Transport Request Number</ui5-label>
         <div style="display: flex; flex-direction: column; gap: 8px">
           <div style="display: flex; align-items: center;">
-            <ui5-text v-if="!isEditingTr" style="margin: 0 15px;"> {{ editingTrNumber || '-' }} </ui5-text>
+            <ui5-text 
+              v-if="!isEditingTr" 
+              style="margin: 0 15px; font-size: var(--sapFontSize); font-weight: bold;"> 
+                {{ editingTrNumber || '-' }} 
+            </ui5-text>
             <div v-if="!isEditingTr" style="width: 1px; height: 20px; background-color: #ccc; margin: 0 10px;"></div>
             <ui5-input v-show="isEditingTr" v-model="editingTrNumber" style="width:20%"
               placeholder="TR number" @keyup.enter="checkTr(artifactOpDetial)" />
@@ -92,17 +104,17 @@
               design="Transparent">Edit</ui5-button>
             <ui5-button
               v-show="isEditingTr && draftSourceOps.find(d => d.op.ID === artifactOpDetial.ID)"
-              @click="revertTr" design="Transparent">revert</ui5-button>
+              @click="revertTr" design="Transparent">Revert</ui5-button>
             <ui5-button :loading="checkingTrLoading" v-show="isEditingTr"
               @click="checkTr(artifactOpDetial)" design="Transparent">
               Check
             </ui5-button>
+            <ui5-button :loading="generatingTrLoading" @click="handleGenTr" design="Transparent">Auto Generate</ui5-button>
             <ui5-button v-show="isEditingTr"
               @click="{ isEditingTr = false; editingTrNumber = artifactOpDetial.TransportRequestNumber }"
               design="Transparent">
               Cancel
             </ui5-button>
-            <ui5-button :loading="generatingTrLoading" @click="handleGenTr" design="Transparent">Auto Generate</ui5-button>
           </div>
           <ui5-text v-if="trInfo" style="color: var(--sapPositiveColor); font-size: var(--sapFontSize);">{{ trInfo }}</ui5-text>
         </div>
@@ -424,6 +436,7 @@ import {
   CheckTrExistence,
   CurrentUser,
   GenTransportRequest,
+  DeliveryRuleCheck,
 } from '@/service/api'
 import { toLocalTime } from '@/service/consts'
 import { VueFlow } from '@vue-flow/core'
@@ -638,28 +651,6 @@ export default {
         await this.refresh()
       }
     },
-    // check TR number existence
-    async checkTr(op: ArtifactTenantOperation) {
-      this.checkingTrLoading = true
-      const originalTrNumber = op?.TransportRequestNumber || ''
-      const newTrNumber = this.editingTrNumber?.trim() || ''
-      op.TransportRequestNumber = newTrNumber
-      try {
-        await CheckTrExistence(op, this.deliveryRequest.ID)
-        const draftOp = this.sourceOps.find(op => op.ID === this.artifactOpDetial.ID) // only ops in source(saved once) can be drafted
-        if (!draftOp || originalTrNumber === newTrNumber) return
-        const indraft = this.draftSourceOps.map(d => d.op).find(draft => draft.ID === draftOp.ID)
-        if (!indraft) {
-          this.draftSourceOps.push({ op: draftOp, newTr: newTrNumber, oldTr: originalTrNumber })
-        } else {
-          indraft.TransportRequestNumber = newTrNumber
-        }
-      } catch (_) {
-        op.TransportRequestNumber = originalTrNumber // revert
-      } finally {
-        this.checkingTrLoading = false
-      }
-    },
     async loadPackageArtifacts(pkgId: string, reload: boolean = false) {
       if (this.packageArtifacts[pkgId] && !reload) return // already loaded
       const cpiDest = this.deliveryRequest?.SourceTenant?.CpiEndpoint.name
@@ -711,12 +702,35 @@ export default {
         this.loadingArtifactHistory = false
       }
     },
+    // check TR number existence
+    async checkTr(op: ArtifactTenantOperation) {
+      this.checkingTrLoading = true
+      const originalTrNumber = op?.TransportRequestNumber || ''
+      const newTrNumber = this.editingTrNumber?.trim() || ''
+      op.TransportRequestNumber = newTrNumber
+      try {
+        await CheckTrExistence(op, this.deliveryRequest.ID)
+        const draftOp = this.sourceOps.find(op => op.ID === this.artifactOpDetial.ID) // only ops in source(saved once) can be drafted
+        if (!draftOp || originalTrNumber === newTrNumber) return
+        const indraft = this.draftSourceOps.map(d => d.op).find(draft => draft.ID === draftOp.ID)
+        if (!indraft) {
+          this.draftSourceOps.push({ op: draftOp, newTr: newTrNumber, oldTr: originalTrNumber })
+        } else {
+          indraft.TransportRequestNumber = newTrNumber
+        }
+      } catch (_) {
+        op.TransportRequestNumber = originalTrNumber // revert
+      } finally {
+        this.checkingTrLoading = false
+      }
+    },
     async handleGenTr() {
       const baseUrl = new URL(this.deliveryRequest.SourceTenant.CpiEndpoint.url)
       const { PackageID, TechID, Version } = this.artifactDetail || {}
       try {
         this.generatingTrLoading = true
         this.isEditingTr = true
+        await DeliveryRuleCheck(this.deliveryRequest.ID, [this.artifactOpDetial])
         const {tr_info, tr_number} = await GenTransportRequest(
           `${baseUrl.protocol}//${baseUrl.host}`, 
           PackageID, 
@@ -726,9 +740,10 @@ export default {
         this.editingTrNumber = tr_number
         this.trInfo = tr_info
         window.$message?.success(`Generated transport request: ${tr_number}`, { duration: 30 * 1000, closable: true })
+        await this.checkTr(this.artifactOpDetial)
       } catch (error: any) {
         const resp = error?.response?.data
-        window.$message?.error(`Failed to generate transport request: ${resp?.message ?? resp?.error ?? ''}`, { duration: 30 * 1000, closable: true })
+        window.$message?.error(`Failed to generate transport request: ${error ?? resp?.message ?? resp?.error ?? ''}`, { duration: 30 * 1000, closable: true })
       } finally {
         this.generatingTrLoading = false
       }
