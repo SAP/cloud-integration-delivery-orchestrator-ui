@@ -148,8 +148,8 @@
       <div slot="snappedHeading" class="snapped-title-heading">
         <ui5-title wrapping-type="None">{{ deliveryRequest.Name }}</ui5-title>
       </div>
-
-      <p slot="subheading" class="text">#{{ deliveryRequest.ID }}</p>
+      <!-- TODO: currently no desctiption for the delivery request. So keep empty. -->
+      <!-- <p slot="subheading" class="text"></p> -->
 
       <ui5-tag :design="aggrStatusToDesign">{{ deliveryRequest.AggregateStatus }}</ui5-tag>
 
