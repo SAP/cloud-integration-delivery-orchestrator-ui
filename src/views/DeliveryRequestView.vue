@@ -183,17 +183,17 @@
         </div>
         <div class="product-info-cell">
           <ui5-label>Created By </ui5-label>
-          <p v-if="deliveryRequest.CreatedBy" class="text product-description">
+          <ui5-label v-if="deliveryRequest.CreatedBy" >
             {{ uaaUsers[deliveryRequest.CreatedBy]?.email ?? (uaaUserInfo(deliveryRequest.CreatedBy), '') }}
             {{ toLocalTime(deliveryRequest.CreatedAt) }}
-          </p>
+          </ui5-label>
         </div>
         <div class="product-info-cell">
           <ui5-label>Updated By </ui5-label>
-          <p v-if="deliveryRequest.UpdatedBy" class="text product-description">
+          <ui5-label v-if="deliveryRequest.UpdatedBy" >
             {{ uaaUsers[deliveryRequest.UpdatedBy]?.email ?? (uaaUserInfo(deliveryRequest.UpdatedBy), '') }}
             {{ toLocalTime(deliveryRequest.UpdatedAt) }}
-          </p>
+          </ui5-label>
         </div>
       </div>
     </ui5-dynamic-page-header>
