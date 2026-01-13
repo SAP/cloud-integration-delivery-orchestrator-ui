@@ -1,5 +1,5 @@
 <template>
-    <ui5-card :id="props.id" style="height: 100%; width: 100%;">
+    <ui5-card :id="props.id" class="deliver-group-card">
         <ui5-card-header slot="header" :title-text="props.data.label" interactive>
           <ui5-tag v-if="props.data.isSource" slot="action" design="Set2" color-scheme="4"> Source </ui5-tag>
           <ui5-tag v-else color-scheme="Warning" slot="action" :design="aggrDesign" > {{ groupStateAggr }} </ui5-tag>
@@ -135,25 +135,37 @@ function handleDeployOnly() {
 </script>
 
 <style scoped>
+/* 让 ui5-card 的内容区域使用相对定位作为参考点 */
+.deliver-group-card {
+  position: relative;
+  height: 200px !important;
+}
+
 .card-content {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
-  height: 100%;
-  overflow: hidden;
+  padding-top: 50px; /* 为 header 留出空间 */
 }
 
 .tags-scroll-container {
   display: flex;
   flex-wrap: wrap;
   gap: 4px;
-  padding: 0 16px;
-  max-height: 100px;
+  padding: 0 16px 50px 16px;
+  flex: 1;
   overflow-y: auto;
   box-sizing: border-box;
 }
 
 .compact-button-container {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
   transform: scale(0.75);
 }
 

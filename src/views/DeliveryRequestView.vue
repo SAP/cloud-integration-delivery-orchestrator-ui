@@ -406,11 +406,6 @@
         </div>
       </ui5-wizard-step>
     </ui5-wizard>
-
-    <ui5-bar slot="footerArea" design="FloatingFooter">
-      <ui5-button id="save-edit" slot="endContent" design="Emphasized">Save</ui5-button>
-      <ui5-button id="cancel-edit" slot="endContent">Close</ui5-button>
-    </ui5-bar>
   </ui5-dynamic-page>
 
 </template>
