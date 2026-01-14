@@ -380,6 +380,13 @@ export const deliveryRuleColumns: DataTableColumns<DeliveryRule> = [
     }
   },
   {
+    title: 'Require Jira',
+    key: 'RequireJira',
+    render(row: DeliveryRule) {
+      return row.RequireJira ? 'Yes' : 'No'
+    }
+  },
+  {
     title: 'Updated At',
     key: 'UpdatedAt',
     resizable: true,

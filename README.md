@@ -56,10 +56,9 @@ When static resource not exist, like /delivery-request (display delivery request
 ```
 
 ### TODO
-[ ] when click import only/deploy only, should return 202 to indicate async process triggered, and refresh.
-
+[ x ] when click import only/deploy only, should return 202 to indicate async process triggered, and refresh.
+[ ] bug: deal with artifact version DRAFT(Active). check before generate tr/import
 [ ] feature: link to JIRA change request, and automatically update subtask
-
 [ ] feature: websocket
-
 [ ] feature: GORM HANA 
+[ ] feature: in 'CPI tenants', add 'copy' for each tenant to copy cookie.

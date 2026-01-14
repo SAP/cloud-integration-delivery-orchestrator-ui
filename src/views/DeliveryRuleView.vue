@@ -65,6 +65,13 @@
                         @change="selDeliveryRule.SkipApprove = $event.target.checked"
                     />
                 </div>
+                <div class="switch-item">
+                    <ui5-text style="margin-right: 0.5rem; font-weight: bold;">Require Jira:</ui5-text>
+                    <ui5-switch
+                        :checked="selDeliveryRule.RequireJira"
+                        @change="selDeliveryRule.RequireJira = $event.target.checked"
+                    />
+                </div>
             </div>
         </div>
         <ui5-toolbar slot="footer">

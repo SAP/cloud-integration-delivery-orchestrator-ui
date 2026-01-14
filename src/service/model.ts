@@ -182,6 +182,7 @@ export interface DeliveryRule {
   SourceTenantID: CpiTenant
   SourceTenant:   CpiTenant
   SkipApprove: boolean
+  RequireJira: boolean
 
   TargetNodes: TransportNode[]
   TargetRoutes: TransportRoute[]

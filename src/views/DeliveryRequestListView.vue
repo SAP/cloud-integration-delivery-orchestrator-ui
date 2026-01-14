@@ -2,15 +2,15 @@
   <ui5-dialog :open="showModal" @close="showModal = false" header-text="Create Delivery Request" style="width: 30rem;">
     <div class="dialog-content" style="display: flex; flex-direction: column; gap: 1rem;">
       <div>
-        <ui5-label style="font-weight: bold;">Name:</ui5-label>
+        <ui5-label style="font-weight: bold;" required>Name:</ui5-label>
         <ui5-input v-model="selectedDeliveryRequest.Name" placeholder="Delivery Request Name" style="width: 100%;" />
       </div>
       <div>
-        <ui5-label style="font-weight: bold;">JIRA Link:</ui5-label>
+        <ui5-label style="font-weight: bold;" :required="selectedDeliveryRequest.DeliveryRule?.RequireJira">JIRA Link:</ui5-label>
         <ui5-input v-model="selectedDeliveryRequest.JiraLink" placeholder="Jira Link" style="width: 100%;" />
       </div>
       <div>
-        <ui5-label style="font-weight: bold;">Delivery Rule:</ui5-label>
+        <ui5-label style="font-weight: bold;" required>Delivery Rule:</ui5-label>
         <ui5-combobox
           :value="String(selectedDeliveryRequest.DeliveryRule?.Name || '')"
           @change="handleRuleChange"
