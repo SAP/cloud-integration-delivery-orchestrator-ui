@@ -54,3 +54,12 @@ When static resource not exist, like /delivery-request (display delivery request
 {"status": [404], "file": "dist/index.html"} 
 ]
 ```
+
+### TODO
+[ ] when click import only/deploy only, should return 202 to indicate async process triggered, and refresh.
+
+[ ] feature: link to JIRA change request, and automatically update subtask
+
+[ ] feature: websocket
+
+[ ] feature: GORM HANA 

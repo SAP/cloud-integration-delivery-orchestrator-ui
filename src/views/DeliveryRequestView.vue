@@ -105,7 +105,7 @@
             <ui5-button
               v-show="isEditingTr && draftSourceOps.find(d => d.op.ID === artifactOpDetial.ID)"
               @click="revertTr" design="Transparent">Revert</ui5-button>
-            <ui5-button :loading="checkingTrLoading" v-show="isEditingTr"
+            <ui5-button :loading="checkingTrLoading" v-show="isEditingTr && !generatingTrLoading"
               @click="checkTr(artifactOpDetial)" design="Transparent">
               Check
             </ui5-button>
@@ -739,7 +739,8 @@ export default {
         await this.checkTr(this.artifactOpDetial)
       } catch (error: any) {
         const resp = error?.response?.data
-        window.$message?.error(`Failed to generate transport request: ${error ?? resp?.message ?? resp?.error ?? ''}`, { duration: 30 * 1000, closable: true })
+        const message = resp?.error ?? resp?.message ?? error ?? ''
+        window.$message?.error(`Failed to generate transport request: ${message}`, { duration: 30 * 1000, closable: true })
       } finally {
         this.generatingTrLoading = false
       }
