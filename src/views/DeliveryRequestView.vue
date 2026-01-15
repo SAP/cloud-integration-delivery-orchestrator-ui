@@ -571,7 +571,7 @@ export default {
         window.$message?.warning?.('Please select at least one approver before sending approval request.')
         return
       }
-      RequestApprove(this.deliveryRequest.ID, this.deliveryRequest.Approvers, '')
+      await RequestApprove(this.deliveryRequest.ID, this.deliveryRequest.Approvers, '')
       window.$message?.success?.(`Approval request sent to ${this.deliveryRequest.Approvers.map(a => a).join(', ')}`)
     },
     async handleApprove() {
