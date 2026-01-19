@@ -35,7 +35,7 @@ const emit = defineEmits<{
   (e: 'deploy-all', payload: { tenant: CpiTenant; artifactOps: ArtifactTenantOperation[] }): void
 }>()
 
-const ops = reactive(props.data.TrToOp)
+const ops = computed(() => props.data.TrToOp)
 
 const nodeImportDisabled = computed(() => {
   return nodeAggState.value !== 'AWAITING_IMPORT' && nodeAggState.value !== 'IMPORT_FAILED'
@@ -119,7 +119,7 @@ function disableDeploy(op: ArtifactTenantOperation) {
           <ui5-table-cell>
             <ui5-label>{{ op.DeployState }}</ui5-label>
           </ui5-table-cell>
-          <ui5-table-cell style="display: flex; flex-direction: row;">
+          <ui5-table-cell style="display: flex; flex-direction: row;" v-if="!data.IsSource">
             <ui5-button @click="handleImport(op)" :disabled="disableImport(op)">Import</ui5-button>
             <ui5-button @click="handleDeploy(op)" :disabled="disableDeploy(op)">Deploy</ui5-button>
           </ui5-table-cell>
