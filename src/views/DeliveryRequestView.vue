@@ -104,7 +104,9 @@
               design="Transparent">Edit</ui5-button>
             <ui5-button
               v-show="isEditingTr && draftSourceOps.find(d => d.op.ID === artifactOpDetial.ID)"
-              @click="revertTr" design="Transparent">Revert</ui5-button>
+              @click="revertTr" design="Transparent">
+              Revert
+            </ui5-button>
             <ui5-button :loading="checkingTrLoading" v-show="isEditingTr && !generatingTrLoading"
               @click="checkTr(artifactOpDetial)" design="Transparent">
               Check
@@ -303,18 +305,30 @@
                   />
                 </div>
                 <!-- artifacts to be added -->
-                <div style="display: flex; flex-direction: column;">
-                  <ui5-label v-if="addOps && addOps.length > 0">New: </ui5-label>
+                <div v-if="addOps && addOps.length > 0" style="display: flex; flex-direction: column;">
+                  <ui5-title size="H6" style="margin-bottom: 2px;">
+                    <span style="color: var(--sapPositiveColor);">New ({{ addOps.length }})</span>
+                  </ui5-title>
+                  <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+                    <ui5-label style="color: var(--sapNegativeColor);">*Please fill in TRs before saving</ui5-label>
+                    <div style="width: 1px; height: 16px; background-color: #ccc;"></div>
+                    <ui5-button
+                      @click="batchGenTrs"
+                      :loading="generatingTrsLoading"
+                      design="Transparent">
+                        Generate TRs
+                    </ui5-button>
+                  </div>
                   <div style="display: flex; flex-direction: row; gap: 8px; flex-wrap: wrap;">
                     <ArtifactOpTag v-for="(op, i) in addOps" :i="i" :art-op="op" :stage-type="stateType(op)"
                       @open-artifact-details="openArtifactDetails" />
                   </div>
                 </div>
                 <!-- artifacts to be deleted -->
-                <div style="display: flex; flex-direction: column;">
-                  <ui5-label v-if="deleteOps && deleteOps.length > 0">
-                    To be Deleted:
-                  </ui5-label>
+                <div v-if="deleteOps && deleteOps.length > 0" style="display: flex; flex-direction: column;">
+                  <ui5-title size="H6" style="margin-bottom: 4px;">
+                    <span style="color: var(--sapNegativeColor);">To be Deleted ({{ deleteOps.length }})</span>
+                  </ui5-title>
                   <div style="display: flex; flex-direction: row; gap: 8px; flex-wrap: wrap;">
                     <ArtifactOpTag v-for="(op, i) in deleteOps" :i="i" :art-op="op" :stage-type="stateType(op)"
                       @open-artifact-details="openArtifactDetails" />
@@ -527,7 +541,7 @@ export default {
       editingTrNumber: '' as string, // tr number being edited, will assign to artifactOpDetial when saved
       checkingTrLoading: false,
       generatingTrLoading: false,
-      trInfo: '' as string, //临时存储生成的 tr_info
+      trInfo: '' as string, // displays info about tr number after checking
       draftSourceOps: [] as { op: ArtifactTenantOperation, newTr: string, oldTr: string }[], // operations being drafted (source ops only)
       loadingArtifactHistory: false,
       showFlowModal: false,
@@ -543,6 +557,7 @@ export default {
       loadingCpiTenants: true,
       updatingOps: false,
       syncingStatus: false,
+      generatingTrsLoading: false,
     }
   },
   methods: {
@@ -725,19 +740,28 @@ export default {
         this.checkingTrLoading = false
       }
     },
-    async handleGenTr() {
+    async genSingleTr(op: ArtifactTenantOperation): Promise<{ tr_number: string; tr_info: string }> {
       const baseUrl = new URL(this.deliveryRequest.SourceTenant.CpiEndpoint.url)
-      const { PackageID, TechID, Version } = this.artifactDetail || {}
+      const { PackageID, TechID, Version } = op.Artifact || {}
+
+      await DeliveryRuleCheck(this.deliveryRequest.ID, [op])
+
+      const description = `Delivery Request #${this.deliveryRequest.ID}. Transport Request for artifact ${TechID}:${Version} in package ${PackageID} by ${this.currentUser?.email}`
+
+      return await GenTransportRequest(
+        `${baseUrl.protocol}//${baseUrl.host}`,
+        PackageID,
+        TechID,
+        description
+      )
+    },
+    async handleGenTr() {
       try {
         this.generatingTrLoading = true
         this.isEditingTr = true
-        await DeliveryRuleCheck(this.deliveryRequest.ID, [this.artifactOpDetial])
-        const {tr_info, tr_number} = await GenTransportRequest(
-          `${baseUrl.protocol}//${baseUrl.host}`, 
-          PackageID, 
-          TechID, 
-          `Delivery Request #${this.deliveryRequest.ID}. Transport Request for artifact ${TechID}:${Version} in package ${PackageID} by ${this.currentUser?.email}`
-        )
+        const { tr_number, tr_info } = await this.genSingleTr(this.artifactOpDetial)
+
+        // this.artifactOpDetial.TransportRequestNumber = tr_number
         this.editingTrNumber = tr_number
         this.trInfo = tr_info
         window.$message?.success(`Generated transport request: ${tr_number}`, { duration: 30 * 1000, closable: true })
@@ -749,7 +773,49 @@ export default {
       } finally {
         this.generatingTrLoading = false
       }
+    },
+    async batchGenTrs() {
+      if (!this.addOps || this.addOps.length === 0) {
+        window.$message?.warning?.('No new artifacts to generate TRs for')
+        return
+      }
+      this.generatingTrsLoading = true
+      try {
+        // Generate TR for all artifacts in parallel
+        const results = await Promise.allSettled(
+          this.addOps.map(op => this.genSingleTr(op))
+        )
+        const successResults: { op: ArtifactTenantOperation; trNumber: string }[] = []
+        const errorResults: { op: ArtifactTenantOperation; error: string }[] = []
 
+        // Process results
+        results.forEach((result, index) => {
+          const op = this.addOps[index]
+          if (result.status === 'fulfilled') {
+            const { tr_number } = result.value
+            op.TransportRequestNumber = tr_number
+            successResults.push({ op, trNumber: tr_number })
+          } else {
+            const error = result.reason
+            const resp = error?.response?.data
+            const message = resp?.error ?? resp?.message ?? error?.toString() ?? 'Unknown error'
+            errorResults.push({ op, error: message })
+          }
+        })
+
+        // Show results
+        if (successResults.length > 0) {
+          const successList = successResults.map(r => `${r.op.ArtifactTechID}@${r.op.ArtifactVersion}: ${r.trNumber}`).join('\n')
+          window.$message?.success(`Successfully generated ${successResults.length} transport request(s):\n${successList}`, { duration: 30 * 1000, closable: true })
+        }
+
+        if (errorResults.length > 0) {
+          const errorList = errorResults.map(e => `${e.op.ArtifactTechID}@${e.op.ArtifactVersion}: ${e.error}`).join('\n')
+          window.$message?.error(`Failed to generate ${errorResults.length} transport request(s):\n${errorList}`, { duration: 30 * 1000, closable: true })
+        }
+      } finally {
+        this.generatingTrsLoading = false
+      }
     },
     openArtifactDetails(a: Artifact, op?: ArtifactTenantOperation) {
       this.artifactDetail = a

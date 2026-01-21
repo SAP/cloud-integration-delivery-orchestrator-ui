@@ -159,7 +159,7 @@ export const InitCpiTenant = async (cpi_tenant: string) => {
   return data
 }
 
-
+// returns {tr_info: string, tr_number: string}
 export const GenTransportRequest = async (
   cpi_tenant_url: string,
   target_package_tech_name: string,
