@@ -11,7 +11,7 @@
         fit-view-on-init
     >
         <template #node-deliver-group="props">
-            <DeliverGroupNode v-bind="props" @import-only="onImportOnly" @deploy-only="onDeployOnly"/>
+            <DeliverGroupNode v-bind="props" :loading="isLoadingGroup(props.data)" @import-only="onImportOnly" @deploy-only="onDeployOnly"/>
         </template>
     </VueFlow>
 
@@ -19,7 +19,7 @@
 
 
 <script setup lang="ts">
-import { computed, nextTick, watch } from 'vue'
+import { computed, nextTick, ref, watch } from 'vue'
 import { VueFlow, type Edge, type Node } from '@vue-flow/core'
 import type { ArtifactTenantOperation, CpiTenant, DeliveryRequest } from '@/service/model'
 import { DeployOps, ImportOps, layoutNodes } from '@/service/api'
@@ -147,22 +147,56 @@ function groupKey(parentNodeID: number, childNodeIds: number[]): string {
     return `n-group-${cTenants}-from-${nodeToTenant.value[parentNodeID]?.Name}`
 }
 
+// Loading state management
+const loadingGroups = ref<Set<string>>(new Set())
+
+function isLoadingGroup(data: any): boolean {
+    return loadingGroups.value.has(data.label)
+}
+
+function getGroupLabel(tenantIDs: number[]): string {
+    const groupTenants = tenantIDs.map(
+        id => props.cpiTenants.find(t => t.ID === id)
+    ).filter(Boolean)
+    return groupTenants.length > 0
+        ? (groupTenants[0]?.Group || groupTenants[0]?.Name || '')
+        : ''
+}
+
 async function onImportOnly(payload: { tenantIDs: number[] }) {
-    const tasks: Promise<any>[] = []
-    payload.tenantIDs.forEach(tID => {
-        const ops = Object.values(props.tenantToOps[tID]).map(op => op.ID)
-        tasks.push(ImportOps(ops, tID, props.deliveryRequest.ID))
-    })
-    await Promise.all(tasks)
+    const groupLabel = getGroupLabel(payload.tenantIDs)
+    // Set loading state
+    loadingGroups.value.add(groupLabel)
+    try {
+        const tasks: Promise<any>[] = []
+        payload.tenantIDs.forEach(tID => {
+            const ops = Object.values(props.tenantToOps[tID]).map(op => op.ID)
+            tasks.push(ImportOps(ops, tID, props.deliveryRequest.ID))
+        })
+        await Promise.all(tasks)
+    } finally {
+        // Clear loading state
+        loadingGroups.value.delete(groupLabel)
+    }
 }
 
 async function onDeployOnly(payload: { tenantIDs: number[] }) {
-    const tasks: Promise<any>[] = []
-    payload.tenantIDs.forEach(tID => {
-        const ops = Object.values(props.tenantToOps[tID]).map(op => op.ID)
-        tasks.push(DeployOps(ops, tID, props.deliveryRequest.ID))
-    })
-    await Promise.all(tasks)
+    const groupLabel = getGroupLabel(payload.tenantIDs)
+
+    // Set loading state
+    loadingGroups.value.add(groupLabel)
+
+    try {
+        const tasks: Promise<any>[] = []
+        payload.tenantIDs.forEach(tID => {
+            const ops = Object.values(props.tenantToOps[tID]).map(op => op.ID)
+            tasks.push(DeployOps(ops, tID, props.deliveryRequest.ID))
+        })
+        await Promise.all(tasks)
+    } finally {
+        // Clear loading state
+        loadingGroups.value.delete(groupLabel)
+    }
 }
 
 </script>

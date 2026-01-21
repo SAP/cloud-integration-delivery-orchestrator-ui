@@ -1,5 +1,5 @@
 <template>
-    <ui5-card :id="props.id" class="deliver-group-card">
+    <ui5-card :id="props.id" class="deliver-group-card" :loading="loading" :loading-delay="0">
         <ui5-card-header slot="header" :title-text="props.data.label" interactive>
           <ui5-tag v-if="props.data.isSource" slot="action" design="Set2" color-scheme="4"> Source </ui5-tag>
           <ui5-tag v-else color-scheme="Warning" slot="action" :design="aggrDesign" > {{ groupStateAggr }} </ui5-tag>
@@ -47,7 +47,10 @@ const props = defineProps<{
         isTail: boolean,
         tenantToOps: { [key: number]: { [key: string]: ArtifactTenantOperation }}
     }
+    loading?: boolean
 }>()
+
+const loading = computed(() => props.loading ?? false)
 
 const disableImport = computed(() => {
   return props.data.tenants.every(t => {
