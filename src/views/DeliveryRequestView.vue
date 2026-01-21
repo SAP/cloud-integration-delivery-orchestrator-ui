@@ -212,9 +212,9 @@
             <!-- cpi tenants selection -->
             <ui5-title size="H6"> Source CPI Tenant </ui5-title>
             <div style="display: flex; flex-direction: row; gap:12px; align-items: center;">
-              <div style="display:flex; align-items:center; justify-content:center;">
+              <ui5-label style="display:flex; align-items:center; justify-content:center;">
                 {{ deliveryRequest.SourceTenant.Name }} #{{ deliveryRequest.SourceTenant.ID }}
-              </div>
+              </ui5-label>
               <div style="width: 1px; height: 20px; background: #ccc;"></div>
               <ui5-link :href="cpiTenantLink" target="_blank" rel="noopener noreferrer">
                 {{ cpiTenantLink }}
@@ -381,12 +381,16 @@
           <div v-if="loadingCpiTenants" style="display: flex; flex-direction: column">
             <ui5-busy-indicator active :delay="0" />
           </div>
-          <div v-else>
+          <div v-else class="delivery-flow-container">
             <DeliveryFlowView :delivery-request="deliveryRequest" :cpi-tenants="cpiTenants"
               :tenant-to-ops="tenantToOps" />
+            <div v-if="syncingStatus" class="sync-overlay">
+              <ui5-busy-indicator active :delay="0" />
+            </div>
           </div>
         </div>
       </ui5-wizard-step>
+      <!-- Step 4: Logs -->
       <ui5-wizard-step id="step4" title-text="Logs">
         <div style="display: flex; flex-direction: column; gap: 10px;">
           <ui5-title>Logs ({{ deliveryRequest.Conditions?.length || 0 }})</ui5-title>
@@ -538,6 +542,7 @@ export default {
       currentUser: {} as UserInfo,
       loadingCpiTenants: true,
       updatingOps: false,
+      syncingStatus: false,
     }
   },
   methods: {
@@ -757,8 +762,13 @@ export default {
     },
     async onSyncDrStatus() {
       if (!this.deliveryRequest.ID) return
-      await SyncStatus(this.deliveryRequest.ID)
-      await this.refresh()
+      this.syncingStatus = true
+      try {
+        await SyncStatus(this.deliveryRequest.ID)
+        await this.refresh()
+      } finally {
+        this.syncingStatus = false
+      }
     },
     stateType(op: ArtifactTenantOperation) {
       // op request state to tag type mapping('default' | 'primary' | 'info' | 'success' | 'warning' | 'error')
@@ -892,6 +902,24 @@ export default {
 </script>
 
 <style scoped>
+.delivery-flow-container {
+  position: relative;
+  min-height: 300px;
+}
+
+.sync-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(255, 255, 255, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 100;
+}
+
 .text {
   display: inline-block;
   font-size: var(--sapFontSize);
