@@ -31,6 +31,10 @@ function handleLogout() {
   window.location.href = '/logout'
 }
 
+function handleHelp() {
+  window.open('https://wiki.one.int.sap/wiki/x/ZUH3WQE', '_blank')
+}
+
 // Computed
 const canBack = computed(() => router.currentRoute.value.path !== '/')
 const avatarInit = computed(
@@ -47,7 +51,7 @@ const userName = computed(() => `${userInfo.value.firstname || ''} ${userInfo.va
       <img slot="logo" src="https://ui5.github.io/webcomponents/images/sap-logo-svg.svg" />
     </ui5-shellbar-branding>
     <ui5-button v-if="canBack" @click="() => router.go(-1)" icon="nav-back" slot="startButton"></ui5-button>
-    <ui5-shellbar-item icon="sys-help" text="Help"></ui5-shellbar-item>
+    <ui5-shellbar-item @click="handleHelp" icon="sys-help" text="Help"></ui5-shellbar-item>
     <ui5-avatar 
       @click="() => { openProfile = !openProfile }" 
       id="pop-user-profile" 
