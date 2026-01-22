@@ -30,10 +30,10 @@ modules:
           url: https://mmt-devops-cpi-cookie-service.cfapps.sap.hana.ondemand.com
           forwardAuthToken: true
     requires:
-      - name: mmt_cpi_delivery_uaa
+      - name: mmt_devops_uaa
 
 resources:
-  - name: mmt_cpi_delivery_uaa
+  - name: mmt_devops_uaa
     type: org.cloudfoundry.managed-service
     parameters:
       service: xsuaa
