@@ -64,3 +64,5 @@ When static resource not exist, like /delivery-request (display delivery request
 [ ] feature: in 'CPI tenants', add 'copy' for each tenant to copy cookie.
 [ x ] feature: enable 'batch generate TRs' in 'New' artifacts: should provice a API in cookie service, so can use one csrf token, and generate TRs in parallel, also controls parallel counts.
 [  ] make mta & VCAP_SERVICES more portable: resources should assign exact type; for reading env 'VCAP_SERVICES', don't use withLabel(), not withName().
+[ ] When click 'Approve' or 'Skip approval', should have a loading status
+[ ] feature: MiniMap Style optimize 

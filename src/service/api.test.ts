@@ -98,10 +98,7 @@ describe('DeriveNodeAgg', () => {
     })
 
     it('should return AWAITING_DEPLOY when all deployments are QUEUED', () => {
-      const ops = [
-        createOp('READY', 'COMPLETE', 'QUEUED'),
-        createOp('READY', 'COMPLETE', 'QUEUED')
-      ]
+      const ops = [createOp('READY', 'COMPLETE', 'QUEUED'), createOp('READY', 'COMPLETE', 'QUEUED')]
       expect(DeriveNodeAgg(ops)).toBe('AWAITING_DEPLOY')
     })
 
@@ -192,16 +189,12 @@ describe('DeriveNodeAgg', () => {
 
   describe('Edge cases and mixed states', () => {
     it('should handle single operation correctly', () => {
-      const ops = [
-        createOp('READY', 'COMPLETE', 'COMPLETE')
-      ]
+      const ops = [createOp('READY', 'COMPLETE', 'COMPLETE')]
       expect(DeriveNodeAgg(ops)).toBe('DEPLOYED')
     })
 
     it('should return UNKNOWN for unexpected state combinations', () => {
-      const ops = [
-        createOp('READY' as RequestState, 'NOT_STARTED', 'NOT_STARTED')
-      ]
+      const ops = [createOp('READY' as RequestState, 'NOT_STARTED', 'NOT_STARTED')]
       // All imports complete but no deploy started
       ops[0].ImportState = 'COMPLETE' as ImportState
       expect(DeriveNodeAgg(ops)).toBe('AWAITING_DEPLOY')
@@ -234,23 +227,17 @@ describe('DeriveNodeAgg', () => {
 
   describe('Priority and precedence', () => {
     it('should prioritize request phase errors over everything else', () => {
-      const ops = [
-        createOp('FAILED', 'FAILED', 'FAILED')
-      ]
+      const ops = [createOp('FAILED', 'FAILED', 'FAILED')]
       expect(DeriveNodeAgg(ops)).toBe('Error')
     })
 
     it('should prioritize import failures over deploy failures', () => {
-      const ops = [
-        createOp('READY', 'FAILED', 'FAILED')
-      ]
+      const ops = [createOp('READY', 'FAILED', 'FAILED')]
       expect(DeriveNodeAgg(ops)).toBe('IMPORT_FAILED')
     })
 
     it('should prioritize import failures over pending states', () => {
-      const ops = [
-        createOp('REQUESTING', 'FAILED', 'NOT_STARTED')
-      ]
+      const ops = [createOp('REQUESTING', 'FAILED', 'NOT_STARTED')]
       expect(DeriveNodeAgg(ops)).toBe('IMPORT_FAILED')
     })
   })
@@ -361,6 +348,11 @@ describe('DeriveGroupAgg', () => {
       expect(DeriveGroupAgg(states)).toBe('AWAITING_DEPLOY')
     })
 
+    it('should return DEPLOYING when one tenant is DEPLOYING and others are DEPLOYED', () => {
+      const states: AggregateStatus[] = ['DEPLOYING', 'DEPLOYED', 'DEPLOYED']
+      expect(DeriveGroupAgg(states)).toBe('DEPLOYING')
+    })
+
     it('should return DEPLOY_FAILED when one tenant failed deployment and others are deployed', () => {
       const states: AggregateStatus[] = ['DEPLOYED', 'DEPLOYED', 'DEPLOY_FAILED']
       expect(DeriveGroupAgg(states)).toBe('DEPLOY_FAILED')
@@ -411,31 +403,17 @@ describe('DeriveGroupAgg', () => {
 
   describe('Real-world scenarios', () => {
     it('should handle multi-tenant delivery with mixed progress', () => {
-      const states: AggregateStatus[] = [
-        'DEPLOYED',
-        'DEPLOYING',
-        'AWAITING_DEPLOY',
-        'IMPORTED'
-      ]
+      const states: AggregateStatus[] = ['DEPLOYED', 'DEPLOYING', 'AWAITING_DEPLOY', 'IMPORTED']
       expect(DeriveGroupAgg(states)).toBe('AWAITING_DEPLOY')
     })
 
     it('should handle one tenant blocking others with early stage', () => {
-      const states: AggregateStatus[] = [
-        'DEPLOYED',
-        'DEPLOYED',
-        'IMPORTING',
-        'DEPLOYED'
-      ]
+      const states: AggregateStatus[] = ['DEPLOYED', 'DEPLOYED', 'IMPORTING', 'DEPLOYED']
       expect(DeriveGroupAgg(states)).toBe('IMPORTING')
     })
 
     it('should handle failed imports preventing deployment', () => {
-      const states: AggregateStatus[] = [
-        'DEPLOYED',
-        'IMPORT_FAILED',
-        'AWAITING_DEPLOY'
-      ]
+      const states: AggregateStatus[] = ['DEPLOYED', 'IMPORT_FAILED', 'AWAITING_DEPLOY']
       expect(DeriveGroupAgg(states)).toBe('IMPORT_FAILED')
     })
 
@@ -455,20 +433,12 @@ describe('DeriveGroupAgg', () => {
     })
 
     it('should handle catastrophic failure across tenants', () => {
-      const states: AggregateStatus[] = [
-        'IMPORT_FAILED',
-        'DEPLOY_FAILED',
-        'Error'
-      ]
+      const states: AggregateStatus[] = ['IMPORT_FAILED', 'DEPLOY_FAILED', 'Error']
       expect(DeriveGroupAgg(states)).toBe('Error')
     })
 
     it('should handle partial rollback scenario with CANCELED state', () => {
-      const states: AggregateStatus[] = [
-        'DEPLOYED',
-        'CANCELED',
-        'DEPLOYING'
-      ]
+      const states: AggregateStatus[] = ['DEPLOYED', 'CANCELED', 'DEPLOYING']
       expect(DeriveGroupAgg(states)).toBe('CANCELED')
     })
   })
