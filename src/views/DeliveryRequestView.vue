@@ -335,7 +335,7 @@
                   </div>
                 </div>
               </div>
-              <ui5-button design="Emphasized" @click="updateDr" style="width:10%; margin-top: 10px;" :loading="updatingOps" :delay="0"> Update </ui5-button>
+              <ui5-button design="Emphasized" @click="updateDr" style="width:10%; margin-top: 10px;" :loading="updatingOps" :loading-delay="0"> Update </ui5-button>
             </div>
           </div>
         </div>
@@ -363,13 +363,24 @@
 
             <div style="display: flex; margin-top:20px">
               <!-- Approve/Skip Approval button -->
-              <ui5-button :disabled="approveInfo.disable" :design="approveInfo.disable ? 'Attention' : 'Positive'"
+              <ui5-button 
+                :disabled="approveInfo.disable" 
+                :design="approveInfo.disable ? 'Attention' : 'Positive'"
+                :loading="approveStepLoading"
+                :loading-delay="0"
                 @click="handleApprove"
                 :tooltip="approveInfo.disable ? 'Cannot approve your own request' : 'Force Deliver'">
                 {{ approveInfo.display }}
               </ui5-button>
-              <ui5-button design="Transparent" v-if="deliveryRequest.Approvers" @click="handleRequestApprove">Send To
-                Approvers</ui5-button>
+
+              <ui5-button 
+                design="Transparent" 
+                v-if="deliveryRequest.Approvers" 
+                :loading="approveStepLoading" 
+                :loading-delay="0"
+                @click="handleRequestApprove">
+                Send To Approvers
+              </ui5-button>
 
             </div>
           </div>
@@ -558,6 +569,7 @@ export default {
       updatingOps: false,
       syncingStatus: false,
       generatingTrsLoading: false,
+      approveStepLoading: false,
     }
   },
   methods: {
@@ -587,17 +599,28 @@ export default {
       this.deliveryRequest.Approvers.push(user.id)
     },
     async handleRequestApprove() {
+      // Send to selected approvers
       if (!this.deliveryRequest.Approvers || !this.deliveryRequest.Approvers.length) {
         window.$message?.warning?.('Please select at least one approver before sending approval request.')
         return
       }
-      await RequestApprove(this.deliveryRequest.ID, this.deliveryRequest.Approvers, '')
-      window.$message?.success?.(`Approval request sent to ${this.deliveryRequest.Approvers.map(a => a).join(', ')}`)
+      this.approveStepLoading = true
+      try {
+        await RequestApprove(this.deliveryRequest.ID, this.deliveryRequest.Approvers, '')
+        window.$message?.success?.(`Approval request sent to ${this.deliveryRequest.Approvers.map(a => a).join(', ')}`)
+      } finally {
+        this.approveStepLoading = false
+      }
     },
     async handleApprove() {
-      await Approve(this.deliveryRequest.ID, '')
-      await this.refresh()
-      window.$message?.success?.('Delivery Request approved.')
+      this.approveStepLoading = true
+      try {
+        await Approve(this.deliveryRequest.ID, '')
+        await this.refresh()
+        window.$message?.success?.('Delivery Request approved.')
+      } finally {
+        this.approveStepLoading = false
+      }
     },
     onEditDr() {
       this.isEditingDr = true
