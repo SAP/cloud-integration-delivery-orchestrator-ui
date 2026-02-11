@@ -248,14 +248,17 @@ WebSocket support is enabled in `xs-app.json` for future real-time features.
 - [x] DRAFT artifact version validation before generate TR/import
 - [x] Loading status display for group tenants
 - [x] Batch generate TRs in 'New' artifacts with parallel control
+- [x] Loading status indicators for 'Approve' and 'Skip approval' actions
 
 ### Planned Features
 
-- [ ] Link to JIRA change requests and automatically update subtasks
-- [ ] WebSocket implementation for real-time status updates
-- [ ] Copy button in 'CPI tenants' view to copy tenant cookie
-- [ ] Loading status indicators for 'Approve' and 'Skip approval' actions
-- [ ] MiniMap style optimization for better visualization
+- [ ] UI & service - xsuaa authroization check
+- [ ] UI - MiniMap style optimization for better visualization
+- [ ] service - Link to JIRA change requests and automatically update subtasks
+- [ ] service - WebSocket implementation for real-time status updates
+- [ ] UI & service -  Copy button in 'CPI tenants' view to copy tenant cookie
+- [ ] Delivery Request List: enable search by keywords;
+- [ ] For artifacts in source tenant: enable trigger deploy, display TR, no need to display deploy&import state;
 
 ### Infrastructure Improvements
 
