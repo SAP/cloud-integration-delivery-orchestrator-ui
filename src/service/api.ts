@@ -174,7 +174,7 @@ export const GenTransportRequest = async (
       cpi_tenant: cpi_tenant_url,
       comment
     },
-    { timeout: 60 * 1000 }
+    { timeout: 90 * 1000 }
   )
   return data
 }
