@@ -29,6 +29,7 @@ modules:
         - name: cpi-cookie-service
           url: https://mmt-devops-cpi-cookie-service.cfapps.sap.hana.ondemand.com
           forwardAuthToken: true
+          timeout: 90000
     requires:
       - name: mmt_devops_uaa
 
