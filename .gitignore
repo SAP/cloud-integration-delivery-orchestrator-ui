@@ -31,4 +31,4 @@ mta_archives/
 *.tsbuildinfo
 
 # Local debug secrets
-local-debug/default-services.json
+**/default-services.json
