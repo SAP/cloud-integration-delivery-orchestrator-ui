@@ -255,6 +255,8 @@ export interface VersionCompareArtifactTenantInfo {
   designTimeVersion?: string
   designTimeMatch?: boolean | null
   designTimeDraft?: boolean
+  modifiedBy?: string
+  modifiedAt?: string
   runtimeVersion?: string
   runtimeMatch?: boolean | null
   runtimeStatus?: string

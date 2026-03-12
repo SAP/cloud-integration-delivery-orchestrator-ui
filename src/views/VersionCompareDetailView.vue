@@ -155,6 +155,14 @@ const versionDisplay = (info: VersionCompareArtifactTenantInfo | undefined, fiel
   return info.runtimeVersion || '-'
 }
 
+// CPI API returns ModifiedAt as epoch millis string (e.g. "1678901234567")
+const formatModifiedAt = (raw?: string): string => {
+  if (!raw) return '-'
+  const ms = Number(raw)
+  if (!isNaN(ms) && ms > 0) return toLocalTime(new Date(ms).toISOString())
+  return toLocalTime(raw)
+}
+
 const togglePackage = (pkgID: string, checked: boolean) => {
   selectedPackages.value[pkgID] = checked
 }
@@ -300,6 +308,8 @@ onUnmounted(() => {
               <ui5-table-header-cell v-for="tenant in targetTenants" :key="tenant.id" min-width="140px">
                 {{ tenant.name }}
               </ui5-table-header-cell>
+              <ui5-table-header-cell v-if="sourceTenant" min-width="120px">Modified By</ui5-table-header-cell>
+              <ui5-table-header-cell v-if="sourceTenant" min-width="140px">Modified At</ui5-table-header-cell>
             </ui5-table-header-row>
 
             <ui5-table-row v-for="art in (pkg.artifacts ?? [])" :key="art.id">
@@ -378,6 +388,20 @@ onUnmounted(() => {
                 <div v-else class="version-cell">
                   <span class="cell-missing" title="Artifact not found on this tenant">N/A</span>
                 </div>
+              </ui5-table-cell>
+
+              <!-- Modified By column: source tenant's last DT committer -->
+              <ui5-table-cell v-if="sourceTenant">
+                <span class="modified-by" :title="getTenantInfo(art, sourceTenant.id)?.modifiedBy">
+                  {{ getTenantInfo(art, sourceTenant.id)?.modifiedBy ?? '-' }}
+                </span>
+              </ui5-table-cell>
+
+              <!-- Modified At column: source tenant's last DT modification time -->
+              <ui5-table-cell v-if="sourceTenant">
+                <span class="modified-at" :title="getTenantInfo(art, sourceTenant.id)?.modifiedAt">
+                  {{ formatModifiedAt(getTenantInfo(art, sourceTenant.id)?.modifiedAt) }}
+                </span>
               </ui5-table-cell>
             </ui5-table-row>
           </ui5-table>
@@ -522,6 +546,15 @@ onUnmounted(() => {
 
 .draft-tag {
   font-size: 0.6rem;
+}
+
+.modified-by,
+.modified-at {
+  font-size: 0.75rem;
+  color: var(--sapNeutralTextColor);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .rt-status-tag {
