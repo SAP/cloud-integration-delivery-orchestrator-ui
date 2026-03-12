@@ -302,19 +302,19 @@ onUnmounted(() => {
         >
           <ui5-table overflow-mode="Scroll" class="compare-table">
             <ui5-table-header-row slot="headerRow">
-              <ui5-table-header-cell min-width="180px">Artifact</ui5-table-header-cell>
-              <ui5-table-header-cell width="100px">Type</ui5-table-header-cell>
-              <ui5-table-header-cell v-if="sourceTenant" min-width="140px">{{ sourceTenant.name }}</ui5-table-header-cell>
-              <ui5-table-header-cell v-for="tenant in targetTenants" :key="tenant.id" min-width="140px">
+              <ui5-table-header-cell>Artifact</ui5-table-header-cell>
+              <ui5-table-header-cell width="auto">Type</ui5-table-header-cell>
+              <ui5-table-header-cell v-if="sourceTenant" width="auto">{{ sourceTenant.name }}</ui5-table-header-cell>
+              <ui5-table-header-cell v-for="tenant in targetTenants" :key="tenant.id" width="auto">
                 {{ tenant.name }}
               </ui5-table-header-cell>
-              <ui5-table-header-cell v-if="sourceTenant" min-width="120px">Modified By</ui5-table-header-cell>
-              <ui5-table-header-cell v-if="sourceTenant" min-width="140px">Modified At</ui5-table-header-cell>
+              <ui5-table-header-cell v-if="sourceTenant" width="auto">Modified By</ui5-table-header-cell>
+              <ui5-table-header-cell v-if="sourceTenant" width="auto">Modified At</ui5-table-header-cell>
             </ui5-table-header-row>
 
             <ui5-table-row v-for="art in (pkg.artifacts ?? [])" :key="art.id">
               <ui5-table-cell>
-                <span class="col-artifact" :title="art.id">{{ art.name || art.id }}</span>
+                <span class="col-artifact">{{ art.id }}</span>
               </ui5-table-cell>
               <ui5-table-cell>
                 <ui5-tag design="Set2" color-scheme="6" style="font-size: 0.7rem;">
@@ -506,11 +506,7 @@ onUnmounted(() => {
 }
 
 .col-artifact {
-  max-width: 18rem;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  display: inline-block;
+  word-break: break-all;
 }
 
 /* Version cell: stacks DT + RT rows vertically */
