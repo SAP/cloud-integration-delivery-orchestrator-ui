@@ -38,7 +38,8 @@ const showRunTime = ref(true)
 const mismatchOnly = ref(true)
 
 // Package filter: track which packageIDs are selected (all selected by default)
-const selectedPackages = ref<Set<string>>(new Set())
+// Using Record<string, boolean> instead of Set for reliable Vue reactivity tracking
+const selectedPackages = ref<Record<string, boolean>>({})
 const pkgFilterInitialized = ref(false)
 // All available package IDs from the response
 const allPackageIDs = computed(() => {
@@ -53,7 +54,7 @@ const targetTenants = computed(() => tenants.value.filter(t => !t.isSource))
 const filteredPackages = computed<VersionComparePackage[]>(() => {
   const pkgs = data.value?.packages ?? []
   if (!pkgFilterInitialized.value) return pkgs
-  return pkgs.filter(p => selectedPackages.value.has(p.packageID))
+  return pkgs.filter(p => selectedPackages.value[p.packageID] === true)
 })
 
 const totalArtifacts = computed(() => {
@@ -74,7 +75,9 @@ const loadData = async () => {
     })
     // On first load, select all packages
     if (!pkgFilterInitialized.value && allPackageIDs.value.length > 0) {
-      selectedPackages.value = new Set(allPackageIDs.value)
+      const map: Record<string, boolean> = {}
+      for (const id of allPackageIDs.value) map[id] = true
+      selectedPackages.value = map
       pkgFilterInitialized.value = true
     }
   } finally {
@@ -153,21 +156,17 @@ const versionDisplay = (info: VersionCompareArtifactTenantInfo | undefined, fiel
 }
 
 const togglePackage = (pkgID: string, checked: boolean) => {
-  const next = new Set(selectedPackages.value)
-  if (checked) {
-    next.add(pkgID)
-  } else {
-    next.delete(pkgID)
-  }
-  selectedPackages.value = next
+  selectedPackages.value[pkgID] = checked
 }
 
 const selectAllPackages = () => {
-  selectedPackages.value = new Set(allPackageIDs.value)
+  const map: Record<string, boolean> = {}
+  for (const id of allPackageIDs.value) map[id] = true
+  selectedPackages.value = map
 }
 
 const deselectAllPackages = () => {
-  selectedPackages.value = new Set()
+  selectedPackages.value = {}
 }
 
 watch([showDesignTime, showRunTime, mismatchOnly], () => {
@@ -265,7 +264,7 @@ onUnmounted(() => {
         <ui5-checkbox
           v-for="pkgID in allPackageIDs"
           :key="pkgID"
-          :checked="selectedPackages.has(pkgID)"
+          :checked="selectedPackages[pkgID] === true"
           :text="pkgID"
           @change="togglePackage(pkgID, ($event as any).target.checked)"
         />
