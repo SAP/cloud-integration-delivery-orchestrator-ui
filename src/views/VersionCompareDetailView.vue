@@ -17,6 +17,12 @@ import "@ui5/webcomponents/dist/Button.js"
 import "@ui5/webcomponents/dist/BusyIndicator.js"
 import "@ui5/webcomponents/dist/CheckBox.js"
 import "@ui5/webcomponents/dist/Title.js"
+import "@ui5/webcomponents/dist/Panel.js"
+import "@ui5/webcomponents/dist/Table.js"
+import "@ui5/webcomponents/dist/TableRow.js"
+import "@ui5/webcomponents/dist/TableCell.js"
+import "@ui5/webcomponents/dist/TableHeaderRow.js"
+import "@ui5/webcomponents/dist/TableHeaderCell.js"
 
 const props = defineProps<{ ruleId: number }>()
 const router = useRouter()
@@ -29,10 +35,11 @@ const triggering = ref(false)
 // Filter state
 const showDesignTime = ref(true)
 const showRunTime = ref(true)
-const mismatchOnly = ref(false)
+const mismatchOnly = ref(true)
 
 // Package filter: track which packageIDs are selected (all selected by default)
 const selectedPackages = ref<Set<string>>(new Set())
+const pkgFilterInitialized = ref(false)
 // All available package IDs from the response
 const allPackageIDs = computed(() => {
   return (data.value?.packages ?? []).map(p => p.packageID)
@@ -45,7 +52,7 @@ const targetTenants = computed(() => tenants.value.filter(t => !t.isSource))
 // Apply local package filter on top of server-filtered data
 const filteredPackages = computed<VersionComparePackage[]>(() => {
   const pkgs = data.value?.packages ?? []
-  if (selectedPackages.value.size === 0) return pkgs
+  if (!pkgFilterInitialized.value) return pkgs
   return pkgs.filter(p => selectedPackages.value.has(p.packageID))
 })
 
@@ -66,8 +73,9 @@ const loadData = async () => {
       mismatchOnly: mismatchOnly.value,
     })
     // On first load, select all packages
-    if (selectedPackages.value.size === 0 && allPackageIDs.value.length > 0) {
+    if (!pkgFilterInitialized.value && allPackageIDs.value.length > 0) {
       selectedPackages.value = new Set(allPackageIDs.value)
+      pkgFilterInitialized.value = true
     }
   } finally {
     loading.value = false
@@ -152,6 +160,14 @@ const togglePackage = (pkgID: string, checked: boolean) => {
     next.delete(pkgID)
   }
   selectedPackages.value = next
+}
+
+const selectAllPackages = () => {
+  selectedPackages.value = new Set(allPackageIDs.value)
+}
+
+const deselectAllPackages = () => {
+  selectedPackages.value = new Set()
 }
 
 watch([showDesignTime, showRunTime, mismatchOnly], () => {
@@ -240,14 +256,20 @@ onUnmounted(() => {
 
     <!-- Package filter checkboxes -->
     <div v-if="data?.status === 'completed' && allPackageIDs.length > 1" class="vcd-pkg-filter">
-      <ui5-text style="font-size: 0.85rem; font-weight: 600; margin-right: 0.5rem;">Packages:</ui5-text>
-      <ui5-checkbox
-        v-for="pkgID in allPackageIDs"
-        :key="pkgID"
-        :checked="selectedPackages.has(pkgID)"
-        :text="pkgID"
-        @change="togglePackage(pkgID, ($event as any).target.checked)"
-      />
+      <div class="vcd-pkg-filter-header">
+        <ui5-text style="font-size: 0.85rem; font-weight: 600;">Packages:</ui5-text>
+        <ui5-button design="Transparent" @click="selectAllPackages" style="font-size: 0.75rem;">Select All</ui5-button>
+        <ui5-button design="Transparent" @click="deselectAllPackages" style="font-size: 0.75rem;">Deselect All</ui5-button>
+      </div>
+      <div class="vcd-pkg-filter-list">
+        <ui5-checkbox
+          v-for="pkgID in allPackageIDs"
+          :key="pkgID"
+          :checked="selectedPackages.has(pkgID)"
+          :text="pkgID"
+          @change="togglePackage(pkgID, ($event as any).target.checked)"
+        />
+      </div>
     </div>
 
     <!-- Loading -->
@@ -265,111 +287,105 @@ onUnmounted(() => {
 
       <!-- Completed: comparison table grouped by package -->
       <div v-else-if="data?.status === 'completed'" class="vcd-packages">
-        <div v-for="pkg in filteredPackages" :key="pkg.packageID" class="vcd-package">
-          <div class="pkg-header">
-            <ui5-tag design="Set2" color-scheme="10">{{ pkg.packageID }}</ui5-tag>
-            <ui5-text style="font-size: 0.75rem; color: var(--sapNeutralTextColor);">
-              {{ (pkg.artifacts ?? []).length }} artifacts
-            </ui5-text>
-          </div>
+        <ui5-panel
+          v-for="pkg in filteredPackages"
+          :key="pkg.packageID"
+          :header-text="`${pkg.packageID} (${(pkg.artifacts ?? []).length} artifacts)`"
+          class="vcd-panel"
+        >
+          <ui5-table overflow-mode="Scroll" class="compare-table">
+            <ui5-table-header-row slot="headerRow">
+              <ui5-table-header-cell min-width="180px">Artifact</ui5-table-header-cell>
+              <ui5-table-header-cell width="60px">Type</ui5-table-header-cell>
+              <ui5-table-header-cell v-if="sourceTenant" min-width="140px">{{ sourceTenant.name }}</ui5-table-header-cell>
+              <ui5-table-header-cell v-for="tenant in targetTenants" :key="tenant.id" min-width="140px">
+                {{ tenant.name }}
+              </ui5-table-header-cell>
+            </ui5-table-header-row>
 
-          <div class="table-wrapper">
-            <table class="compare-table">
-              <thead>
-                <tr>
-                  <th class="col-artifact">Artifact</th>
-                  <th class="col-type">Type</th>
-                  <!-- One column per tenant: Source first, then targets -->
-                  <th v-if="sourceTenant" class="col-version">{{ sourceTenant.name }}</th>
-                  <th v-for="tenant in targetTenants" :key="tenant.id" class="col-version">
-                    {{ tenant.name }}
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="art in (pkg.artifacts ?? [])" :key="art.id">
-                  <td class="col-artifact" :title="art.id">{{ art.name || art.id }}</td>
-                  <td class="col-type">
-                    <ui5-tag design="Set2" color-scheme="6" style="font-size: 0.7rem;">
-                      {{ art.type === 'iflow' ? 'IF' : art.type === 'scriptcollection' ? 'SC' : art.type }}
+            <ui5-table-row v-for="art in (pkg.artifacts ?? [])" :key="art.id">
+              <ui5-table-cell>
+                <span class="col-artifact" :title="art.id">{{ art.name || art.id }}</span>
+              </ui5-table-cell>
+              <ui5-table-cell>
+                <ui5-tag design="Set2" color-scheme="6" style="font-size: 0.7rem;">
+                  {{ art.type === 'iflow' ? 'IF' : art.type === 'scriptcollection' ? 'SC' : art.type }}
+                </ui5-tag>
+              </ui5-table-cell>
+
+              <!-- Source tenant cell: DT + RT stacked, no match indicator -->
+              <ui5-table-cell v-if="sourceTenant">
+                <div class="version-cell">
+                  <template v-if="getTenantInfo(art, sourceTenant.id)">
+                    <div v-if="showDesignTime" class="version-row">
+                      <span class="version-label">DT</span>
+                      <span>{{ versionDisplay(getTenantInfo(art, sourceTenant.id), 'designTime') }}</span>
+                      <ui5-tag v-if="getTenantInfo(art, sourceTenant.id)?.designTimeDraft" design="Set2" color-scheme="1" class="draft-tag">DRAFT</ui5-tag>
+                    </div>
+                    <div v-if="showRunTime" class="version-row">
+                      <span class="version-label">RT</span>
+                      <span>{{ versionDisplay(getTenantInfo(art, sourceTenant.id), 'runTime') }}</span>
+                      <ui5-tag
+                        v-if="getTenantInfo(art, sourceTenant.id)?.runtimeStatus"
+                        :design="getTenantInfo(art, sourceTenant.id)?.runtimeStatus === 'STARTED' ? 'Positive' : 'Negative'"
+                        class="rt-status-tag"
+                      >
+                        {{ getTenantInfo(art, sourceTenant.id)?.runtimeStatus }}
+                      </ui5-tag>
+                    </div>
+                  </template>
+                  <span v-else class="cell-missing">-</span>
+                </div>
+              </ui5-table-cell>
+
+              <!-- Target tenant cells: DT + RT stacked, with match indicators -->
+              <ui5-table-cell v-for="tenant in targetTenants" :key="tenant.id">
+                <div class="version-cell" v-if="getTenantInfo(art, tenant.id)">
+                  <!-- Design Time row -->
+                  <div v-if="showDesignTime" class="version-row"
+                    :class="{
+                      'row-match': getTenantInfo(art, tenant.id)?.designTimeMatch === true,
+                      'row-mismatch': getTenantInfo(art, tenant.id)?.designTimeMatch === false,
+                    }"
+                  >
+                    <span class="version-label">DT</span>
+                    <span>{{ versionDisplay(getTenantInfo(art, tenant.id), 'designTime') }}</span>
+                    <ui5-tag v-if="getTenantInfo(art, tenant.id)?.designTimeDraft" design="Set2" color-scheme="1" class="draft-tag">DRAFT</ui5-tag>
+                    <span v-if="getTenantInfo(art, tenant.id)?.designTimeMatch === true" class="match-icon">&#10003;</span>
+                    <span v-else-if="getTenantInfo(art, tenant.id)?.designTimeMatch === false" class="mismatch-icon">&#10007;</span>
+                  </div>
+                  <!-- Runtime row -->
+                  <div v-if="showRunTime" class="version-row"
+                    :class="{
+                      'row-match': getTenantInfo(art, tenant.id)?.runtimeMatch === true,
+                      'row-mismatch': getTenantInfo(art, tenant.id)?.runtimeMatch === false,
+                    }"
+                  >
+                    <span class="version-label">RT</span>
+                    <span>{{ versionDisplay(getTenantInfo(art, tenant.id), 'runTime') }}</span>
+                    <ui5-tag
+                      v-if="getTenantInfo(art, tenant.id)?.runtimeStatus"
+                      :design="getTenantInfo(art, tenant.id)?.runtimeStatus === 'STARTED' ? 'Positive' : 'Negative'"
+                      class="rt-status-tag"
+                    >
+                      {{ getTenantInfo(art, tenant.id)?.runtimeStatus }}
                     </ui5-tag>
-                  </td>
-
-                  <!-- Source tenant cell: DT + RT stacked, no match indicator -->
-                  <td v-if="sourceTenant" class="col-version">
-                    <div class="version-cell">
-                      <template v-if="getTenantInfo(art, sourceTenant.id)">
-                        <div v-if="showDesignTime" class="version-row">
-                          <span class="version-label">DT</span>
-                          <span>{{ versionDisplay(getTenantInfo(art, sourceTenant.id), 'designTime') }}</span>
-                          <ui5-tag v-if="getTenantInfo(art, sourceTenant.id)?.designTimeDraft" design="Set2" color-scheme="1" class="draft-tag">DRAFT</ui5-tag>
-                        </div>
-                        <div v-if="showRunTime" class="version-row">
-                          <span class="version-label">RT</span>
-                          <span>{{ versionDisplay(getTenantInfo(art, sourceTenant.id), 'runTime') }}</span>
-                          <ui5-tag
-                            v-if="getTenantInfo(art, sourceTenant.id)?.runtimeStatus"
-                            :design="getTenantInfo(art, sourceTenant.id)?.runtimeStatus === 'STARTED' ? 'Positive' : 'Negative'"
-                            class="rt-status-tag"
-                          >
-                            {{ getTenantInfo(art, sourceTenant.id)?.runtimeStatus }}
-                          </ui5-tag>
-                        </div>
-                      </template>
-                      <span v-else class="cell-missing">-</span>
-                    </div>
-                  </td>
-
-                  <!-- Target tenant cells: DT + RT stacked, with match indicators -->
-                  <td v-for="tenant in targetTenants" :key="tenant.id" class="col-version">
-                    <div class="version-cell" v-if="getTenantInfo(art, tenant.id)">
-                      <!-- Design Time row -->
-                      <div v-if="showDesignTime" class="version-row"
-                        :class="{
-                          'row-match': getTenantInfo(art, tenant.id)?.designTimeMatch === true,
-                          'row-mismatch': getTenantInfo(art, tenant.id)?.designTimeMatch === false,
-                        }"
-                      >
-                        <span class="version-label">DT</span>
-                        <span>{{ versionDisplay(getTenantInfo(art, tenant.id), 'designTime') }}</span>
-                        <ui5-tag v-if="getTenantInfo(art, tenant.id)?.designTimeDraft" design="Set2" color-scheme="1" class="draft-tag">DRAFT</ui5-tag>
-                        <span v-if="getTenantInfo(art, tenant.id)?.designTimeMatch === true" class="match-icon">&#10003;</span>
-                        <span v-else-if="getTenantInfo(art, tenant.id)?.designTimeMatch === false" class="mismatch-icon">&#10007;</span>
-                      </div>
-                      <!-- Runtime row -->
-                      <div v-if="showRunTime" class="version-row"
-                        :class="{
-                          'row-match': getTenantInfo(art, tenant.id)?.runtimeMatch === true,
-                          'row-mismatch': getTenantInfo(art, tenant.id)?.runtimeMatch === false,
-                        }"
-                      >
-                        <span class="version-label">RT</span>
-                        <span>{{ versionDisplay(getTenantInfo(art, tenant.id), 'runTime') }}</span>
-                        <ui5-tag
-                          v-if="getTenantInfo(art, tenant.id)?.runtimeStatus"
-                          :design="getTenantInfo(art, tenant.id)?.runtimeStatus === 'STARTED' ? 'Positive' : 'Negative'"
-                          class="rt-status-tag"
-                        >
-                          {{ getTenantInfo(art, tenant.id)?.runtimeStatus }}
-                        </ui5-tag>
-                        <span v-if="getTenantInfo(art, tenant.id)?.runtimeMatch === true" class="match-icon">&#10003;</span>
-                        <span v-else-if="getTenantInfo(art, tenant.id)?.runtimeMatch === false" class="mismatch-icon">&#10007;</span>
-                      </div>
-                      <!-- Error tooltip -->
-                      <div v-if="getTenantInfo(art, tenant.id)?.error" class="version-error" :title="getTenantInfo(art, tenant.id)?.error">
-                        {{ getTenantInfo(art, tenant.id)?.error }}
-                      </div>
-                    </div>
-                    <!-- Artifact not found on this tenant -->
-                    <div v-else class="version-cell">
-                      <span class="cell-missing" title="Artifact not found on this tenant">N/A</span>
-                    </div>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
+                    <span v-if="getTenantInfo(art, tenant.id)?.runtimeMatch === true" class="match-icon">&#10003;</span>
+                    <span v-else-if="getTenantInfo(art, tenant.id)?.runtimeMatch === false" class="mismatch-icon">&#10007;</span>
+                  </div>
+                  <!-- Error tooltip -->
+                  <div v-if="getTenantInfo(art, tenant.id)?.error" class="version-error" :title="getTenantInfo(art, tenant.id)?.error">
+                    {{ getTenantInfo(art, tenant.id)?.error }}
+                  </div>
+                </div>
+                <!-- Artifact not found on this tenant -->
+                <div v-else class="version-cell">
+                  <span class="cell-missing" title="Artifact not found on this tenant">N/A</span>
+                </div>
+              </ui5-table-cell>
+            </ui5-table-row>
+          </ui5-table>
+        </ui5-panel>
 
         <div v-if="filteredPackages.length === 0" class="vcd-empty">
           <ui5-text>No artifacts match the current filters.</ui5-text>
@@ -432,80 +448,49 @@ onUnmounted(() => {
 
 .vcd-pkg-filter {
   display: flex;
+  flex-direction: column;
   gap: 0.5rem;
-  align-items: center;
   margin-bottom: 1rem;
   padding: 0.5rem 0.75rem;
   background: var(--sapGroup_TitleBackground);
   border-radius: 0.25rem;
+}
+
+.vcd-pkg-filter-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.vcd-pkg-filter-list {
+  display: flex;
+  gap: 0.5rem;
   flex-wrap: wrap;
+  max-height: 6rem;
+  overflow-y: auto;
+  align-items: center;
 }
 
 .vcd-packages {
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: 1rem;
 }
 
-.vcd-package {
-  border: 1px solid var(--sapGroup_ContentBorderColor);
-  border-radius: 0.375rem;
-  overflow: hidden;
-}
-
-.pkg-header {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 0.5rem 0.75rem;
-  background: var(--sapGroup_TitleBackground);
-}
-
-.table-wrapper {
-  overflow-x: auto;
+.vcd-panel {
+  margin-bottom: 0;
 }
 
 .compare-table {
-  width: 100%;
-  border-collapse: collapse;
   font-size: 0.8125rem;
 }
 
-.compare-table th,
-.compare-table td {
-  padding: 0.5rem 0.625rem;
-  text-align: left;
-  border-bottom: 1px solid var(--sapGroup_ContentBorderColor);
-}
-
-.compare-table th {
-  background: var(--sapList_HeaderBackground);
-  font-weight: 600;
-  position: sticky;
-  top: 0;
-  white-space: nowrap;
-  text-align: center;
-}
-
-.compare-table tbody tr:hover {
-  background: var(--sapList_Hover_Background);
-}
-
 .col-artifact {
-  min-width: 12rem;
   max-width: 18rem;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-.col-type {
-  min-width: 3rem;
-  text-align: center;
-}
-
-.col-version {
-  min-width: 9rem;
+  display: inline-block;
 }
 
 /* Version cell: stacks DT + RT rows vertically */
