@@ -295,7 +295,7 @@ onUnmounted(() => {
           <ui5-table overflow-mode="Scroll" class="compare-table">
             <ui5-table-header-row slot="headerRow">
               <ui5-table-header-cell min-width="180px">Artifact</ui5-table-header-cell>
-              <ui5-table-header-cell width="60px">Type</ui5-table-header-cell>
+              <ui5-table-header-cell width="100px">Type</ui5-table-header-cell>
               <ui5-table-header-cell v-if="sourceTenant" min-width="140px">{{ sourceTenant.name }}</ui5-table-header-cell>
               <ui5-table-header-cell v-for="tenant in targetTenants" :key="tenant.id" min-width="140px">
                 {{ tenant.name }}
@@ -350,8 +350,6 @@ onUnmounted(() => {
                     <span class="version-label">DT</span>
                     <span>{{ versionDisplay(getTenantInfo(art, tenant.id), 'designTime') }}</span>
                     <ui5-tag v-if="getTenantInfo(art, tenant.id)?.designTimeDraft" design="Set2" color-scheme="1" class="draft-tag">DRAFT</ui5-tag>
-                    <span v-if="getTenantInfo(art, tenant.id)?.designTimeMatch === true" class="match-icon">&#10003;</span>
-                    <span v-else-if="getTenantInfo(art, tenant.id)?.designTimeMatch === false" class="mismatch-icon">&#10007;</span>
                   </div>
                   <!-- Runtime row -->
                   <div v-if="showRunTime" class="version-row"
@@ -369,8 +367,7 @@ onUnmounted(() => {
                     >
                       {{ getTenantInfo(art, tenant.id)?.runtimeStatus }}
                     </ui5-tag>
-                    <span v-if="getTenantInfo(art, tenant.id)?.runtimeMatch === true" class="match-icon">&#10003;</span>
-                    <span v-else-if="getTenantInfo(art, tenant.id)?.runtimeMatch === false" class="mismatch-icon">&#10007;</span>
+
                   </div>
                   <!-- Error tooltip -->
                   <div v-if="getTenantInfo(art, tenant.id)?.error" class="version-error" :title="getTenantInfo(art, tenant.id)?.error">
@@ -521,18 +518,6 @@ onUnmounted(() => {
 
 .row-mismatch {
   background: var(--sapErrorBackground);
-}
-
-.match-icon {
-  color: var(--sapPositiveColor);
-  font-weight: bold;
-  margin-left: auto;
-}
-
-.mismatch-icon {
-  color: var(--sapNegativeColor);
-  font-weight: bold;
-  margin-left: auto;
 }
 
 .draft-tag {
