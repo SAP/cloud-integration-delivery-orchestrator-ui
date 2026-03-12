@@ -297,3 +297,10 @@ export interface VersionCompareSummaryItem {
   mismatchedCount: number
   totalArtifacts: number
 }
+
+export interface VersionCompareIncludedPackage {
+  ID: number
+  PackageID: string
+  Description: string
+  CreatedBy: string
+}

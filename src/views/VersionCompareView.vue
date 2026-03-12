@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { GetVersionCompareSummary, TriggerVersionCompare } from '@/service/api'
-import type { VersionCompareSummaryItem, SnapshotStatus } from '@/service/model'
+import { GetVersionCompareSummary, TriggerVersionCompare, GetIncludedPackages, UpdateIncludedPackages } from '@/service/api'
+import type { VersionCompareSummaryItem, SnapshotStatus, VersionCompareIncludedPackage } from '@/service/model'
 import { toLocalTime } from '@/service/consts'
 
 import "@ui5/webcomponents/dist/Card.js"
@@ -11,11 +11,23 @@ import "@ui5/webcomponents/dist/Tag.js"
 import "@ui5/webcomponents/dist/Text.js"
 import "@ui5/webcomponents/dist/Button.js"
 import "@ui5/webcomponents/dist/BusyIndicator.js"
+import "@ui5/webcomponents/dist/Dialog.js"
+import "@ui5/webcomponents/dist/Input.js"
+import "@ui5/webcomponents/dist/Label.js"
+import "@ui5/webcomponents/dist/Toolbar.js"
+import "@ui5/webcomponents/dist/ToolbarButton.js"
 
 const router = useRouter()
 const summaries = ref<VersionCompareSummaryItem[]>([])
 const loading = ref(false)
 const triggeringRules = ref<Set<number>>(new Set())
+
+// --- Included Packages Dialog State ---
+const showIncludedDialog = ref(false)
+const includedPackages = ref<{ packageID: string; description: string }[]>([])
+const savingIncluded = ref(false)
+const newPackageID = ref('')
+const newPackageDesc = ref('')
 
 const loadSummaries = async () => {
   loading.value = true
@@ -67,6 +79,53 @@ const statusLabel = (status: SnapshotStatus): string => {
   }
 }
 
+// --- Included Packages Dialog Logic ---
+
+const openIncludedDialog = async () => {
+  try {
+    const data = await GetIncludedPackages()
+    includedPackages.value = (data.packages ?? []).map(p => ({
+      packageID: p.PackageID,
+      description: p.Description,
+    }))
+  } catch {
+    includedPackages.value = []
+  }
+  newPackageID.value = ''
+  newPackageDesc.value = ''
+  showIncludedDialog.value = true
+}
+
+const addPackage = () => {
+  const id = newPackageID.value.trim()
+  if (!id) return
+  // Prevent duplicates
+  if (includedPackages.value.some(p => p.packageID === id)) {
+    window.$message?.warning?.(`Package "${id}" already in the list`)
+    return
+  }
+  includedPackages.value.push({ packageID: id, description: newPackageDesc.value.trim() })
+  newPackageID.value = ''
+  newPackageDesc.value = ''
+}
+
+const removePackage = (index: number) => {
+  includedPackages.value.splice(index, 1)
+}
+
+const saveIncludedPackages = async () => {
+  savingIncluded.value = true
+  try {
+    await UpdateIncludedPackages(includedPackages.value)
+    window.$message?.success?.('Included packages updated')
+    showIncludedDialog.value = false
+  } catch {
+    // error displayed by http interceptor
+  } finally {
+    savingIncluded.value = false
+  }
+}
+
 onMounted(loadSummaries)
 </script>
 
@@ -74,8 +133,57 @@ onMounted(loadSummaries)
   <div class="vc-container">
     <div class="vc-header">
       <ui5-text style="font-size: 1.25rem; font-weight: bold;">Version Compare</ui5-text>
-      <ui5-button design="Emphasized" @click="loadSummaries" :disabled="loading">Refresh</ui5-button>
+      <div class="vc-header-actions">
+        <ui5-button design="Transparent" icon="action-settings" @click="openIncludedDialog">Manage Included Packages</ui5-button>
+        <ui5-button design="Emphasized" @click="loadSummaries" :disabled="loading">Refresh</ui5-button>
+      </div>
     </div>
+
+    <!-- Included Packages Dialog -->
+    <ui5-dialog :open="showIncludedDialog" @close="showIncludedDialog = false" header-text="Manage Included Packages" style="width: 36rem;">
+      <div class="ipd-content">
+        <ui5-text style="font-size: 0.8rem; color: var(--sapNeutralTextColor); margin-bottom: 0.75rem; display: block;">
+          When the list is empty, all packages are compared. When non-empty, only listed packages are included in version compare.
+        </ui5-text>
+
+        <!-- Add new package -->
+        <div class="ipd-add-row">
+          <ui5-input
+            placeholder="Package ID"
+            :value="newPackageID"
+            @input="newPackageID = ($event as any).target.value"
+            style="flex: 1;"
+          />
+          <ui5-input
+            placeholder="Description (optional)"
+            :value="newPackageDesc"
+            @input="newPackageDesc = ($event as any).target.value"
+            style="flex: 1;"
+          />
+          <ui5-button design="Transparent" icon="add" @click="addPackage" :disabled="!newPackageID.trim()">Add</ui5-button>
+        </div>
+
+        <!-- Current list -->
+        <div class="ipd-list" v-if="includedPackages.length > 0">
+          <div class="ipd-item" v-for="(pkg, index) in includedPackages" :key="index">
+            <div class="ipd-item-info">
+              <ui5-text style="font-weight: 600;">{{ pkg.packageID }}</ui5-text>
+              <ui5-text v-if="pkg.description" style="font-size: 0.75rem; color: var(--sapNeutralTextColor);">{{ pkg.description }}</ui5-text>
+            </div>
+            <ui5-button design="Transparent" icon="delete" @click="removePackage(index)" />
+          </div>
+        </div>
+        <div v-else class="ipd-empty">
+          <ui5-text style="font-size: 0.8rem; color: var(--sapNeutralTextColor); font-style: italic;">
+            No packages configured. All packages will be compared.
+          </ui5-text>
+        </div>
+      </div>
+      <ui5-toolbar slot="footer">
+        <ui5-toolbar-button design="Emphasized" text="Save" @click="saveIncludedPackages" :disabled="savingIncluded" />
+        <ui5-toolbar-button design="Transparent" text="Cancel" @click="showIncludedDialog = false" />
+      </ui5-toolbar>
+    </ui5-dialog>
 
     <ui5-busy-indicator :active="loading" size="M" style="width: 100%;">
       <div class="vc-grid" v-if="summaries.length > 0">
@@ -151,6 +259,11 @@ onMounted(loadSummaries)
   margin-bottom: 1rem;
 }
 
+.vc-header-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
 .vc-grid {
   display: flex;
   flex-wrap: wrap;
@@ -222,5 +335,48 @@ onMounted(loadSummaries)
 .vc-empty {
   text-align: center;
   padding: 3rem;
+}
+
+/* Included Packages Dialog */
+.ipd-content {
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+}
+
+.ipd-add-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.ipd-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  max-height: 20rem;
+  overflow-y: auto;
+}
+
+.ipd-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.375rem 0.5rem;
+  background: var(--sapGroup_ContentBackground);
+  border-radius: 0.25rem;
+  border: 1px solid var(--sapGroup_ContentBorderColor);
+}
+
+.ipd-item-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+
+.ipd-empty {
+  padding: 1.5rem;
+  text-align: center;
 }
 </style>

@@ -1,6 +1,6 @@
 import axios from 'axios'
 import http from './http'
-import type { ApiEndpoint, Artifact, ArtifactTenantOperation, ArtifactVersionHistoryItem, AppCount, CpiTenant, CpiTenantNodeData, DeliverOpRequest, DeliveryRequest, DeliveryRule, NodeTransportRequest, Package, RuntimeArtifact, TransportGroup, TransportNode, TransportRoute, TriggerResult, UserInfo, VersionCompareResponse, VersionCompareSummaryItem } from './model'
+import type { ApiEndpoint, Artifact, ArtifactTenantOperation, ArtifactVersionHistoryItem, AppCount, CpiTenant, CpiTenantNodeData, DeliverOpRequest, DeliveryRequest, DeliveryRule, NodeTransportRequest, Package, RuntimeArtifact, TransportGroup, TransportNode, TransportRoute, TriggerResult, UserInfo, VersionCompareIncludedPackage, VersionCompareResponse, VersionCompareSummaryItem } from './model'
 import type { AggregateStatus, DeployState, ImportState, RequestState } from './statuses'
 
 export const GetDrCounts = () => {
@@ -293,6 +293,14 @@ export const GetVersionCompareSummary = () => {
 
 export const GetVersionCompareCounts = () => {
   return http.get('/api/v1/versionCompare/counts') as Promise<AppCount>
+}
+
+export const GetIncludedPackages = () => {
+  return http.get('/api/v1/versionCompare/includedPackages') as Promise<{ packages: VersionCompareIncludedPackage[] }>
+}
+
+export const UpdateIncludedPackages = (packages: { packageID: string; description: string }[]) => {
+  return http.put('/api/v1/versionCompare/includedPackages', { packages }) as Promise<{ packages: VersionCompareIncludedPackage[] }>
 }
 
 // Cpi tenant operations mapping
