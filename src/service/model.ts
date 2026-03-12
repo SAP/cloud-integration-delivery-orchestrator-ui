@@ -234,3 +234,64 @@ export interface AppCount {
   Total: number
   StatusCounts: {[key: string]: number}
 }
+
+
+// --- Version Compare ---
+
+export type SnapshotStatus = 'running' | 'completed' | 'failed' | 'none'
+export type TriggerStatus = 'running' | 'rate_limited' | 'conflict'
+
+export interface TriggerResult {
+  status: TriggerStatus
+}
+
+export interface VersionCompareTenantInfo {
+  id: number
+  name: string
+  isSource: boolean
+}
+
+export interface VersionCompareArtifactTenantInfo {
+  designTimeVersion?: string
+  designTimeMatch?: boolean | null
+  designTimeDraft?: boolean
+  runtimeVersion?: string
+  runtimeMatch?: boolean | null
+  runtimeStatus?: string
+  error?: string
+}
+
+export interface VersionCompareArtifact {
+  id: string
+  name: string
+  type: string
+  versions: Record<number, VersionCompareArtifactTenantInfo>
+}
+
+export interface VersionComparePackage {
+  packageID: string
+  artifacts: VersionCompareArtifact[]
+}
+
+export interface VersionCompareResponse {
+  status: SnapshotStatus
+  triggeredAt?: string
+  completedAt?: string
+  triggeredBy?: string
+  error?: string
+  tenants?: VersionCompareTenantInfo[]
+  packages?: VersionComparePackage[]
+}
+
+export interface VersionCompareSummaryItem {
+  deliveryRuleID: number
+  deliveryRuleName: string
+  sourceTenantName: string
+  tenantCount: number
+  status: SnapshotStatus
+  triggeredAt?: string
+  completedAt?: string
+  matchedCount: number
+  mismatchedCount: number
+  totalArtifacts: number
+}

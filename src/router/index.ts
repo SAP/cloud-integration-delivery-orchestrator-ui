@@ -34,6 +34,11 @@ const deliveryRuleCounts = async (): Promise<AppCount> => {
   return counts
 }
 
+const versionCompareCounts = async (): Promise<AppCount> => {
+  const counts = (await http.get('/api/v1/versionCompare/counts')) as AppCount
+  return counts
+}
+
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
@@ -53,6 +58,15 @@ const router = createRouter({
           name: 'Delivery Requests',
           component: () => import('@/views/DeliveryRequestListView.vue'),
           meta: { description: 'Transport, Deploy Artifacts to CPI Tenants', statusCount: deliveryRequestCounts,
+              width: '20rem',
+              height: '11rem'
+           }
+        },
+        {
+          path: 'version-compare',
+          name: 'Version Compare',
+          component: () => import('@/views/VersionCompareView.vue'),
+          meta: { description: 'Compare Artifact Versions Across Tenants', statusCount: versionCompareCounts,
               width: '20rem',
               height: '11rem'
            }
@@ -83,6 +97,12 @@ const router = createRouter({
       name: 'Maintain Delivery Request',
       component: () => import('@/views/DeliveryRequestView.vue'),
       props: route => ({ planId: Number(route.params.planId) })
+    },
+    {
+      path: '/jobs/version-compare/:ruleId',
+      name: 'Version Compare Detail',
+      component: () => import('@/views/VersionCompareDetailView.vue'),
+      props: route => ({ ruleId: Number(route.params.ruleId) })
     }
   ]
 })

@@ -1,6 +1,6 @@
 import axios from 'axios'
 import http from './http'
-import type { ApiEndpoint, Artifact, ArtifactTenantOperation, ArtifactVersionHistoryItem, CpiTenant, CpiTenantNodeData, DeliverOpRequest, DeliveryRequest, DeliveryRule, NodeTransportRequest, Package, RuntimeArtifact, TransportGroup, TransportNode, TransportRoute, UserInfo } from './model'
+import type { ApiEndpoint, Artifact, ArtifactTenantOperation, ArtifactVersionHistoryItem, AppCount, CpiTenant, CpiTenantNodeData, DeliverOpRequest, DeliveryRequest, DeliveryRule, NodeTransportRequest, Package, RuntimeArtifact, TransportGroup, TransportNode, TransportRoute, TriggerResult, UserInfo, VersionCompareResponse, VersionCompareSummaryItem } from './model'
 import type { AggregateStatus, DeployState, ImportState, RequestState } from './statuses'
 
 export const GetDrCounts = () => {
@@ -263,6 +263,36 @@ export const DeliveryRuleCheck = async (drID: number, ops: ArtifactTenantOperati
     '/api/v1/deliveryRule/ruleCheck',
     {ops: ops, deliveryRequestID: drID}
   )
+}
+
+// --- Version Compare ---
+
+export const TriggerVersionCompare = (ruleId: number) => {
+  return http.post(`/api/v1/deliveryRule/${ruleId}/versionCompare/trigger`) as Promise<TriggerResult>
+}
+
+export const QueryVersionCompare = (ruleId: number, params?: {
+  packageIDs?: string
+  designTime?: boolean
+  runTime?: boolean
+  mismatchOnly?: boolean
+}) => {
+  return http.get(`/api/v1/deliveryRule/${ruleId}/versionCompare`, {
+    params: {
+      packageIDs: params?.packageIDs,
+      designTime: params?.designTime !== undefined ? String(params.designTime) : undefined,
+      runTime: params?.runTime !== undefined ? String(params.runTime) : undefined,
+      mismatchOnly: params?.mismatchOnly ? 'true' : undefined,
+    }
+  }) as Promise<VersionCompareResponse>
+}
+
+export const GetVersionCompareSummary = () => {
+  return http.get('/api/v1/versionCompare/summary') as Promise<VersionCompareSummaryItem[]>
+}
+
+export const GetVersionCompareCounts = () => {
+  return http.get('/api/v1/versionCompare/counts') as Promise<AppCount>
 }
 
 // Cpi tenant operations mapping
