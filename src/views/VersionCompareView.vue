@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { GetVersionCompareSummary, TriggerVersionCompare, GetIncludedPackages, UpdateIncludedPackages } from '@/service/api'
-import type { VersionCompareSummaryItem, SnapshotStatus, VersionCompareIncludedPackage } from '@/service/model'
+import { GetVersionCompareSummary, TriggerVersionCompare, GetIncludedPackages, UpdateIncludedPackages, GetCpiTenants, GetPackages } from '@/service/api'
+import type { VersionCompareSummaryItem, SnapshotStatus, CpiTenant, Package } from '@/service/model'
 import { toLocalTime } from '@/service/consts'
 
 import "@ui5/webcomponents/dist/Card.js"
@@ -12,10 +12,16 @@ import "@ui5/webcomponents/dist/Text.js"
 import "@ui5/webcomponents/dist/Button.js"
 import "@ui5/webcomponents/dist/BusyIndicator.js"
 import "@ui5/webcomponents/dist/Dialog.js"
-import "@ui5/webcomponents/dist/Input.js"
-import "@ui5/webcomponents/dist/Label.js"
 import "@ui5/webcomponents/dist/Toolbar.js"
 import "@ui5/webcomponents/dist/ToolbarButton.js"
+import "@ui5/webcomponents/dist/Select.js"
+import "@ui5/webcomponents/dist/Option.js"
+import "@ui5/webcomponents/dist/CheckBox.js"
+import "@ui5/webcomponents/dist/Input.js"
+import "@ui5/webcomponents/dist/List.js"
+import "@ui5/webcomponents/dist/ListItemStandard.js"
+import "@ui5/webcomponents/dist/Title.js"
+import "@ui5/webcomponents-icons/dist/search.js"
 
 const router = useRouter()
 const summaries = ref<VersionCompareSummaryItem[]>([])
@@ -24,10 +30,16 @@ const triggeringRules = ref<Set<number>>(new Set())
 
 // --- Included Packages Dialog State ---
 const showIncludedDialog = ref(false)
-const includedPackages = ref<{ packageID: string; description: string }[]>([])
 const savingIncluded = ref(false)
-const newPackageID = ref('')
-const newPackageDesc = ref('')
+const currentIncluded = ref<{ packageID: string; description: string }[]>([])
+
+// Tenant selection state
+const tenants = ref<CpiTenant[]>([])
+const selectedTenantId = ref<number | null>(null)
+const tenantPackages = ref<Package[]>([])
+const loadingPackages = ref(false)
+const checkedPkgIds = ref<Set<string>>(new Set())
+const pkgSearchQuery = ref('')
 
 const loadSummaries = async () => {
   loading.value = true
@@ -81,42 +93,75 @@ const statusLabel = (status: SnapshotStatus): string => {
 
 // --- Included Packages Dialog Logic ---
 
+/** Tenant packages filtered by search keyword */
+const filteredPackages = computed(() => {
+  const q = pkgSearchQuery.value.trim().toLowerCase()
+  if (!q) return tenantPackages.value
+  return tenantPackages.value.filter(p =>
+    p.Id.toLowerCase().includes(q) || p.Name.toLowerCase().includes(q)
+  )
+})
+
 const openIncludedDialog = async () => {
-  try {
-    const data = await GetIncludedPackages()
-    includedPackages.value = (data.packages ?? []).map(p => ({
-      packageID: p.PackageID,
-      description: p.Description,
-    }))
-  } catch {
-    includedPackages.value = []
-  }
-  newPackageID.value = ''
-  newPackageDesc.value = ''
+  // Reset state
+  selectedTenantId.value = null
+  tenantPackages.value = []
+  checkedPkgIds.value = new Set()
+  pkgSearchQuery.value = ''
+
+  // Load whitelist + tenants in parallel
+  const [includedData, tenantData] = await Promise.all([
+    GetIncludedPackages().catch(() => ({ packages: [] as any[] })),
+    GetCpiTenants().catch(() => [] as CpiTenant[]),
+  ])
+
+  // Initialize checked set from current whitelist
+  const pkgs = (includedData.packages ?? [])
+  checkedPkgIds.value = new Set(pkgs.map((p: any) => p.PackageID))
+  currentIncluded.value = pkgs.map((p: any) => ({ packageID: p.PackageID, description: p.Description }))
+  tenants.value = tenantData ?? []
   showIncludedDialog.value = true
 }
 
-const addPackage = () => {
-  const id = newPackageID.value.trim()
-  if (!id) return
-  // Prevent duplicates
-  if (includedPackages.value.some(p => p.packageID === id)) {
-    window.$message?.warning?.(`Package "${id}" already in the list`)
-    return
+const onTenantChange = async (event: Event) => {
+  const value = (event as any).detail?.selectedOption?.value
+  if (!value) return
+  const tenantId = Number(value)
+  selectedTenantId.value = tenantId
+  pkgSearchQuery.value = ''
+
+  const tenant = tenants.value.find(t => t.ID === tenantId)
+  if (!tenant) return
+  loadingPackages.value = true
+  try {
+    tenantPackages.value = (await GetPackages(tenant.CpiEndpoint.name)) ?? []
+  } catch {
+    tenantPackages.value = []
+  } finally {
+    loadingPackages.value = false
   }
-  includedPackages.value.push({ packageID: id, description: newPackageDesc.value.trim() })
-  newPackageID.value = ''
-  newPackageDesc.value = ''
 }
 
-const removePackage = (index: number) => {
-  includedPackages.value.splice(index, 1)
+const togglePkgSelection = (pkgId: string, checked: boolean) => {
+  const next = new Set(checkedPkgIds.value)
+  if (checked) {
+    next.add(pkgId)
+  } else {
+    next.delete(pkgId)
+  }
+  checkedPkgIds.value = next
 }
 
 const saveIncludedPackages = async () => {
   savingIncluded.value = true
   try {
-    await UpdateIncludedPackages(includedPackages.value)
+    // Build list from checked IDs, use tenant package Name as description
+    const pkgMap = new Map(tenantPackages.value.map(p => [p.Id, p.Name]))
+    const packages = [...checkedPkgIds.value].map(id => ({
+      packageID: id,
+      description: pkgMap.get(id) || '',
+    }))
+    await UpdateIncludedPackages(packages)
     window.$message?.success?.('Included packages updated')
     showIncludedDialog.value = false
   } catch {
@@ -140,47 +185,66 @@ onMounted(loadSummaries)
     </div>
 
     <!-- Included Packages Dialog -->
-    <ui5-dialog :open="showIncludedDialog" @close="showIncludedDialog = false" header-text="Manage Included Packages" style="width: 36rem;">
+    <ui5-dialog :open="showIncludedDialog" @close="showIncludedDialog = false" header-text="Manage Included Packages" style="width: 50rem;">
       <div class="ipd-content">
         <ui5-text style="font-size: 0.8rem; color: var(--sapNeutralTextColor); margin-bottom: 0.75rem; display: block;">
-          When the list is empty, all packages are compared. When non-empty, only listed packages are included in version compare.
+          Select a tenant, then check the packages to include in version compare. When nothing is checked, all packages are compared.
         </ui5-text>
 
-        <!-- Add new package -->
-        <div class="ipd-add-row">
-          <ui5-input
-            placeholder="Package ID"
-            :value="newPackageID"
-            @input="newPackageID = ($event as any).target.value"
-            style="flex: 1;"
-          />
-          <ui5-input
-            placeholder="Description (optional)"
-            :value="newPackageDesc"
-            @input="newPackageDesc = ($event as any).target.value"
-            style="flex: 1;"
-          />
-          <ui5-button design="Transparent" icon="add" @click="addPackage" :disabled="!newPackageID.trim()">Add</ui5-button>
+        <!-- Current whitelist (read-only) -->
+        <div v-if="currentIncluded.length > 0" class="ipd-current">
+          <ui5-title level="H5">Currently included ({{ currentIncluded.length }})</ui5-title>
+          <ui5-list class="ipd-current-list">
+            <ui5-li
+              v-for="pkg in currentIncluded"
+              :key="pkg.packageID"
+              :description="pkg.packageID"
+            >{{ pkg.description || pkg.packageID }}</ui5-li>
+          </ui5-list>
         </div>
 
-        <!-- Current list -->
-        <div class="ipd-list" v-if="includedPackages.length > 0">
-          <div class="ipd-item" v-for="(pkg, index) in includedPackages" :key="index">
-            <div class="ipd-item-info">
-              <ui5-text style="font-weight: 600;">{{ pkg.packageID }}</ui5-text>
-              <ui5-text v-if="pkg.description" style="font-size: 0.75rem; color: var(--sapNeutralTextColor);">{{ pkg.description }}</ui5-text>
+        <div class="ipd-tenant-row">
+          <ui5-select style="flex: 1;" @change="onTenantChange">
+            <ui5-option value="" :selected="!selectedTenantId">-- Select a tenant --</ui5-option>
+            <ui5-option v-for="t in tenants" :key="t.ID" :value="String(t.ID)">{{ t.Name }}</ui5-option>
+          </ui5-select>
+        </div>
+
+        <ui5-busy-indicator :active="loadingPackages" size="S" style="width: 100%;">
+          <div v-if="selectedTenantId && !loadingPackages && tenantPackages.length > 0">
+            <ui5-input
+              placeholder="Search packages..."
+              :value="pkgSearchQuery"
+              @input="pkgSearchQuery = ($event as any).target.value"
+              show-clear-icon
+              style="width: 100%; margin-bottom: 0.5rem;"
+            >
+              <ui5-icon slot="icon" name="search" />
+            </ui5-input>
+            <div v-if="filteredPackages.length > 0" class="ipd-pkg-select">
+              <div class="ipd-pkg-item" v-for="pkg in filteredPackages" :key="pkg.Id">
+                <ui5-checkbox
+                  :text="`${pkg.Id} — ${pkg.Name}`"
+                  :checked="checkedPkgIds.has(pkg.Id)"
+                  @change="togglePkgSelection(pkg.Id, ($event as any).target.checked)"
+                />
+              </div>
             </div>
-            <ui5-button design="Transparent" icon="delete" @click="removePackage(index)" />
+            <div v-else class="ipd-empty-available">
+              <ui5-text style="font-size: 0.8rem; color: var(--sapNeutralTextColor); font-style: italic;">
+                No packages match "{{ pkgSearchQuery }}".
+              </ui5-text>
+            </div>
           </div>
-        </div>
-        <div v-else class="ipd-empty">
-          <ui5-text style="font-size: 0.8rem; color: var(--sapNeutralTextColor); font-style: italic;">
-            No packages configured. All packages will be compared.
-          </ui5-text>
-        </div>
+          <div v-else-if="selectedTenantId && !loadingPackages && tenantPackages.length === 0" class="ipd-empty-available">
+            <ui5-text style="font-size: 0.8rem; color: var(--sapNeutralTextColor); font-style: italic;">
+              No packages found in this tenant.
+            </ui5-text>
+          </div>
+        </ui5-busy-indicator>
       </div>
       <ui5-toolbar slot="footer">
-        <ui5-toolbar-button design="Emphasized" text="Save" @click="saveIncludedPackages" :disabled="savingIncluded" />
+        <ui5-toolbar-button design="Emphasized" text="Save" @click="saveIncludedPackages" :disabled="savingIncluded || !selectedTenantId" />
         <ui5-toolbar-button design="Transparent" text="Cancel" @click="showIncludedDialog = false" />
       </ui5-toolbar>
     </ui5-dialog>
@@ -344,39 +408,37 @@ onMounted(loadSummaries)
   flex-direction: column;
 }
 
-.ipd-add-row {
-  display: flex;
-  gap: 0.5rem;
-  align-items: center;
+.ipd-current {
   margin-bottom: 0.75rem;
 }
 
-.ipd-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
+.ipd-current-list {
   max-height: 20rem;
   overflow-y: auto;
 }
 
-.ipd-item {
+.ipd-tenant-row {
   display: flex;
-  justify-content: space-between;
+  gap: 0.5rem;
   align-items: center;
-  padding: 0.375rem 0.5rem;
-  background: var(--sapGroup_ContentBackground);
-  border-radius: 0.25rem;
-  border: 1px solid var(--sapGroup_ContentBorderColor);
+  margin-bottom: 0.5rem;
 }
 
-.ipd-item-info {
+.ipd-pkg-select {
   display: flex;
   flex-direction: column;
   gap: 0.125rem;
+  max-height: 20rem;
+  overflow-y: auto;
+  padding: 0.25rem 0;
 }
 
-.ipd-empty {
-  padding: 1.5rem;
+.ipd-pkg-item {
+  padding: 0.125rem 0;
+}
+
+.ipd-empty-available {
+  padding: 1rem;
   text-align: center;
 }
 </style>

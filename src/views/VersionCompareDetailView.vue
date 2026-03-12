@@ -329,14 +329,14 @@ onUnmounted(() => {
                     <div v-if="showDesignTime" class="version-row">
                       <span class="version-label">DT</span>
                       <span>{{ versionDisplay(getTenantInfo(art, sourceTenant.id), 'designTime') }}</span>
-                      <ui5-tag v-if="getTenantInfo(art, sourceTenant.id)?.designTimeDraft" design="Set2" color-scheme="1" class="draft-tag">DRAFT</ui5-tag>
+                      <ui5-tag v-if="getTenantInfo(art, sourceTenant.id)?.designTimeDraft" design="Critical" class="draft-tag">DRAFT</ui5-tag>
                     </div>
                     <div v-if="showRunTime" class="version-row">
                       <span class="version-label">RT</span>
                       <span>{{ versionDisplay(getTenantInfo(art, sourceTenant.id), 'runTime') }}</span>
                       <ui5-tag
-                        v-if="getTenantInfo(art, sourceTenant.id)?.runtimeStatus"
-                        :design="getTenantInfo(art, sourceTenant.id)?.runtimeStatus === 'STARTED' ? 'Positive' : 'Negative'"
+                        v-if="getTenantInfo(art, sourceTenant.id)?.runtimeStatus && getTenantInfo(art, sourceTenant.id)?.runtimeStatus !== 'STARTED'"
+                        design="Negative"
                         class="rt-status-tag"
                       >
                         {{ getTenantInfo(art, sourceTenant.id)?.runtimeStatus }}
@@ -359,7 +359,7 @@ onUnmounted(() => {
                   >
                     <span class="version-label">DT</span>
                     <span>{{ versionDisplay(getTenantInfo(art, tenant.id), 'designTime') }}</span>
-                    <ui5-tag v-if="getTenantInfo(art, tenant.id)?.designTimeDraft" design="Set2" color-scheme="1" class="draft-tag">DRAFT</ui5-tag>
+                    <ui5-tag v-if="getTenantInfo(art, tenant.id)?.designTimeDraft" design="Critical" class="draft-tag">DRAFT</ui5-tag>
                   </div>
                   <!-- Runtime row -->
                   <div v-if="showRunTime" class="version-row"
@@ -371,8 +371,8 @@ onUnmounted(() => {
                     <span class="version-label">RT</span>
                     <span>{{ versionDisplay(getTenantInfo(art, tenant.id), 'runTime') }}</span>
                     <ui5-tag
-                      v-if="getTenantInfo(art, tenant.id)?.runtimeStatus"
-                      :design="getTenantInfo(art, tenant.id)?.runtimeStatus === 'STARTED' ? 'Positive' : 'Negative'"
+                      v-if="getTenantInfo(art, tenant.id)?.runtimeStatus && getTenantInfo(art, tenant.id)?.runtimeStatus !== 'STARTED'"
+                      design="Negative"
                       class="rt-status-tag"
                     >
                       {{ getTenantInfo(art, tenant.id)?.runtimeStatus }}
