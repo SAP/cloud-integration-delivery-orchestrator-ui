@@ -296,6 +296,18 @@
               <ui5-title size="H6">
                 Selected Artifacts ({{ selArtifactOps.length }})
               </ui5-title>
+              <!-- Missing TR warning for saved ops with empty TR (e.g. auto-created from Version Compare) -->
+              <div v-if="missingTrOps.length > 0" style="display: flex; align-items: center; gap: 8px;">
+                <ui5-message-strip design="Critical" :hide-close-button="true" style="width: fit-content;">
+                  {{ missingTrOps.length }} artifact(s) missing Transport Request numbers. Generate TRs before requesting approval.
+                </ui5-message-strip>
+                <ui5-button
+                  @click="batchGenTrs"
+                  :loading="generatingTrsLoading"
+                  design="Transparent">
+                    Generate TRs for All Missing
+                </ui5-button>
+              </div>
               <div style="display: flex; flex-direction: column; gap:10px">
                 <!-- old(source) artifacts + draft source artifacts -->
                 <div style="display: flex; flex-direction: row; gap: 8px; flex-wrap: wrap;">
@@ -305,13 +317,12 @@
                   />
                 </div>
                 <!-- artifacts to be added -->
-                <div v-if="addOps && addOps.length > 0" style="display: flex; flex-direction: column;">
-                  <ui5-title size="H6" style="margin-bottom: 2px;">
+                <div v-if="addOps && addOps.length > 0" style="display: flex; flex-direction: column; margin-top: 10px; gap: 8px;">
+                  <ui5-title size="H6">
                     <span style="color: var(--sapPositiveColor);">New ({{ addOps.length }})</span>
                   </ui5-title>
                   <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
-                    <ui5-label style="color: var(--sapNegativeColor);">*Please fill in TRs before saving</ui5-label>
-                    <div style="width: 1px; height: 16px; background-color: #ccc;"></div>
+                    <ui5-message-strip design="Critical" :hide-close-button="true" style="width: fit-content;">TRs required before requesting approval</ui5-message-strip>
                     <ui5-button
                       @click="batchGenTrs"
                       :loading="generatingTrsLoading"
@@ -369,16 +380,18 @@
                 :loading="approveStepLoading"
                 :loading-delay="0"
                 @click="handleApprove"
-                :tooltip="approveInfo.disable ? 'Cannot approve your own request' : 'Force Deliver'">
+                :tooltip="approveInfo.tooltip">
                 {{ approveInfo.display }}
               </ui5-button>
 
               <ui5-button 
                 design="Transparent" 
                 v-if="deliveryRequest.Approvers" 
+                :disabled="missingTrOps.length > 0"
                 :loading="approveStepLoading" 
                 :loading-delay="0"
-                @click="handleRequestApprove">
+                @click="handleRequestApprove"
+                :tooltip="missingTrOps.length > 0 ? 'Generate all Transport Requests before sending approval' : ''">
                 Send To Approvers
               </ui5-button>
 
@@ -419,7 +432,8 @@
       <ui5-wizard-step id="step4" title-text="Logs">
         <div style="display: flex; flex-direction: column; gap: 10px;">
           <ui5-title>Logs ({{ deliveryRequest.Conditions?.length || 0 }})</ui5-title>
-          <div v-if="deliveryRequest.Conditions && deliveryRequest.Conditions.length">
+          <div v-if="deliveryRequest.Conditions && deliveryRequest.Conditions.length"
+            style="max-height: 400px; overflow-y: auto;">
             <ui5-message-strip
               v-for="(condition, index) in deliveryRequest.Conditions"
               :key="index"
@@ -671,12 +685,8 @@ export default {
         window.$message?.warning?.('Please select a source CPI tenant')
         return
       }
-      for (const a of this.selArtifactOps) {
-        if (!a.TransportRequestNumber || !a.TransportRequestNumber.trim()) {
-          window.$message?.warning?.(`Please provide TR Number for artifact ${a.ArtifactTechID}@${a.ArtifactVersion}`)
-          return
-        }
-      }
+      // No TR validation at save time — backend allows empty TRs (Phase 1).
+      // Missing TRs are enforced at approve/request-approval stage via missingTrOps check.
       try {
         this.updatingOps = true
         // await nextTick()
@@ -798,26 +808,34 @@ export default {
       }
     },
     async batchGenTrs() {
-      if (!this.addOps || this.addOps.length === 0) {
-        window.$message?.warning?.('No new artifacts to generate TRs for')
+      // Collect all ops that need TRs: new addOps + saved ops with empty TR
+      const opsToGen = [...this.addOps.filter(op => !op.TransportRequestNumber || !op.TransportRequestNumber.trim()),
+                         ...this.missingTrOps]
+      if (!opsToGen.length) {
+        window.$message?.warning?.('No artifacts need TR generation')
         return
       }
       this.generatingTrsLoading = true
       try {
         // Generate TR for all artifacts in parallel
         const results = await Promise.allSettled(
-          this.addOps.map(op => this.genSingleTr(op))
+          opsToGen.map(op => this.genSingleTr(op))
         )
         const successResults: { op: ArtifactTenantOperation; trNumber: string }[] = []
         const errorResults: { op: ArtifactTenantOperation; error: string }[] = []
 
         // Process results
         results.forEach((result, index) => {
-          const op = this.addOps[index]
+          const op = opsToGen[index]
           if (result.status === 'fulfilled') {
             const { tr_number } = result.value
             op.TransportRequestNumber = tr_number
             successResults.push({ op, trNumber: tr_number })
+            // Track saved ops as drafts so updateDr() sends the change
+            const isSavedOp = this.sourceOps.find(s => s.ID === op.ID)
+            if (isSavedOp && !this.draftSourceOps.find(d => d.op.ID === op.ID)) {
+              this.draftSourceOps.push({ op: isSavedOp, newTr: tr_number, oldTr: '' })
+            }
           } else {
             const error = result.reason
             const resp = error?.response?.data
@@ -949,19 +967,33 @@ export default {
     selArtifactOps(): ArtifactTenantOperation[] {
       return [...this.sourceOps.filter(op => this.deleteOps.findIndex(d => d.ID === op.ID) < 0), ...this.addOps]
     },
+    // Saved source ops that have empty TransportRequestNumber (e.g. auto-created from Version Compare)
+    missingTrOps(): ArtifactTenantOperation[] {
+      return this.sourceOps.filter(op => !op.TransportRequestNumber || !op.TransportRequestNumber.trim())
+    },
     tenantToOps(): { [key: number]: { [key: string]: ArtifactTenantOperation } } { // only used in delivert flow view
       return TenantOps(this.allOps) || {} // cpi tenant ID - map[trNumber]ArtifactTenantOperation
     },
-    approveInfo(): { disable: boolean, display: string, loading: boolean } {
+    approveInfo(): { disable: boolean, display: string, loading: boolean, tooltip: string } {
       const createdBy = this.uaaUsers[this.deliveryRequest.CreatedBy]?.email
       const currentEmail = this.currentUser?.email
-      if (!createdBy || !currentEmail) return { loading: true, disable: false, display: 'Approve' }
+      if (!createdBy || !currentEmail) return { loading: true, disable: false, display: 'Approve', tooltip: '' }
+      const hasMissingTr = this.missingTrOps.length > 0
+      if (hasMissingTr) {
+        return {
+          disable: true,
+          display: 'Approve',
+          loading: false,
+          tooltip: `${this.missingTrOps.length} artifact(s) missing Transport Request numbers`
+        }
+      }
       const disable = !this.deliveryRequest.DeliveryRule?.SkipApprove && currentEmail === createdBy // disable self approval
       const allowApprove = currentEmail !== createdBy
       return {
         disable: disable,
         display: allowApprove ? 'Approve' : 'Skip Approval',
-        loading: false
+        loading: false,
+        tooltip: disable ? 'Cannot approve your own request' : 'Force Deliver'
       }
     },
     jira(): string {

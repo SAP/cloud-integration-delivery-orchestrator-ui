@@ -9,7 +9,7 @@
 
         {{ artOp.ArtifactTechID }}@{{ artOp.ArtifactVersion }}
         -
-        TR: {{ artOp.TransportRequestNumber }}
+        TR: <template v-if="artOp.TransportRequestNumber">{{ artOp.TransportRequestNumber }}</template><span v-else style="color: var(--sapWarningColor); font-weight: bold;">Required</span>
     </ui5-tag>
 </template>
 <script setup lang="ts">
