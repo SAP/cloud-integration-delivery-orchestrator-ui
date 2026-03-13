@@ -304,3 +304,68 @@ export interface VersionCompareIncludedPackage {
   Description: string
   CreatedBy: string
 }
+
+// --- Auto-Create DR from Version Compare Mismatch ---
+
+export interface ExistingDRInfo {
+  id: number
+  name: string
+}
+
+export interface PreviewDRArtifact {
+  artifactID: string
+  artifactName: string
+  packageID: string
+  type: string
+  sourceVersion: string
+  category: 'includable' | 'draft' | 'versionPattern' | 'duplicate'
+  reason?: string
+  existingDR?: ExistingDRInfo
+}
+
+export interface PreviewDRSummary {
+  totalMismatch: number
+  includable: number
+  draft: number
+  versionPattern: number
+  duplicate: number
+}
+
+export interface PreviewDRResponse {
+  snapshotID: number
+  snapshotCompletedAt: string
+  ruleName: string
+  requireJira: boolean
+  artifacts: PreviewDRArtifact[]
+  summary: PreviewDRSummary
+}
+
+export interface ArtifactKey {
+  artifactID: string
+  packageID: string
+}
+
+export interface CreateDRFromMismatchRequest {
+  name: string
+  jiraLink: string
+  snapshotID: number
+  snapshotCompletedAt: string
+  artifactKeys: ArtifactKey[]
+}
+
+export interface MismatchSkipError {
+  artifactID: string
+  packageID: string
+  reason: string
+}
+
+export interface CreateDRFromMismatchSummary {
+  requested: number
+  created: number
+  errors: MismatchSkipError[]
+}
+
+export interface CreateDRFromMismatchResponse {
+  deliveryRequest: DeliveryRequest
+  summary: CreateDRFromMismatchSummary
+}

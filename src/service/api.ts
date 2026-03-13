@@ -1,6 +1,6 @@
 import axios from 'axios'
 import http from './http'
-import type { ApiEndpoint, Artifact, ArtifactTenantOperation, ArtifactVersionHistoryItem, AppCount, CpiTenant, CpiTenantNodeData, DeliverOpRequest, DeliveryRequest, DeliveryRule, NodeTransportRequest, Package, RuntimeArtifact, TransportGroup, TransportNode, TransportRoute, TriggerResult, UserInfo, VersionCompareIncludedPackage, VersionCompareResponse, VersionCompareSummaryItem } from './model'
+import type { ApiEndpoint, Artifact, ArtifactTenantOperation, ArtifactVersionHistoryItem, AppCount, CpiTenant, CpiTenantNodeData, CreateDRFromMismatchRequest, CreateDRFromMismatchResponse, DeliverOpRequest, DeliveryRequest, DeliveryRule, NodeTransportRequest, Package, PreviewDRResponse, RuntimeArtifact, TransportGroup, TransportNode, TransportRoute, TriggerResult, UserInfo, VersionCompareIncludedPackage, VersionCompareResponse, VersionCompareSummaryItem } from './model'
 import type { AggregateStatus, DeployState, ImportState, RequestState } from './statuses'
 
 export const GetDrCounts = () => {
@@ -301,6 +301,14 @@ export const GetIncludedPackages = () => {
 
 export const UpdateIncludedPackages = (packages: { packageID: string; description: string }[]) => {
   return http.put('/api/v1/versionCompare/includedPackages', { packages }) as Promise<{ packages: VersionCompareIncludedPackage[] }>
+}
+
+export const PreviewDRFromMismatch = (ruleId: number) => {
+  return http.get(`/api/v1/deliveryRule/${ruleId}/versionCompare/previewDR`) as Promise<PreviewDRResponse>
+}
+
+export const CreateDRFromMismatch = (ruleId: number, req: CreateDRFromMismatchRequest) => {
+  return http.post(`/api/v1/deliveryRule/${ruleId}/versionCompare/createDR`, req, { silentError: true }) as Promise<CreateDRFromMismatchResponse>
 }
 
 // Cpi tenant operations mapping

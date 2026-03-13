@@ -130,8 +130,7 @@ export default defineComponent({
         await this.loadDeliveryRequests()
         window.$message?.success?.('Saved')
       } catch (e) {
-        window.$message?.error?.('Failed to save Delivery Plan')
-        // optionally log e
+        // Error displayed by http interceptor
       }
     },
     async handleDelete(rows: DeliveryRequest[]) {
@@ -144,7 +143,7 @@ export default defineComponent({
         await this.loadDeliveryRequests()
         window.$message?.success?.('Deleted')
       } catch (e) {
-        window.$message?.error?.('Failed to delete Delivery Request')
+        // Error displayed by http interceptor
       }
     },
     async uaaUserInfo(userId: string) {

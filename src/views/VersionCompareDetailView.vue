@@ -1,15 +1,19 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { QueryVersionCompare, TriggerVersionCompare, GetDeliveryRule } from '@/service/api'
+import { QueryVersionCompare, TriggerVersionCompare, GetDeliveryRule, PreviewDRFromMismatch, CreateDRFromMismatch } from '@/service/api'
 import type {
   VersionCompareResponse,
   VersionCompareTenantInfo,
   VersionComparePackage,
   VersionCompareArtifact,
   VersionCompareArtifactTenantInfo,
+  PreviewDRResponse,
+  PreviewDRArtifact,
+  CreateDRFromMismatchResponse,
 } from '@/service/model'
 import { toLocalTime } from '@/service/consts'
+import type { HttpError } from '@/service/http'
 
 import "@ui5/webcomponents/dist/Tag.js"
 import "@ui5/webcomponents/dist/Text.js"
@@ -23,6 +27,13 @@ import "@ui5/webcomponents/dist/TableRow.js"
 import "@ui5/webcomponents/dist/TableCell.js"
 import "@ui5/webcomponents/dist/TableHeaderRow.js"
 import "@ui5/webcomponents/dist/TableHeaderCell.js"
+import "@ui5/webcomponents/dist/Dialog.js"
+import "@ui5/webcomponents/dist/Input.js"
+import "@ui5/webcomponents/dist/Label.js"
+import "@ui5/webcomponents/dist/Toolbar.js"
+import "@ui5/webcomponents/dist/ToolbarButton.js"
+import "@ui5/webcomponents/dist/Icon.js"
+import "@ui5/webcomponents-icons/dist/shipping-status.js"
 
 const props = defineProps<{ ruleId: number }>()
 const router = useRouter()
@@ -183,6 +194,158 @@ watch([showDesignTime, showRunTime, mismatchOnly], () => {
   }
 })
 
+// --- Create DR from Mismatch Dialog ---
+
+// Dialog state
+const showDRDialog = ref(false)
+const drDialogStep = ref<'preview' | 'result'>('preview')
+const previewLoading = ref(false)
+const createLoading = ref(false)
+const previewData = ref<PreviewDRResponse | null>(null)
+const createResult = ref<CreateDRFromMismatchResponse | null>(null)
+const createError = ref<HttpError | null>(null)
+
+// User selections in the dialog
+const drName = ref('')
+const drJiraLink = ref('')
+// Track which artifacts are checked (key: `${artifactID}::${packageID}`)
+const checkedArtifacts = ref<Record<string, boolean>>({})
+
+// Artifact search filter
+const artifactSearch = ref('')
+
+// Categorized artifacts from preview
+const includableArtifacts = computed(() =>
+  (previewData.value?.artifacts ?? []).filter(a => a.category === 'includable')
+)
+const duplicateArtifacts = computed(() =>
+  (previewData.value?.artifacts ?? []).filter(a => a.category === 'duplicate')
+)
+const draftArtifacts = computed(() =>
+  (previewData.value?.artifacts ?? []).filter(a => a.category === 'draft')
+)
+const versionPatternArtifacts = computed(() =>
+  (previewData.value?.artifacts ?? []).filter(a => a.category === 'versionPattern')
+)
+
+// Filtered artifacts based on search
+const filterBySearch = (arts: PreviewDRArtifact[]) => {
+  if (!artifactSearch.value.trim()) return arts
+  const q = artifactSearch.value.toLowerCase()
+  return arts.filter(a =>
+    a.artifactID.toLowerCase().includes(q) ||
+    a.artifactName.toLowerCase().includes(q) ||
+    a.packageID.toLowerCase().includes(q)
+  )
+}
+
+const filteredIncludable = computed(() => filterBySearch(includableArtifacts.value))
+const filteredDuplicate = computed(() => filterBySearch(duplicateArtifacts.value))
+const filteredDraft = computed(() => filterBySearch(draftArtifacts.value))
+const filteredVersionPattern = computed(() => filterBySearch(versionPatternArtifacts.value))
+
+const artifactKey = (a: PreviewDRArtifact) => `${a.artifactID}::${a.packageID}`
+
+const selectedCount = computed(() => {
+  return Object.values(checkedArtifacts.value).filter(v => v).length
+})
+
+const typeLabel = (type: string): string => {
+  switch (type) {
+    case 'iflow': return 'IFlow'
+    case 'scriptcollection': return 'SC'
+    case 'valuemapping': return 'VM'
+    default: return type
+  }
+}
+
+const handleOpenDRDialog = async () => {
+  // Reset state
+  drDialogStep.value = 'preview'
+  previewData.value = null
+  createResult.value = null
+  createError.value = null
+  drName.value = ''
+  drJiraLink.value = ''
+  checkedArtifacts.value = {}
+  artifactSearch.value = ''
+  showDRDialog.value = true
+
+  // Load preview
+  previewLoading.value = true
+  try {
+    previewData.value = await PreviewDRFromMismatch(props.ruleId)
+    // Default: check all includable, uncheck duplicates
+    const checked: Record<string, boolean> = {}
+    for (const a of previewData.value.artifacts) {
+      if (a.category === 'includable') {
+        checked[artifactKey(a)] = true
+      }
+      // duplicates: unchecked by default (not in map = false)
+    }
+    checkedArtifacts.value = checked
+    // Pre-fill name from rule
+    drName.value = `Auto DR - ${previewData.value.ruleName} - VC ${previewData.value.snapshotCompletedAt ? toLocalTime(previewData.value.snapshotCompletedAt) : ''}`
+  } catch {
+    // Error displayed by http interceptor; close dialog if no data
+  } finally {
+    previewLoading.value = false
+  }
+}
+
+const handleCreateDR = async () => {
+  if (!previewData.value) return
+
+  // Validate JIRA if required
+  if (previewData.value.requireJira && !drJiraLink.value.trim()) {
+    window.$message?.warning?.('JIRA link is required for this delivery rule')
+    return
+  }
+
+  if (selectedCount.value === 0) {
+    window.$message?.warning?.('Please select at least one artifact')
+    return
+  }
+
+  // Collect selected artifact keys
+  const artifactKeys = (previewData.value.artifacts ?? [])
+    .filter(a => (a.category === 'includable' || a.category === 'duplicate') && checkedArtifacts.value[artifactKey(a)])
+    .map(a => ({ artifactID: a.artifactID, packageID: a.packageID }))
+
+  createLoading.value = true
+  createError.value = null
+  try {
+    createResult.value = await CreateDRFromMismatch(props.ruleId, {
+      name: drName.value.trim(),
+      jiraLink: drJiraLink.value.trim(),
+      snapshotID: previewData.value.snapshotID,
+      snapshotCompletedAt: previewData.value.snapshotCompletedAt,
+      artifactKeys,
+    })
+    drDialogStep.value = 'result'
+    window.$message?.success?.('Delivery Request created successfully')
+  } catch (err: any) {
+    createError.value = err as HttpError
+  } finally {
+    createLoading.value = false
+  }
+}
+
+const handleCloseDRDialog = () => {
+  showDRDialog.value = false
+}
+
+const handleGoToDR = () => {
+  if (createResult.value?.deliveryRequest?.ID) {
+    showDRDialog.value = false
+    router.push(`/delivery-request/${createResult.value.deliveryRequest.ID}`)
+  }
+}
+
+const toggleArtifact = (a: PreviewDRArtifact, checked: boolean) => {
+  checkedArtifacts.value[artifactKey(a)] = checked
+}
+
 onMounted(async () => {
   // Fetch rule name in parallel with snapshot data
   const rulePromise = GetDeliveryRule(props.ruleId).then(r => { ruleName.value = r.Name }).catch(() => {})
@@ -214,6 +377,14 @@ onUnmounted(() => {
         </ui5-tag>
       </div>
       <div class="vcd-header-right">
+        <ui5-button
+          design="Attention"
+          icon="shipping-status"
+          :disabled="data?.status !== 'completed'"
+          @click="handleOpenDRDialog"
+        >
+          Create Delivery Request
+        </ui5-button>
         <ui5-button
           design="Emphasized"
           icon="synchronize"
@@ -420,6 +591,291 @@ onUnmounted(() => {
         <ui5-button design="Emphasized" @click="handleTrigger" style="margin-top: 1rem;">Retry</ui5-button>
       </div>
     </ui5-busy-indicator>
+
+    <!-- Create DR Dialog -->
+    <ui5-dialog
+      :open="showDRDialog"
+      header-text="Create Delivery Request from Mismatches"
+      style="width: 50%; height: 70%;"
+      @before-close="handleCloseDRDialog"
+    >
+      <!-- Step 1: Preview -->
+      <div v-if="drDialogStep === 'preview'" class="dr-dialog-content">
+        <!-- Loading preview data -->
+        <div v-if="previewLoading" class="dr-dialog-loading">
+          <ui5-busy-indicator active size="M" />
+        </div>
+
+        <!-- Creating DR in progress -->
+        <div v-else-if="createLoading" class="dr-dialog-loading">
+          <ui5-busy-indicator active size="M" />
+          <ui5-text style="margin-top: 0.75rem; color: var(--sapNeutralTextColor);">Creating Delivery Request...</ui5-text>
+        </div>
+
+        <!-- Loaded content — all elements are direct children of the flex column container -->
+        <template v-else-if="previewData">
+          <!-- Error banner (shown after failed create attempt) -->
+          <div v-if="createError" class="dr-error-banner">
+            <ui5-tag design="Negative">Error</ui5-tag>
+            <ui5-text style="color: var(--sapNegativeColor);">{{ createError.message }}</ui5-text>
+          </div>
+
+          <!-- Skip errors from failed create (if backend returned validation details) -->
+          <ui5-panel
+            v-if="createError?.data?.result?.errors?.length"
+            :header-text="`Validation Errors (${createError.data.result.errors.length})`"
+            class="dr-category-panel dr-category-warn"
+          >
+            <ui5-table class="dr-artifact-table" no-data-text="">
+              <ui5-table-header-row slot="headerRow">
+                <ui5-table-header-cell>Artifact</ui5-table-header-cell>
+                <ui5-table-header-cell>Package</ui5-table-header-cell>
+                <ui5-table-header-cell>Reason</ui5-table-header-cell>
+              </ui5-table-header-row>
+              <ui5-table-row v-for="e in createError.data.result.errors" :key="`err-${e.artifactID}::${e.packageID}`">
+                <ui5-table-cell><span class="dr-cell-ellipsis">{{ e.artifactID }}</span></ui5-table-cell>
+                <ui5-table-cell><span class="dr-cell-secondary">{{ e.packageID }}</span></ui5-table-cell>
+                <ui5-table-cell><ui5-tag design="Negative" style="font-size: 0.65rem;">{{ e.reason }}</ui5-tag></ui5-table-cell>
+              </ui5-table-row>
+            </ui5-table>
+          </ui5-panel>
+
+          <!-- Meta -->
+          <div class="dr-dialog-meta">
+            <ui5-text style="font-size: 0.85rem;">
+              Rule: <strong>{{ previewData.ruleName }}</strong>
+            </ui5-text>
+            <ui5-text style="font-size: 0.85rem;">
+              Snapshot: {{ previewData.snapshotCompletedAt ? toLocalTime(previewData.snapshotCompletedAt) : '-' }}
+            </ui5-text>
+            <ui5-text style="font-size: 0.85rem;">
+              Total mismatches: <strong>{{ previewData.summary.totalMismatch }}</strong>
+            </ui5-text>
+          </div>
+
+          <!-- Artifacts section -->
+          <div class="dr-section-divider">
+            <span class="dr-section-label">Artifacts</span>
+          </div>
+
+          <!-- Search -->
+          <ui5-input
+            placeholder="Search artifacts..."
+            :value="artifactSearch"
+            @input="artifactSearch = ($event as any).target.value"
+            show-clear-icon
+            style="width: 100%;"
+          />
+
+          <!-- Includable -->
+          <ui5-panel
+            v-if="filteredIncludable.length > 0"
+            :header-text="`Includable (${includableArtifacts.length})`"
+            class="dr-category-panel"
+          >
+            <ui5-table class="dr-artifact-table" no-data-text="">
+              <ui5-table-header-row slot="headerRow">
+                <ui5-table-header-cell width="65px"></ui5-table-header-cell>
+                <ui5-table-header-cell>Artifact</ui5-table-header-cell>
+                <ui5-table-header-cell>Package</ui5-table-header-cell>
+                <ui5-table-header-cell>Type</ui5-table-header-cell>
+                <ui5-table-header-cell>Version</ui5-table-header-cell>
+              </ui5-table-header-row>
+              <ui5-table-row v-for="a in filteredIncludable" :key="artifactKey(a)">
+                <ui5-table-cell>
+                  <ui5-checkbox
+                    :checked="checkedArtifacts[artifactKey(a)] === true"
+                    @change="toggleArtifact(a, ($event as any).target.checked)"
+                  />
+                </ui5-table-cell>
+                <ui5-table-cell><span :title="a.artifactName" class="dr-cell-ellipsis">{{ a.artifactID }}</span></ui5-table-cell>
+                <ui5-table-cell><span class="dr-cell-secondary">{{ a.packageID }}</span></ui5-table-cell>
+                <ui5-table-cell><ui5-tag design="Set2" color-scheme="6" style="font-size: 0.65rem;">{{ typeLabel(a.type) }}</ui5-tag></ui5-table-cell>
+                <ui5-table-cell><span class="dr-cell-version">{{ a.sourceVersion }}</span></ui5-table-cell>
+              </ui5-table-row>
+            </ui5-table>
+          </ui5-panel>
+
+          <!-- Duplicate -->
+          <ui5-panel
+            v-if="filteredDuplicate.length > 0"
+            :header-text="`Already in Active DR (${duplicateArtifacts.length}) - check to include`"
+            class="dr-category-panel dr-category-warn"
+          >
+            <ui5-table class="dr-artifact-table" no-data-text="">
+              <ui5-table-header-row slot="headerRow">
+                <ui5-table-header-cell width="65px"></ui5-table-header-cell>
+                <ui5-table-header-cell>Artifact</ui5-table-header-cell>
+                <ui5-table-header-cell>Package</ui5-table-header-cell>
+                <ui5-table-header-cell>Type</ui5-table-header-cell>
+                <ui5-table-header-cell>Version</ui5-table-header-cell>
+                <ui5-table-header-cell>Existing DR</ui5-table-header-cell>
+              </ui5-table-header-row>
+              <ui5-table-row v-for="a in filteredDuplicate" :key="artifactKey(a)">
+                <ui5-table-cell>
+                  <ui5-checkbox
+                    :checked="checkedArtifacts[artifactKey(a)] === true"
+                    @change="toggleArtifact(a, ($event as any).target.checked)"
+                  />
+                </ui5-table-cell>
+                <ui5-table-cell><span :title="a.artifactName" class="dr-cell-ellipsis">{{ a.artifactID }}</span></ui5-table-cell>
+                <ui5-table-cell><span class="dr-cell-secondary">{{ a.packageID }}</span></ui5-table-cell>
+                <ui5-table-cell><ui5-tag design="Set2" color-scheme="6" style="font-size: 0.65rem;">{{ typeLabel(a.type) }}</ui5-tag></ui5-table-cell>
+                <ui5-table-cell><span class="dr-cell-version">{{ a.sourceVersion }}</span></ui5-table-cell>
+                <ui5-table-cell>
+                  <ui5-tag v-if="a.existingDR" design="Critical" style="font-size: 0.65rem;">
+                    DR #{{ a.existingDR.id }} {{ a.existingDR.name }}
+                  </ui5-tag>
+                </ui5-table-cell>
+              </ui5-table-row>
+            </ui5-table>
+          </ui5-panel>
+
+          <!-- Draft (disabled) -->
+          <ui5-panel
+            v-if="filteredDraft.length > 0"
+            :header-text="`Excluded (${draftArtifacts.length}) - DRAFT`"
+            class="dr-category-panel dr-category-disabled"
+            collapsed
+          >
+            <ui5-table class="dr-artifact-table" no-data-text="">
+              <ui5-table-header-row slot="headerRow">
+                <ui5-table-header-cell>Artifact</ui5-table-header-cell>
+                <ui5-table-header-cell>Package</ui5-table-header-cell>
+                <ui5-table-header-cell>Type</ui5-table-header-cell>
+                <ui5-table-header-cell>Status</ui5-table-header-cell>
+              </ui5-table-header-row>
+              <ui5-table-row v-for="a in filteredDraft" :key="artifactKey(a)">
+                <ui5-table-cell><span class="dr-cell-ellipsis">{{ a.artifactID }}</span></ui5-table-cell>
+                <ui5-table-cell><span class="dr-cell-secondary">{{ a.packageID }}</span></ui5-table-cell>
+                <ui5-table-cell><ui5-tag design="Set2" color-scheme="6" style="font-size: 0.65rem;">{{ typeLabel(a.type) }}</ui5-tag></ui5-table-cell>
+                <ui5-table-cell><ui5-tag design="Critical" style="font-size: 0.65rem;">DRAFT</ui5-tag></ui5-table-cell>
+              </ui5-table-row>
+            </ui5-table>
+          </ui5-panel>
+
+          <!-- Version Pattern (disabled) -->
+          <ui5-panel
+            v-if="filteredVersionPattern.length > 0"
+            :header-text="`Excluded (${versionPatternArtifacts.length}) - Version Pattern`"
+            class="dr-category-panel dr-category-disabled"
+            collapsed
+          >
+            <ui5-table class="dr-artifact-table" no-data-text="">
+              <ui5-table-header-row slot="headerRow">
+                <ui5-table-header-cell>Artifact</ui5-table-header-cell>
+                <ui5-table-header-cell>Package</ui5-table-header-cell>
+                <ui5-table-header-cell>Type</ui5-table-header-cell>
+                <ui5-table-header-cell>Version</ui5-table-header-cell>
+                <ui5-table-header-cell>Reason</ui5-table-header-cell>
+              </ui5-table-header-row>
+              <ui5-table-row v-for="a in filteredVersionPattern" :key="artifactKey(a)">
+                <ui5-table-cell><span class="dr-cell-ellipsis">{{ a.artifactID }}</span></ui5-table-cell>
+                <ui5-table-cell><span class="dr-cell-secondary">{{ a.packageID }}</span></ui5-table-cell>
+                <ui5-table-cell><ui5-tag design="Set2" color-scheme="6" style="font-size: 0.65rem;">{{ typeLabel(a.type) }}</ui5-tag></ui5-table-cell>
+                <ui5-table-cell><span class="dr-cell-version">{{ a.sourceVersion }}</span></ui5-table-cell>
+                <ui5-table-cell>
+                  <ui5-tag v-if="a.reason" design="Negative" :title="a.reason" style="font-size: 0.65rem;">{{ a.reason }}</ui5-tag>
+                </ui5-table-cell>
+              </ui5-table-row>
+            </ui5-table>
+          </ui5-panel>
+
+          <!-- No selectable artifacts -->
+          <div v-if="previewData.summary.includable === 0 && previewData.summary.duplicate === 0" class="dr-dialog-empty">
+            <ui5-text>No selectable artifacts found. All mismatches are excluded (DRAFT or Version Pattern).</ui5-text>
+          </div>
+
+          <!-- DR Details section -->
+          <div class="dr-section-divider" v-if="previewData.summary.includable > 0 || previewData.summary.duplicate > 0">
+            <span class="dr-section-label">DR Details</span>
+          </div>
+
+          <div class="dr-dialog-form" v-if="previewData.summary.includable > 0 || previewData.summary.duplicate > 0">
+            <div class="dr-form-field">
+              <ui5-label style="font-weight: bold;">Name:</ui5-label>
+              <ui5-input
+                :value="drName"
+                @input="drName = ($event as any).target.value"
+                placeholder="Delivery Request Name"
+                style="width: 100%;"
+              />
+            </div>
+            <div class="dr-form-field">
+              <ui5-label style="font-weight: bold;" :required="previewData.requireJira">JIRA Link:</ui5-label>
+              <ui5-input
+                :value="drJiraLink"
+                @input="drJiraLink = ($event as any).target.value"
+                placeholder="e.g. https://jira.example.com/browse/PROJ-123"
+                style="width: 100%;"
+              />
+            </div>
+          </div>
+        </template>
+
+        <!-- Preview load failed / no data -->
+        <div v-else class="dr-dialog-empty">
+          <ui5-text>Failed to load preview data. Please close and try again.</ui5-text>
+        </div>
+      </div>
+
+      <!-- Step 2: Result -->
+      <div v-else-if="drDialogStep === 'result' && createResult" class="dr-dialog-content">
+        <div class="dr-result-header">
+          <ui5-tag design="Positive">Created</ui5-tag>
+          <ui5-text style="font-weight: bold; font-size: 1rem;">
+            DR #{{ createResult.deliveryRequest.ID }} "{{ createResult.deliveryRequest.Name }}"
+          </ui5-text>
+        </div>
+
+        <div class="dr-result-summary">
+          <ui5-text>Created: {{ createResult.summary.created }} artifact operations</ui5-text>
+          <ui5-text v-if="createResult.summary.errors?.length">
+            Skipped: {{ createResult.summary.errors.length }} artifacts
+          </ui5-text>
+        </div>
+
+        <!-- Errors list -->
+        <ui5-panel
+          v-if="createResult.summary.errors?.length"
+          :header-text="`Skipped Artifacts (${createResult.summary.errors.length})`"
+          class="dr-category-panel dr-category-warn"
+        >
+          <div class="dr-artifact-list">
+            <div v-for="e in createResult.summary.errors" :key="`${e.artifactID}::${e.packageID}`" class="dr-artifact-row dr-row-disabled">
+              <span class="dr-art-id">{{ e.artifactID }}</span>
+              <span class="dr-art-pkg">{{ e.packageID }}</span>
+              <ui5-tag design="Negative">{{ e.reason }}</ui5-tag>
+            </div>
+          </div>
+        </ui5-panel>
+
+        <div class="dr-result-next">
+          <ui5-text style="font-size: 0.85rem; color: var(--sapNeutralTextColor);">
+            Next: Go to the Delivery Request detail page to generate Transport Requests.
+          </ui5-text>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <ui5-toolbar slot="footer">
+        <!-- Preview step footer -->
+        <template v-if="drDialogStep === 'preview'">
+          <ui5-toolbar-button
+            design="Emphasized"
+            :text="`Create (${selectedCount} artifacts)`"
+            :disabled="selectedCount === 0 || createLoading || previewLoading"
+            @click="handleCreateDR"
+          />
+          <ui5-toolbar-button design="Transparent" text="Cancel" @click="handleCloseDRDialog" />
+        </template>
+        <!-- Result step footer -->
+        <template v-else>
+          <ui5-toolbar-button design="Emphasized" text="Go to Delivery Request" @click="handleGoToDR" />
+          <ui5-toolbar-button design="Transparent" text="Close" @click="handleCloseDRDialog" />
+        </template>
+      </ui5-toolbar>
+    </ui5-dialog>
   </div>
 </template>
 
@@ -577,5 +1033,189 @@ onUnmounted(() => {
   flex-direction: column;
   align-items: center;
   padding: 3rem;
+}
+
+/* --- Create DR Dialog --- */
+
+.dr-error-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  background: var(--sapErrorBackground);
+  border-radius: 0.25rem;
+}
+
+.dr-dialog-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 0.5rem 0;
+  min-height: 12rem;
+}
+
+.dr-dialog-loading {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 3rem 0;
+}
+
+.dr-dialog-meta {
+  display: flex;
+  gap: 1.5rem;
+  align-items: center;
+  padding: 0.5rem 0.75rem;
+  background: var(--sapGroup_ContentBackground);
+  border-radius: 0.25rem;
+  margin-bottom: 0.25rem;
+}
+
+.dr-section-divider {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 0.25rem 0;
+}
+
+.dr-section-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--sapGroup_ContentBorderColor);
+}
+
+.dr-section-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--sapNeutralTextColor);
+  white-space: nowrap;
+}
+
+.dr-category-panel {
+  margin-bottom: 0.25rem;
+}
+
+.dr-category-warn {
+  --_ui5_panel_header_background_color: var(--sapWarningBackground);
+}
+
+.dr-category-disabled {
+  opacity: 0.7;
+}
+
+/* Dialog artifact tables */
+.dr-artifact-table {
+  width: 100%;
+  max-height: 15rem;
+  overflow-y: auto;
+  font-size: 0.8125rem;
+}
+
+.dr-cell-ellipsis {
+  font-weight: 500;
+  word-break: break-all;
+}
+
+.dr-cell-secondary {
+  font-size: 0.8rem;
+  color: var(--sapNeutralTextColor);
+  word-break: break-all;
+}
+
+.dr-cell-version {
+  font-size: 0.8rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* Result step error list */
+.dr-artifact-list {
+  display: flex;
+  flex-direction: column;
+  max-height: 15rem;
+  overflow-y: auto;
+  padding: 0.25rem 0;
+}
+
+.dr-artifact-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.3rem 0.5rem;
+  font-size: 0.8125rem;
+  border-bottom: 1px solid var(--sapGroup_ContentBorderColor);
+}
+
+.dr-artifact-row:last-child {
+  border-bottom: none;
+}
+
+.dr-row-disabled {
+  opacity: 0.6;
+}
+
+.dr-art-id {
+  width: 14rem;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 500;
+  flex-shrink: 0;
+}
+
+.dr-art-pkg {
+  width: 10rem;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.8rem;
+  color: var(--sapNeutralTextColor);
+  flex-shrink: 0;
+}
+
+.dr-dialog-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.dr-form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.dr-dialog-empty {
+  display: flex;
+  justify-content: center;
+  padding: 2rem;
+}
+
+/* Result step */
+.dr-result-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  background: var(--sapSuccessBackground);
+  border-radius: 0.25rem;
+}
+
+.dr-result-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.5rem 0;
+}
+
+.dr-result-next {
+  padding: 0.75rem;
+  background: var(--sapInformationBackground);
+  border-radius: 0.25rem;
+  margin-top: 0.5rem;
 }
 </style>
