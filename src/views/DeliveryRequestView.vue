@@ -85,7 +85,12 @@
           <ui5-table-row>
             <ui5-table-cell>{{ artifactOpDetial.RequestState }}</ui5-table-cell>
             <ui5-table-cell>{{ artifactOpDetial.ImportState }}</ui5-table-cell>
-            <ui5-table-cell>{{ artifactOpDetial.DeployState }}</ui5-table-cell>
+            <ui5-table-cell>
+              <template v-if="artifactOpDetial.SkipDeploy">
+                <ui5-tag design="Set2" color-scheme="2" title="Deploy skipped — this artifact only requires import">Skipped</ui5-tag>
+              </template>
+              <template v-else>{{ artifactOpDetial.DeployState }}</template>
+            </ui5-table-cell>
           </ui5-table-row>
         </ui5-table>
         <!-- Transport Request Number -->
@@ -130,7 +135,12 @@
         :text="isArtifactSelected(artifactDetail.PackageID, artifactDetail) ? 'Unselect' : 'Select'"
         @click="toggleArtifact(artifactDetail.PackageID, artifactDetail)">
       </ui5-toolbar-button>
-      <ui5-toolbar-button text="Disable" />
+      <ui5-toolbar-button
+        v-if="artifactOpDetial.ID !== undefined"
+        :text="artifactOpDetial.SkipDeploy ? 'Enable Deploy' : 'Skip Deploy'"
+        :design="artifactOpDetial.SkipDeploy ? 'Positive' : 'Attention'"
+        :tooltip="artifactOpDetial.SkipDeploy ? 'Re-enable deploy phase for this artifact' : 'Skip deploy phase — artifact only requires import'"
+        @click="handleToggleSkipDeploy" />
       <ui5-toolbar-button class="dialogCloser" design="Transparent" text="Cancel"
         @click="showArtifactDetails = false" />
     </ui5-toolbar>
@@ -331,7 +341,8 @@
                     </ui5-button>
                   </div>
                   <div style="display: flex; flex-direction: row; gap: 8px; flex-wrap: wrap;">
-                    <ArtifactOpTag v-for="(op, i) in addOps" :i="i" :art-op="op" :stage-type="stateType(op)"
+                    <ArtifactOpTag v-for="(op, i) in addOps" :key="`add-${op.ArtifactTechID}@${op.ArtifactVersion}`"
+                      :i="i" :art-op="op" :stage-type="stateType(op)"
                       @open-artifact-details="openArtifactDetails" />
                   </div>
                 </div>
@@ -524,6 +535,7 @@ import "@ui5/webcomponents/dist/SegmentedButton.js";
 import "@ui5/webcomponents/dist/SegmentedButtonItem.js";
 import "@ui5/webcomponents/dist/MultiComboBox.js";
 import "@ui5/webcomponents/dist/MultiComboBoxItem.js";
+import "@ui5/webcomponents/dist/CheckBox.js";
 import "@ui5/webcomponents/dist/Table.js";
 import "@ui5/webcomponents/dist/TableRow.js";
 import "@ui5/webcomponents/dist/TableCell.js";
@@ -858,6 +870,29 @@ export default {
         this.generatingTrsLoading = false
       }
     },
+    handleToggleSkipDeploy() {
+      const op = this.artifactOpDetial
+      if (!op || op.ID === undefined) return
+
+      const deployBlocked = ['IN_PROGRESS', 'COMPLETE', 'QUEUED', 'FAILED'].some(
+        s => op.DeployState === s || op.DeployState === `DEPLOY_${s}`
+      )
+      if (deployBlocked && !op.SkipDeploy) {
+        window.$message?.warning?.(`Cannot skip deploy: deploy state is ${op.DeployState}`)
+        return
+      }
+
+      op.SkipDeploy = !op.SkipDeploy
+      op.DeployState = op.SkipDeploy ? 'DEPLOY_DISABLED' : 'NOT_STARTED'
+
+      const isNewOp = this.addOps.find(a => a.ArtifactTechID === op.ArtifactTechID && a.ArtifactVersion === op.ArtifactVersion)
+      if (!isNewOp) {
+        const existing = this.draftSourceOps.find(d => d.op.ID === op.ID)
+        if (!existing) {
+          this.draftSourceOps.push({ op, newTr: op.TransportRequestNumber, oldTr: op.TransportRequestNumber })
+        }
+      }
+    },
     openArtifactDetails(a: Artifact, op?: ArtifactTenantOperation) {
       this.artifactDetail = a
       this.showArtifactDetails = true
@@ -947,6 +982,7 @@ export default {
               RequestState: "NOT_REQUESTED",
               ImportState: 'NOT_STARTED',
               DeployState: 'NOT_STARTED',
+              SkipDeploy: false,
             } as ArtifactTenantOperation
           })
       },

@@ -10,6 +10,7 @@
         {{ artOp.ArtifactTechID }}@{{ artOp.ArtifactVersion }}
         -
         TR: <template v-if="artOp.TransportRequestNumber">{{ artOp.TransportRequestNumber }}</template><span v-else style="color: var(--sapWarningColor); font-weight: bold;">Required</span>
+        <span v-if="artOp.SkipDeploy" style="margin-left: 4px; color: var(--sapNeutralColor); font-style: italic;" title="Deploy skipped — this artifact only requires import">(Skip Deploy)</span>
     </ui5-tag>
 </template>
 <script setup lang="ts">

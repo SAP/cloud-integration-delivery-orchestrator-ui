@@ -353,16 +353,16 @@ export const DeriveNodeAgg = (ops: ArtifactTenantOperation[]): AggregateStatus =
 
   // 3. Deployment failures / progress / completion
   if (any(deployStates, ['FAILED'])) return 'DEPLOY_FAILED'
-  if (all(deployStates, ['COMPLETE'])) return 'DEPLOYED'
+  if (all(deployStates, ['COMPLETE', 'DEPLOY_DISABLED'])) return 'DEPLOYED'
   if (any(deployStates, ['IN_PROGRESS'])) return 'DEPLOYING'
   if (all(deployStates, ['QUEUED'])) return 'AWAITING_DEPLOY'
 
   // 4. Import completed, but deploy not started yet
-  if (all(importStates, ['COMPLETE']) && all(deployStates, ['NOT_STARTED'])) {
+  if (all(importStates, ['COMPLETE', 'IMPORT_DISABLED']) && all(deployStates, ['NOT_STARTED', 'DEPLOY_DISABLED'])) {
     return 'AWAITING_DEPLOY'
   }
   // 5. Import completed with mixed deploy states (QUEUED mixed with other states)
-  if (all(importStates, ['COMPLETE']) && deployStates.length > 0) {
+  if (all(importStates, ['COMPLETE', 'IMPORT_DISABLED']) && deployStates.length > 0) {
     return 'IMPORTED'
   }
 

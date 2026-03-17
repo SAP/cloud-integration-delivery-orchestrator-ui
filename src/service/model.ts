@@ -25,6 +25,8 @@ export interface ArtifactTenantOperation {
   ImportState: ImportState
   DeployState: DeployState
 
+  SkipDeploy: boolean
+
   LastError: string
   RetryCountImport: number
   RetryCountDeploy: number
@@ -343,6 +345,7 @@ export interface PreviewDRResponse {
 export interface ArtifactKey {
   artifactID: string
   packageID: string
+  skipDeploy?: boolean
 }
 
 export interface CreateDRFromMismatchRequest {

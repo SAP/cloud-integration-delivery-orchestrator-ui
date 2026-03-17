@@ -210,6 +210,8 @@ const drName = ref('')
 const drJiraLink = ref('')
 // Track which artifacts are checked (key: `${artifactID}::${packageID}`)
 const checkedArtifacts = ref<Record<string, boolean>>({})
+// Track which artifacts have skip deploy enabled (key: `${artifactID}::${packageID}`)
+const skipDeployArtifacts = ref<Record<string, boolean>>({})
 
 // Artifact search filter
 const artifactSearch = ref('')
@@ -268,6 +270,7 @@ const handleOpenDRDialog = async () => {
   drName.value = ''
   drJiraLink.value = ''
   checkedArtifacts.value = {}
+  skipDeployArtifacts.value = {}
   artifactSearch.value = ''
   showDRDialog.value = true
 
@@ -307,10 +310,10 @@ const handleCreateDR = async () => {
     return
   }
 
-  // Collect selected artifact keys
+  // Collect selected artifact keys with skipDeploy config
   const artifactKeys = (previewData.value.artifacts ?? [])
     .filter(a => (a.category === 'includable' || a.category === 'duplicate') && checkedArtifacts.value[artifactKey(a)])
-    .map(a => ({ artifactID: a.artifactID, packageID: a.packageID }))
+    .map(a => ({ artifactID: a.artifactID, packageID: a.packageID, skipDeploy: skipDeployArtifacts.value[artifactKey(a)] === true }))
 
   createLoading.value = true
   createError.value = null
@@ -680,6 +683,7 @@ onUnmounted(() => {
                 <ui5-table-header-cell>Package</ui5-table-header-cell>
                 <ui5-table-header-cell>Type</ui5-table-header-cell>
                 <ui5-table-header-cell>Version</ui5-table-header-cell>
+                <ui5-table-header-cell width="100px" title="Skip deploy phase — artifact only requires import">Skip Deploy</ui5-table-header-cell>
               </ui5-table-header-row>
               <ui5-table-row v-for="a in filteredIncludable" :key="artifactKey(a)">
                 <ui5-table-cell>
@@ -692,6 +696,12 @@ onUnmounted(() => {
                 <ui5-table-cell><span class="dr-cell-secondary">{{ a.packageID }}</span></ui5-table-cell>
                 <ui5-table-cell><ui5-tag design="Set2" color-scheme="6" style="font-size: 0.65rem;">{{ typeLabel(a.type) }}</ui5-tag></ui5-table-cell>
                 <ui5-table-cell><span class="dr-cell-version">{{ a.sourceVersion }}</span></ui5-table-cell>
+                <ui5-table-cell>
+                  <ui5-checkbox
+                    :checked="skipDeployArtifacts[artifactKey(a)] === true"
+                    @change="skipDeployArtifacts[artifactKey(a)] = ($event as any).target.checked"
+                  />
+                </ui5-table-cell>
               </ui5-table-row>
             </ui5-table>
           </ui5-panel>
@@ -710,6 +720,7 @@ onUnmounted(() => {
                 <ui5-table-header-cell>Type</ui5-table-header-cell>
                 <ui5-table-header-cell>Version</ui5-table-header-cell>
                 <ui5-table-header-cell>Existing DR</ui5-table-header-cell>
+                <ui5-table-header-cell width="100px" title="Skip deploy phase — artifact only requires import">Skip Deploy</ui5-table-header-cell>
               </ui5-table-header-row>
               <ui5-table-row v-for="a in filteredDuplicate" :key="artifactKey(a)">
                 <ui5-table-cell>
@@ -726,6 +737,12 @@ onUnmounted(() => {
                   <ui5-tag v-if="a.existingDR" design="Critical" style="font-size: 0.65rem;">
                     DR #{{ a.existingDR.id }} {{ a.existingDR.name }}
                   </ui5-tag>
+                </ui5-table-cell>
+                <ui5-table-cell>
+                  <ui5-checkbox
+                    :checked="skipDeployArtifacts[artifactKey(a)] === true"
+                    @change="skipDeployArtifacts[artifactKey(a)] = ($event as any).target.checked"
+                  />
                 </ui5-table-cell>
               </ui5-table-row>
             </ui5-table>

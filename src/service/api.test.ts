@@ -221,7 +221,7 @@ describe('DeriveNodeAgg', () => {
         createOp('READY', 'COMPLETE', 'DEPLOY_DISABLED' as DeployState),
         createOp('READY', 'COMPLETE', 'DEPLOY_DISABLED' as DeployState)
       ]
-      expect(DeriveNodeAgg(ops)).toBe('IMPORTED')
+      expect(DeriveNodeAgg(ops)).toBe('DEPLOYED')
     })
   })
 

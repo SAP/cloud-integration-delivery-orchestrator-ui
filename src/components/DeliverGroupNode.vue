@@ -14,15 +14,21 @@
           t?.Name
         }}</ui5-tag>
       </div>
-      <div v-if="!props.data.isSource" class="compact-button-container">
-        <ui5-segmented-button>
-          <ui5-segmented-button-item @click="handleImportOnly" :disabled="disableImport"
-            >Import Only</ui5-segmented-button-item
-          >
-          <ui5-segmented-button-item @click="handleDeployOnly" :disabled="disableDeploy"
-            >Deploy Only</ui5-segmented-button-item
-          >
-        </ui5-segmented-button>
+      <div class="card-footer">
+        <ui5-tag v-if="skippedDeployCount > 0" design="Set2" color-scheme="2"
+          :title="`${skippedDeployCount} artifact(s) with deploy skipped`">
+          {{ skippedDeployCount }} skipped
+        </ui5-tag>
+        <div v-if="!props.data.isSource" class="compact-button-container">
+          <ui5-segmented-button>
+            <ui5-segmented-button-item @click="handleImportOnly" :disabled="disableImport"
+              >Import Only</ui5-segmented-button-item
+            >
+            <ui5-segmented-button-item @click="handleDeployOnly" :disabled="disableDeploy"
+              >Deploy Only</ui5-segmented-button-item
+            >
+          </ui5-segmented-button>
+        </div>
       </div>
     </div>
   </ui5-card>
@@ -80,6 +86,17 @@ const disableDeploy = computed(() => {
   })
 })
 
+const skippedDeployCount = computed(() => {
+  let count = 0
+  for (const t of props.data.tenants) {
+    const trToOps = props.data.tenantToOps[t.ID] || {}
+    for (const op of Object.values(trToOps)) {
+      if (op.DeployState === 'DEPLOY_DISABLED') count++
+    }
+  }
+  return count
+})
+
 const groupStateAggr = computed(() => {
   const tenantStates = Object.entries(props.data.tenantToOps)
     .filter(([tenantID, _]) => props.data.tenants.find((t) => t.ID === Number(tenantID)))
@@ -130,17 +147,25 @@ function handleDeployOnly() {
   display: flex;
   flex-wrap: wrap;
   gap: 4px;
-  padding: 0 16px 50px 16px;
+  padding: 0 16px 8px 16px;
   flex: 1;
   overflow-y: auto;
   box-sizing: border-box;
 }
 
+.card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 8px 4px 16px;
+  min-height: 36px;
+  flex-shrink: 0;
+}
+
 .compact-button-container {
-  position: absolute;
-  bottom: 8px;
-  right: 8px;
+  margin-left: auto;
   transform: scale(0.75);
+  transform-origin: right center;
 }
 
 /* 使用 CSS 变量来控制 UI5 组件内部样式 */
