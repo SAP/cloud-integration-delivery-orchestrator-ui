@@ -378,39 +378,34 @@ export const DeriveNodeAgg = (ops: ArtifactTenantOperation[]): AggregateStatus =
   return 'UNKNOWN'
 }
 
-// Aggregate multiple tenant states into a single group state
-// This is used to calculate the overall status of a delivery group with multiple tenants
-// Priority: Failed/InProgress states > Normal states (earliest stage)
+// Aggregate multiple tenant states into a single group state.
+// The group reflects the "bottleneck": error/failure states surface first,
+// then the least-progressed lifecycle stage among all tenants.
 export const DeriveGroupAgg = (tenantStates: AggregateStatus[]): AggregateStatus => {
   if (tenantStates.length === 0) return 'UNKNOWN'
 
-  // Define priority order: states earlier in array have higher priority
-  // Error states have highest priority, then in-progress, then earliest stage
+  // Priority: error states first, then lifecycle order (earliest stage = highest priority).
   const order: AggregateStatus[] = [
-    'Error',              // Highest priority - critical error
-    'DEPLOY_FAILED',      // Deployment failure
-    'IMPORT_FAILED',      // Import failure
-    'CANCELED',           // Canceled operation
-    'PENDING',            // Earliest stage - pending
-    'WAITING_APPROVAL',   // Waiting for approval
-    'AWAITING_IMPORT',    // Waiting to import
-    'AWAITING_DEPLOY',    // Waiting to deploy
-    'DEPLOYING',          // In progress - deployment
-    'IMPORTING',          // In progress - import
-    'IMPORTED',           // Imported, ready for deploy
-    'DEPLOYED',           // Successfully deployed
-    'UNKNOWN',            // Lowest priority
+    'Error',
+    'DEPLOY_FAILED',
+    'IMPORT_FAILED',
+    'CANCELED',
+    'PENDING',
+    'WAITING_APPROVAL',
+    'AWAITING_IMPORT',
+    'IMPORTING',
+    'IMPORTED',
+    'AWAITING_DEPLOY',
+    'DEPLOYING',
+    'DEPLOYED',
+    'UNKNOWN',
   ]
-  const rank = (s: AggregateStatus) => order.indexOf(s)
+  const rank = (s: AggregateStatus) => {
+    const idx = order.indexOf(s)
+    return idx === -1 ? order.length : idx
+  }
 
-  // Reduce by taking the state with higher priority (lower index = higher priority)
-  const overall = tenantStates.reduce((acc, cur) => {
-    const accRank = rank(acc)
-    const curRank = rank(cur)
-    return curRank < accRank ? cur : acc
-  })
-
-  return overall
+  return tenantStates.reduce((acc, cur) => rank(cur) < rank(acc) ? cur : acc)
 }
 
 import dagre from '@dagrejs/dagre'

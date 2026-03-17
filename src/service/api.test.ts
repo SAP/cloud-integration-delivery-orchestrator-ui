@@ -331,9 +331,9 @@ describe('DeriveGroupAgg', () => {
       expect(DeriveGroupAgg(states)).toBe('AWAITING_IMPORT')
     })
 
-    it('should return DEPLOYING when all tenants are past IMPORTING stage', () => {
+    it('should return IMPORTED when one tenant is still at IMPORTED stage', () => {
       const states: AggregateStatus[] = ['IMPORTED', 'DEPLOYING', 'DEPLOYED']
-      expect(DeriveGroupAgg(states)).toBe('DEPLOYING')
+      expect(DeriveGroupAgg(states)).toBe('IMPORTED')
     })
 
     it('should return Error when all tenants are past IMPORTING stage and some have errors', () => {
@@ -343,9 +343,9 @@ describe('DeriveGroupAgg', () => {
   })
 
   describe('Mixed states without import capping', () => {
-    it('should return the highest state when all tenants are past IMPORTING', () => {
+    it('should return the least-progressed state when all tenants are past IMPORTING', () => {
       const states: AggregateStatus[] = ['IMPORTED', 'AWAITING_DEPLOY', 'DEPLOYING', 'DEPLOYED']
-      expect(DeriveGroupAgg(states)).toBe('AWAITING_DEPLOY')
+      expect(DeriveGroupAgg(states)).toBe('IMPORTED')
     })
 
     it('should return DEPLOYING when one tenant is DEPLOYING and others are DEPLOYED', () => {
@@ -363,9 +363,9 @@ describe('DeriveGroupAgg', () => {
       expect(DeriveGroupAgg(states)).toBe('IMPORT_FAILED')
     })
 
-    it('should return AWAITING_DEPLOY when all are imported but waiting for deploy', () => {
+    it('should return IMPORTED when some are imported and one is awaiting deploy', () => {
       const states: AggregateStatus[] = ['IMPORTED', 'IMPORTED', 'AWAITING_DEPLOY']
-      expect(DeriveGroupAgg(states)).toBe('AWAITING_DEPLOY')
+      expect(DeriveGroupAgg(states)).toBe('IMPORTED')
     })
   })
 
@@ -385,14 +385,14 @@ describe('DeriveGroupAgg', () => {
       expect(DeriveGroupAgg(states)).toBe('DEPLOY_FAILED')
     })
 
-    it('should prioritize DEPLOYING over AWAITING_DEPLOY', () => {
+    it('should prioritize IMPORTED over DEPLOYING (earlier lifecycle stage)', () => {
       const states: AggregateStatus[] = ['AWAITING_DEPLOY', 'IMPORTED', 'DEPLOYING']
-      expect(DeriveGroupAgg(states)).toBe('AWAITING_DEPLOY')
+      expect(DeriveGroupAgg(states)).toBe('IMPORTED')
     })
 
-    it('should prioritize IMPORTED over AWAITING_DEPLOY', () => {
+    it('should prioritize IMPORTED over AWAITING_DEPLOY (earlier lifecycle stage)', () => {
       const states: AggregateStatus[] = ['AWAITING_DEPLOY', 'IMPORTED']
-      expect(DeriveGroupAgg(states)).toBe('AWAITING_DEPLOY')
+      expect(DeriveGroupAgg(states)).toBe('IMPORTED')
     })
 
     it('should prioritize IMPORT_FAILED over IMPORTED', () => {
@@ -404,7 +404,7 @@ describe('DeriveGroupAgg', () => {
   describe('Real-world scenarios', () => {
     it('should handle multi-tenant delivery with mixed progress', () => {
       const states: AggregateStatus[] = ['DEPLOYED', 'DEPLOYING', 'AWAITING_DEPLOY', 'IMPORTED']
-      expect(DeriveGroupAgg(states)).toBe('AWAITING_DEPLOY')
+      expect(DeriveGroupAgg(states)).toBe('IMPORTED')
     })
 
     it('should handle one tenant blocking others with early stage', () => {
@@ -440,6 +440,60 @@ describe('DeriveGroupAgg', () => {
     it('should handle partial rollback scenario with CANCELED state', () => {
       const states: AggregateStatus[] = ['DEPLOYED', 'CANCELED', 'DEPLOYING']
       expect(DeriveGroupAgg(states)).toBe('CANCELED')
+    })
+  })
+
+  describe('Lifecycle ordering regression (IMPORTING vs AWAITING_DEPLOY)', () => {
+    it('should return IMPORTING when one tenant is IMPORTING and another is AWAITING_DEPLOY', () => {
+      const states: AggregateStatus[] = ['IMPORTING', 'AWAITING_DEPLOY']
+      expect(DeriveGroupAgg(states)).toBe('IMPORTING')
+    })
+
+    it('should return IMPORTING when one tenant is IMPORTING and another is DEPLOYING', () => {
+      const states: AggregateStatus[] = ['IMPORTING', 'DEPLOYING']
+      expect(DeriveGroupAgg(states)).toBe('IMPORTING')
+    })
+
+    it('should return IMPORTING when one tenant is IMPORTING and another is DEPLOYED', () => {
+      const states: AggregateStatus[] = ['IMPORTING', 'DEPLOYED']
+      expect(DeriveGroupAgg(states)).toBe('IMPORTING')
+    })
+
+    it('should return AWAITING_IMPORT when one is AWAITING_IMPORT and another is DEPLOYING', () => {
+      const states: AggregateStatus[] = ['AWAITING_IMPORT', 'DEPLOYING']
+      expect(DeriveGroupAgg(states)).toBe('AWAITING_IMPORT')
+    })
+
+    it('should return AWAITING_DEPLOY when one is AWAITING_DEPLOY and another is DEPLOYING', () => {
+      const states: AggregateStatus[] = ['AWAITING_DEPLOY', 'DEPLOYING']
+      expect(DeriveGroupAgg(states)).toBe('AWAITING_DEPLOY')
+    })
+
+    it('should return AWAITING_DEPLOY when one is AWAITING_DEPLOY and another is DEPLOYED', () => {
+      const states: AggregateStatus[] = ['AWAITING_DEPLOY', 'DEPLOYED']
+      expect(DeriveGroupAgg(states)).toBe('AWAITING_DEPLOY')
+    })
+
+    it('should return IMPORTING over IMPORTED (still in progress)', () => {
+      const states: AggregateStatus[] = ['IMPORTING', 'IMPORTED']
+      expect(DeriveGroupAgg(states)).toBe('IMPORTING')
+    })
+
+    it('should return PENDING over any progress state', () => {
+      const states: AggregateStatus[] = ['PENDING', 'IMPORTING', 'DEPLOYING', 'DEPLOYED']
+      expect(DeriveGroupAgg(states)).toBe('PENDING')
+    })
+  })
+
+  describe('Unknown state handling', () => {
+    it('should ignore UNKNOWN when other states exist', () => {
+      const states: AggregateStatus[] = ['UNKNOWN', 'DEPLOYED']
+      expect(DeriveGroupAgg(states)).toBe('DEPLOYED')
+    })
+
+    it('should return UNKNOWN only when all are UNKNOWN', () => {
+      const states: AggregateStatus[] = ['UNKNOWN', 'UNKNOWN']
+      expect(DeriveGroupAgg(states)).toBe('UNKNOWN')
     })
   })
 })
