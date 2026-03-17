@@ -106,6 +106,10 @@ export const DeleteDeliveryRequest = (id: number) => {
   return http.delete(`/api/v1/deliveryRequest/${id}`)
 }
 
+export const CancelDeliveryRequest = (deliveryRequestID: number, reason: string) => {
+  return http.post('/api/v1/deliveryRequest/cancel', { deliveryRequestID, reason })
+}
+
 // Placeholder endpoints for artifact import / deploy operations.
 // Adjust paths & payloads once backend contract is finalized.
 export const ImportArtifactsToNode = (

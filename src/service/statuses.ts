@@ -78,3 +78,21 @@ const DESIGN_SETS = {
 
 export const aggregateStatusToUi5Design = (status: AggregateStatus): Ui5Design =>
   (Object.entries(DESIGN_SETS).find(([, set]) => set.has(status))?.[0] as Ui5Design) ?? 'Neutral'
+
+export const CANCELLABLE_STATUSES = new Set<AggregateStatus>([
+  'PENDING', 'WAITING_APPROVAL', 'AWAITING_IMPORT',
+  'IMPORT_FAILED', 'AWAITING_DEPLOY', 'DEPLOY_FAILED'
+])
+
+export const STATUS_FILTER_GROUPS = {
+  All: null,
+  Completed: new Set<AggregateStatus>(['DEPLOYED']),
+  'In Progress': new Set<AggregateStatus>([
+    'PENDING', 'WAITING_APPROVAL', 'AWAITING_IMPORT', 'IMPORTING',
+    'AWAITING_DEPLOY', 'DEPLOYING', 'IN_PROGRESS', 'IMPORTED'
+  ]),
+  Failed: new Set<AggregateStatus>(['IMPORT_FAILED', 'DEPLOY_FAILED', 'FAILED', 'Error']),
+  Canceled: new Set<AggregateStatus>(['CANCELED'])
+} as const
+
+export type StatusFilterKey = keyof typeof STATUS_FILTER_GROUPS

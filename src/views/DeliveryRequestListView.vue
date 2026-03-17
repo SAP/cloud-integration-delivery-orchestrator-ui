@@ -50,10 +50,20 @@
       <ui5-toolbar-button class="dialogCloser" design="Transparent" text="Cancel" @click="showModal = false"></ui5-toolbar-button>
     </ui5-toolbar>
   </ui5-dialog>
+  <div style="display: flex; align-items: center; gap: 8px; padding: 8px 0;">
+    <ui5-segmented-button>
+      <ui5-segmented-button-item
+        v-for="key in filterKeys" :key="key"
+        :pressed="activeFilter === key"
+        @click="activeFilter = key">
+        {{ key }} ({{ filterCounts[key] }})
+      </ui5-segmented-button-item>
+    </ui5-segmented-button>
+  </div>
   <data-table
     title="Delivery Requests"
     :columns="deliveryRequestColumns"
-    :data="deliveryRequests"
+    :data="filteredDeliveryRequests"
     :custom-tool-bars="toolBars"
     :handle-add="() => { showModal = true; selectedDeliveryRequest = {} as DeliveryRequest }"
     :row-key="(row: DeliveryRequest) => row.ID"
@@ -68,6 +78,7 @@ import DataTable from '@/components/DataTable.vue'
 import { deliveryRequestColumns, type ToolBar } from '@/service/consts'
 import { DeleteDeliveryRequest, GetDeliveryRequests, CreateDeliveryRequest, GetDeliveryRules, UaaUserInfo, } from '@/service/api';
 import type { DeliveryRequest, DeliveryRule, UserInfo } from '@/service/model';
+import { STATUS_FILTER_GROUPS, type StatusFilterKey } from '@/service/statuses';
 
 import "@ui5/webcomponents/dist/Dialog.js";
 import "@ui5/webcomponents/dist/Button.js";
@@ -79,6 +90,8 @@ import "@ui5/webcomponents/dist/Tag.js";
 import "@ui5/webcomponents/dist/Text.js";
 import "@ui5/webcomponents/dist/Toolbar.js"
 import "@ui5/webcomponents/dist/ToolbarButton.js"
+import "@ui5/webcomponents/dist/SegmentedButton.js"
+import "@ui5/webcomponents/dist/SegmentedButtonItem.js"
 export default defineComponent({
   components: { DataTable },
   data(){
@@ -96,8 +109,29 @@ export default defineComponent({
       selectedDeliveryRequest: {} as DeliveryRequest,
       deliveryRuleOptions: [] as {label: string, value: DeliveryRule, disabled: boolean}[],
       uaaUsers: {} as { [key: string]: Promise<UserInfo> }, // userId - userEmail
-      loading: false as boolean
+      loading: false as boolean,
+      activeFilter: 'All' as StatusFilterKey,
     }
+  },
+  computed: {
+    filterKeys(): StatusFilterKey[] {
+      return Object.keys(STATUS_FILTER_GROUPS) as StatusFilterKey[]
+    },
+    filterCounts(): Record<StatusFilterKey, number> {
+      const counts = {} as Record<StatusFilterKey, number>
+      for (const key of this.filterKeys) {
+        const group = STATUS_FILTER_GROUPS[key]
+        counts[key] = group === null
+          ? this.deliveryRequests.length
+          : this.deliveryRequests.filter(dr => group.has(dr.AggregateStatus)).length
+      }
+      return counts
+    },
+    filteredDeliveryRequests(): DeliveryRequest[] {
+      const group = STATUS_FILTER_GROUPS[this.activeFilter]
+      if (group === null) return this.deliveryRequests
+      return this.deliveryRequests.filter(dr => group.has(dr.AggregateStatus))
+    },
   },
   methods: {
     handleRuleChange(event: any) {

@@ -166,17 +166,14 @@
       <ui5-tag :design="aggrStatusToDesign">{{ deliveryRequest.AggregateStatus }}</ui5-tag>
 
       <ui5-toolbar class="actionsBar" id="actionsToolbar" slot="actionsBar" design="Transparent">
-        <ui5-toolbar-button text="Edit" @click="onEditDr" v-if="!isEditingDr"></ui5-toolbar-button>
-        <ui5-toolbar-button text="Delete" @click="deleteDr" v-if="!isEditingDr"
-          design="Transparent"></ui5-toolbar-button>
-
-        <ui5-toolbar-button text="Save" @click="updateDr" v-if="isEditingDr"></ui5-toolbar-button>
-        <ui5-toolbar-button text="Cancel" @click="refresh" v-if="isEditingDr" design="Cancel"></ui5-toolbar-button>
-      </ui5-toolbar>
-
-      <ui5-toolbar class="navigationBar" slot="navigationBar" design="Transparent">
-        <ui5-toolbar-button design="Transparent" icon="share"></ui5-toolbar-button>
-        <ui5-toolbar-button design="Transparent" icon="action-settings"></ui5-toolbar-button>
+        <ui5-toolbar-button icon="delete" @click="showDeleteDialog = true" design="Transparent"
+          tooltip="Delete Delivery Request"></ui5-toolbar-button>
+        <ui5-toolbar-button
+          v-if="canCancel"
+          icon="stop"
+          @click="showCancelDialog = true"
+          design="Attention"
+          tooltip="Cancel Delivery Request" />
       </ui5-toolbar>
     </ui5-dynamic-page-title>
 
@@ -463,6 +460,43 @@
     </ui5-wizard>
   </ui5-dynamic-page>
 
+  <ui5-dialog header-text="Cancel Delivery Request" :open="showCancelDialog"
+    @close="showCancelDialog = false">
+    <div style="padding: 1rem; display: flex; flex-direction: column; gap: 12px;">
+      <ui5-message-strip design="Critical" hide-close-button>
+        This action is permanent. The delivery request will be marked as CANCELED
+        and no further import/deploy operations will be allowed.
+      </ui5-message-strip>
+      <ui5-label for="cancel-reason" required>Reason for cancellation</ui5-label>
+      <ui5-textarea id="cancel-reason" v-model="cancelReason"
+        placeholder="e.g. Requirements changed, no longer needed"
+        rows="3" />
+    </div>
+    <ui5-toolbar slot="footer">
+      <ui5-toolbar-button design="Negative" text="Confirm Cancel"
+        :disabled="!cancelReason.trim()"
+        @click="handleCancelDr" />
+      <ui5-toolbar-button class="dialogCloser" design="Transparent" text="Close"
+        @click="showCancelDialog = false" />
+    </ui5-toolbar>
+  </ui5-dialog>
+
+  <ui5-dialog header-text="Delete Delivery Request" :open="showDeleteDialog"
+    @close="showDeleteDialog = false">
+    <div style="padding: 1rem; display: flex; flex-direction: column; gap: 12px;">
+      <ui5-message-strip design="Negative" hide-close-button>
+        This will permanently delete "{{ deliveryRequest.Name }}".
+        This action cannot be undone.
+      </ui5-message-strip>
+    </div>
+    <ui5-toolbar slot="footer">
+      <ui5-toolbar-button design="Negative" text="Delete"
+        @click="confirmDeleteDr" />
+      <ui5-toolbar-button class="dialogCloser" design="Transparent" text="Close"
+        @click="showDeleteDialog = false" />
+    </ui5-toolbar>
+  </ui5-dialog>
+
 </template>
 
 <script lang="ts">
@@ -487,7 +521,9 @@ import {
   CurrentUser,
   GenTransportRequest,
   DeliveryRuleCheck,
+  CancelDeliveryRequest,
 } from '@/service/api'
+import { CANCELLABLE_STATUSES } from '@/service/statuses'
 import { toLocalTime } from '@/service/consts'
 import { VueFlow } from '@vue-flow/core'
 import CpiTransportNode from '@/components/CpiTransportNode.vue'
@@ -517,9 +553,9 @@ import "@ui5/webcomponents/dist/List.js";
 import "@ui5/webcomponents/dist/ListItemStandard.js";
 import "@ui5/webcomponents/dist/Input.js";
 
-import "@ui5/webcomponents-icons/dist/action-settings.js";
+import "@ui5/webcomponents-icons/dist/delete.js";
+import "@ui5/webcomponents-icons/dist/stop.js";
 import "@ui5/webcomponents-icons/dist/chain-link.js";
-import "@ui5/webcomponents-icons/dist/share.js";
 import "@ui5/webcomponents-icons/dist/laptop.js";
 import "@ui5/webcomponents-icons/dist/refresh.js";
 import "@ui5/webcomponents-icons/dist/italic-text.js";
@@ -536,6 +572,7 @@ import "@ui5/webcomponents/dist/SegmentedButtonItem.js";
 import "@ui5/webcomponents/dist/MultiComboBox.js";
 import "@ui5/webcomponents/dist/MultiComboBoxItem.js";
 import "@ui5/webcomponents/dist/CheckBox.js";
+import "@ui5/webcomponents/dist/TextArea.js";
 import "@ui5/webcomponents/dist/Table.js";
 import "@ui5/webcomponents/dist/TableRow.js";
 import "@ui5/webcomponents/dist/TableCell.js";
@@ -558,7 +595,6 @@ export default {
   data() {
     return {
       deliveryRequest: {} as DeliveryRequest,
-      isEditingDr: false,
       current: 0,
       toLocalTime,
       isEditingTr: false,
@@ -596,6 +632,9 @@ export default {
       syncingStatus: false,
       generatingTrsLoading: false,
       approveStepLoading: false,
+      showCancelDialog: false,
+      cancelReason: '',
+      showDeleteDialog: false,
     }
   },
   methods: {
@@ -648,9 +687,6 @@ export default {
         this.approveStepLoading = false
       }
     },
-    onEditDr() {
-      this.isEditingDr = true
-    },
     revertTr() {
       const draft = this.draftSourceOps.find(d => d.op.ID === this.artifactOpDetial.ID)
       this.artifactOpDetial.TransportRequestNumber
@@ -660,7 +696,6 @@ export default {
       this.isEditingTr = false
     },
     async refresh() {
-      this.isEditingDr = false
       this.deliveryRequest = await GetDeliveryRequest(this.planId)
 
       // load packages in this cpi tenant
@@ -688,9 +723,20 @@ export default {
       this.draftSourceOps = []
       this.packagesLoading = false
     },
-    async deleteDr() {
+    async confirmDeleteDr() {
       await DeleteDeliveryRequest(this.planId)
+      this.showDeleteDialog = false
       this.$router.go(-1)
+    },
+    async handleCancelDr() {
+      try {
+        await CancelDeliveryRequest(this.deliveryRequest.ID, this.cancelReason.trim())
+        this.showCancelDialog = false
+        this.cancelReason = ''
+        this.refresh()
+      } catch (e) {
+        // HTTP interceptor handles error toast
+      }
     },
     async updateDr() {
       if (!this.deliveryRequest.SourceTenant) {
@@ -991,6 +1037,9 @@ export default {
 
   },
   computed: {
+    canCancel(): boolean {
+      return CANCELLABLE_STATUSES.has(this.deliveryRequest.AggregateStatus)
+    },
     allOps(): ArtifactTenantOperation[] { //will not change unless refresh
       return this.deliveryRequest.ArtifactTenantOperations || []
     },
@@ -1127,10 +1176,6 @@ export default {
 
 .actionsBar {
   padding: 0.8rem 0 0 1rem;
-}
-
-.navigationBar {
-  padding: 0.8rem 0 0 0;
 }
 
 .snapped-title-heading {
