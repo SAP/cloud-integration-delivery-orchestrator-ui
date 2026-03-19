@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 
 import { useRouter } from 'vue-router'
 import MessageItem from '@/components/MessageComp.vue'
 import { CurrentUser } from './service/api'
+import { sseClient } from './service/sse'
 import "@ui5/webcomponents-fiori/dist/ShellBar.js"
 import "@ui5/webcomponents-fiori/dist/ShellBarBranding.js"
 import "@ui5/webcomponents-icons/dist/nav-back.js"
@@ -25,6 +26,11 @@ const openProfile = ref(false)
 // Lifecycle: load current user
 onMounted(async () => {
   userInfo.value = await CurrentUser()
+  sseClient.connect('/api/v1/events')
+})
+
+onUnmounted(() => {
+  sseClient.disconnect()
 })
 
 function handleLogout() {

@@ -533,6 +533,7 @@ import CpiTransportFlowView from './CpiTransportFlowView.vue'
 import ArtifactOpTag from '@/components/ArtifactOpTag.vue'
 import { nextTick } from 'vue'
 import { aggregateStatusToUi5Design, conditionTypeToDesign } from '@/service/statuses'
+import { sseClient } from '@/service/sse'
 
 
 import "@ui5/webcomponents-fiori/dist/DynamicPage.js";
@@ -635,6 +636,8 @@ export default {
       showCancelDialog: false,
       cancelReason: '',
       showDeleteDialog: false,
+      sseUnsubscribers: [] as (() => void)[],
+      sseRefreshTimer: null as ReturnType<typeof setTimeout> | null,
     }
   },
   methods: {
@@ -750,7 +753,7 @@ export default {
         // await nextTick()
         await UpdateDeliveryRequest(this.deliveryRequest)
         const draftOps = UpdateOps(this.deliveryRequest.ID, this.draftSourceOps.map(d => d.op))
-        const delOps = DeleteOps(this.deleteOps.map(op => op.ID))
+        const delOps = DeleteOps(this.deliveryRequest.ID, this.deleteOps.map(op => op.ID))
         const insertOps = InsertOps(this.deliveryRequest.ID, this.addOps)
         await Promise.all([delOps, insertOps, draftOps])
       } finally {
@@ -958,6 +961,15 @@ export default {
         this.syncingStatus = false
       }
     },
+    // Throttle (not debounce): SSE events arrive in bursts during background sync;
+    // debounce would keep deferring the refresh, throttle caps it at once per 300ms.
+    scheduleSSERefresh() {
+      if (this.sseRefreshTimer) return
+      this.sseRefreshTimer = setTimeout(async () => {
+        this.sseRefreshTimer = null
+        await this.refresh()
+      }, 300)
+    },
     stateType(op: ArtifactTenantOperation) {
       // op request state to tag type mapping('default' | 'primary' | 'info' | 'success' | 'warning' | 'error')
       const delIndex = this.deleteOps.findIndex(delOp => delOp.ArtifactTechID === op.ArtifactTechID && delOp.ArtifactVersion === op.ArtifactVersion)
@@ -1103,7 +1115,25 @@ export default {
     this.cpiTenants = await GetAllCpiTenants()
     this.loadingCpiTenants = false
     this.currentUser = await CurrentUser()
-  }
+  },
+  mounted() {
+    this.sseUnsubscribers.push(
+      sseClient.on('dr-ops', (data: { drId?: number }) => {
+        if (data?.drId === this.planId) this.scheduleSSERefresh()
+      }),
+      sseClient.on('dr-status', (data: { drId?: number }) => {
+        if (data?.drId === this.planId) this.scheduleSSERefresh()
+      }),
+    )
+  },
+  beforeUnmount() {
+    this.sseUnsubscribers.forEach(unsub => unsub())
+    this.sseUnsubscribers = []
+    if (this.sseRefreshTimer) {
+      clearTimeout(this.sseRefreshTimer)
+      this.sseRefreshTimer = null
+    }
+  },
 }
 </script>
 

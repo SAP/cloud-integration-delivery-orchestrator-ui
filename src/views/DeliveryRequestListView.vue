@@ -79,6 +79,7 @@ import { deliveryRequestColumns, type ToolBar } from '@/service/consts'
 import { DeleteDeliveryRequest, GetDeliveryRequests, CreateDeliveryRequest, GetDeliveryRules, UaaUserInfo, } from '@/service/api';
 import type { DeliveryRequest, DeliveryRule, UserInfo } from '@/service/model';
 import { STATUS_FILTER_GROUPS, type StatusFilterKey } from '@/service/statuses';
+import { sseClient } from '@/service/sse';
 
 import "@ui5/webcomponents/dist/Dialog.js";
 import "@ui5/webcomponents/dist/Button.js";
@@ -111,6 +112,8 @@ export default defineComponent({
       uaaUsers: {} as { [key: string]: Promise<UserInfo> }, // userId - userEmail
       loading: false as boolean,
       activeFilter: 'All' as StatusFilterKey,
+      sseUnsubscribers: [] as (() => void)[],
+      sseRefreshTimer: null as ReturnType<typeof setTimeout> | null,
     }
   },
   computed: {
@@ -186,11 +189,38 @@ export default defineComponent({
       }
       return this.uaaUsers[userId]
     },
+    // Throttle (not debounce): SSE events arrive in bursts during background sync;
+    // debounce would keep deferring the refresh, throttle caps it at once per 300ms.
+    scheduleSSERefresh() {
+      if (this.sseRefreshTimer) return
+      this.sseRefreshTimer = setTimeout(async () => {
+        this.sseRefreshTimer = null
+        await this.loadDeliveryRequests()
+      }, 300)
+    },
   },
   async created() {
     await this.loadDeliveryRequests()
     const options = await GetDeliveryRules()
     this.deliveryRuleOptions = options.map(op => ({ label: op.Name, value: op, disabled: !op.Active }))
+  },
+  mounted() {
+    this.sseUnsubscribers.push(
+      sseClient.on('dr-status', () => {
+        this.scheduleSSERefresh()
+      }),
+      sseClient.on('counts', () => {
+        this.scheduleSSERefresh()
+      }),
+    )
+  },
+  beforeUnmount() {
+    this.sseUnsubscribers.forEach(unsub => unsub())
+    this.sseUnsubscribers = []
+    if (this.sseRefreshTimer) {
+      clearTimeout(this.sseRefreshTimer)
+      this.sseRefreshTimer = null
+    }
   },
 })
 </script>

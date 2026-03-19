@@ -222,9 +222,9 @@ export const DeployOps = (opIDs: number[], tenant: number, drID: number) => {
 }
 
 // batch delete, avoid to use delete method, since there is no body support in delete method
-export const DeleteOps = (opIDs: number[]) => {
+export const DeleteOps = (drID: number, opIDs: number[]) => {
   if (opIDs.length === 0) return
-  return http.post(`/api/v1/deliveryRequest/deleteOps`, {opIDs: opIDs})
+  return http.post(`/api/v1/deliveryRequest/deleteOps`, {opIds: opIDs, deliveryRequestID: drID})
 }
 
 export const InsertOps = (drID: number, ops: ArtifactTenantOperation[]): Promise<ArtifactTenantOperation[]> => {

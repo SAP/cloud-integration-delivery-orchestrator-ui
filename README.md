@@ -196,8 +196,8 @@ Environment variables are managed through CloudFoundry service bindings and XSUA
 
 The application uses a priority-based state aggregation system to compute aggregate statuses:
 
-- **`DeriveNodeAgg(ops)`** - Aggregates multiple artifact operations for a single tenant
-- **`DeriveGroupAgg(tenantStates)`** - Aggregates tenant states into overall group status
+- `**DeriveNodeAgg(ops)**` - Aggregates multiple artifact operations for a single tenant
+- `**DeriveGroupAgg(tenantStates)**` - Aggregates tenant states into overall group status
 
 Status priority order (highest to lowest):
 
@@ -244,25 +244,15 @@ WebSocket support is enabled in `xs-app.json` for future real-time features.
 
 ### Completed Features
 
-- [x] Async process handling with 202 status for import/deploy operations
-- [x] DRAFT artifact version validation before generate TR/import
-- [x] Loading status display for group tenants
-- [x] Batch generate TRs in 'New' artifacts with parallel control
-- [x] Loading status indicators for 'Approve' and 'Skip approval' actions
-
-### Planned Features
-
-- [ ] UI & service - xsuaa authroization check
-- [ ] UI - MiniMap style optimization for better visualization
-- [ ] service - Link to JIRA change requests and automatically update subtasks
-- [ ] service - WebSocket implementation for real-time status updates
-- [ ] UI & service -  Copy button in 'CPI tenants' view to copy tenant cookie
-- [ ] Delivery Request List: enable search by keywords;
-- [ ] For artifacts in source tenant: enable trigger deploy, display TR, no need to display deploy&import state;
+- Async process handling with 202 status for import/deploy operations
+- DRAFT artifact version validation before generate TR/import
+- Loading status display for group tenants
+- Batch generate TRs in 'New' artifacts with parallel control
+- Loading status indicators for 'Approve' and 'Skip approval' actions
 
 ### Infrastructure Improvements
 
-- [ ] Make MTA and VCAP_SERVICES more portable:
+- Make MTA and VCAP_SERVICES more portable:
   - Assign exact resource types
   - Avoid using `withLabel()` or `withName()` for reading VCAP_SERVICES
 
