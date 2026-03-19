@@ -439,12 +439,22 @@
       <!-- Step 4: Logs -->
       <ui5-wizard-step id="step4" title-text="Logs">
         <div style="display: flex; flex-direction: column; gap: 10px;">
-          <ui5-title>Logs ({{ deliveryRequest.Conditions?.length || 0 }})</ui5-title>
-          <div v-if="deliveryRequest.Conditions && deliveryRequest.Conditions.length"
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <ui5-title>Logs</ui5-title>
+            <ui5-segmented-button>
+              <ui5-segmented-button-item
+                v-for="key in conditionFilterKeys" :key="key"
+                :pressed="activeConditionFilter === key"
+                @click="activeConditionFilter = key">
+                {{ key }} ({{ conditionFilterCounts[key] }})
+              </ui5-segmented-button-item>
+            </ui5-segmented-button>
+          </div>
+          <div v-if="filteredConditions.length"
             style="max-height: 400px; overflow-y: auto;">
             <ui5-message-strip
-              v-for="(condition, index) in deliveryRequest.Conditions"
-              :key="index"
+              v-for="condition in filteredConditions"
+              :key="condition.ID"
               :design="conditionTypeToDesign(condition.State)"
               :hide-close-button="true"
               style="margin-bottom: 8px;">
@@ -523,11 +533,11 @@ import {
   DeliveryRuleCheck,
   CancelDeliveryRequest,
 } from '@/service/api'
-import { CANCELLABLE_STATUSES } from '@/service/statuses'
+import { CANCELLABLE_STATUSES, type ConditionType } from '@/service/statuses'
 import { toLocalTime } from '@/service/consts'
 import { VueFlow } from '@vue-flow/core'
 import CpiTransportNode from '@/components/CpiTransportNode.vue'
-import type { DeliveryRequest, CpiTenant, Package, Artifact, ArtifactVersionHistoryItem, ArtifactTenantOperation, UserInfo } from '@/service/model'
+import type { DeliveryRequest, CpiTenant, Package, Artifact, ArtifactVersionHistoryItem, ArtifactTenantOperation, UserInfo, Condition } from '@/service/model'
 import DeliveryFlowView from './DeliveryFlowView.vue'
 import CpiTransportFlowView from './CpiTransportFlowView.vue'
 import ArtifactOpTag from '@/components/ArtifactOpTag.vue'
@@ -638,6 +648,7 @@ export default {
       showDeleteDialog: false,
       sseUnsubscribers: [] as (() => void)[],
       sseRefreshTimer: null as ReturnType<typeof setTimeout> | null,
+      activeConditionFilter: 'All' as 'All' | ConditionType,
     }
   },
   methods: {
@@ -1106,7 +1117,24 @@ export default {
     },
     aggrStatusToDesign() {
       return aggregateStatusToUi5Design(this.deliveryRequest.AggregateStatus)
-    }
+    },
+    conditionFilterKeys(): ('All' | ConditionType)[] {
+      return ['All', 'Error', 'Warn', 'Success']
+    },
+    conditionFilterCounts(): Record<'All' | ConditionType, number> {
+      const list = (this.deliveryRequest.Conditions || []) as Condition[]
+      return {
+        All: list.length,
+        Error: list.filter(c => c.State === 'Error').length,
+        Warn: list.filter(c => c.State === 'Warn').length,
+        Success: list.filter(c => c.State === 'Success').length,
+      }
+    },
+    filteredConditions(): Condition[] {
+      const list = (this.deliveryRequest.Conditions || []) as Condition[]
+      if (this.activeConditionFilter === 'All') return list
+      return list.filter(c => c.State === this.activeConditionFilter)
+    },
   },
   async created() {
     await this.refresh()

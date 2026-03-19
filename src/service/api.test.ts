@@ -278,6 +278,21 @@ describe('DeriveNodeAgg', () => {
       ]
       expect(DeriveNodeAgg(ops)).toBe('PENDING')
     })
+
+    // TMS WARNING is stored as Import COMPLETE (same as SUCCEEDED for UI aggregation)
+    it('should treat import COMPLETE like success for deploy progression (WARNING backend mapping)', () => {
+      const ops = [createOp('READY', 'COMPLETE', 'QUEUED')]
+      expect(DeriveNodeAgg(ops)).toBe('AWAITING_DEPLOY')
+    })
+
+    // TMS REPEAT → Import QUEUED: one op awaiting re-import surfaces AWAITING_IMPORT
+    it('should return AWAITING_IMPORT when any op is QUEUED while others are COMPLETE (e.g. REPEAT)', () => {
+      const ops = [
+        createOp('READY', 'COMPLETE', 'QUEUED'),
+        createOp('READY', 'QUEUED', 'NOT_STARTED')
+      ]
+      expect(DeriveNodeAgg(ops)).toBe('AWAITING_IMPORT')
+    })
   })
 })
 
