@@ -85,25 +85,27 @@ function disableDeploy(op: ArtifactTenantOperation) {
             {{ nodeAggState }}
           </ui5-tag>
         </div>
-        <div v-if="!data.IsSource">
-          <ui5-button @click="handleDeployAll" :disabled="nodeDeployDsiabled" style="margin: 0 10px;">Deploy All</ui5-button>
-          <ui5-button @click="handleImportAll" :disabled="nodeImportDisabled">Import All</ui5-button>
+        <div>
+          <ui5-button v-if="data.IsSource" @click="handleDeployAll" :disabled="nodeDeployDsiabled">Deploy All</ui5-button>
+          <ui5-button v-if="!data.IsSource" @click="handleDeployAll" :disabled="nodeDeployDsiabled" style="margin: 0 10px;">Deploy All</ui5-button>
+          <ui5-button v-if="!data.IsSource" @click="handleImportAll" :disabled="nodeImportDisabled">Import All</ui5-button>
         </div>
       </div>
     </ui5-card-header>
 
     <div v-if="!Object.keys(ops).length" style="margin-top:6px">
       <ui5-illustrated-message name="NoData" design="Dot"
-        :subtitle-text="data.IsSource ? 'No artifacts available for import' : 'No artifacts available for import / deploy'"
-        :title-text="`No artifacts ${data.IsSource ? '' : 'delivered here yet'}`" />
+        :subtitle-text="data.IsSource ? 'No artifacts available for deploy' : 'No artifacts available for import / deploy'"
+        :title-text="`No artifacts ${data.IsSource ? 'in source tenant' : 'delivered here yet'}`" />
     </div>
 
     <ui5-table v-else overflow-mode="Scroll" style="max-height: 300px; overflow-y: auto;">
       <ui5-table-header-row slot="headerRow">
-        <ui5-table-header-cell >Artifact</ui5-table-header-cell>
+        <ui5-table-header-cell>Artifact</ui5-table-header-cell>
         <ui5-table-header-cell width="90px">Version</ui5-table-header-cell>
-        <ui5-table-header-cell width="120px">Import State</ui5-table-header-cell>
-        <ui5-table-header-cell width="120px">Deploy State</ui5-table-header-cell>
+        <ui5-table-header-cell v-if="data.IsSource" width="140px">TR</ui5-table-header-cell>
+        <ui5-table-header-cell v-if="!data.IsSource" width="120px">Import State</ui5-table-header-cell>
+        <ui5-table-header-cell v-if="!data.IsSource" width="120px">Deploy State</ui5-table-header-cell>
         <ui5-table-header-cell width="150px">Actions</ui5-table-header-cell>
       </ui5-table-header-row>
       <ui5-table-row v-for="op in ops" :key="`${op.ArtifactTechID}@${op.ArtifactVersion}`">
@@ -113,14 +115,17 @@ function disableDeploy(op: ArtifactTenantOperation) {
           <ui5-table-cell>
             <ui5-label>{{ op.ArtifactVersion }}</ui5-label>
           </ui5-table-cell>
-          <ui5-table-cell>
+          <ui5-table-cell v-if="data.IsSource">
+            <ui5-label>{{ op.TransportRequestNumber || '-' }}</ui5-label>
+          </ui5-table-cell>
+          <ui5-table-cell v-if="!data.IsSource">
             <ui5-label>{{ op.ImportState }}</ui5-label>
           </ui5-table-cell>
-          <ui5-table-cell>
+          <ui5-table-cell v-if="!data.IsSource">
             <ui5-label>{{ op.DeployState }}</ui5-label>
           </ui5-table-cell>
-          <ui5-table-cell style="display: flex; flex-direction: row;" v-if="!data.IsSource">
-            <ui5-button @click="handleImport(op)" :disabled="disableImport(op)">Import</ui5-button>
+          <ui5-table-cell style="display: flex; flex-direction: row;">
+            <ui5-button v-if="!data.IsSource" @click="handleImport(op)" :disabled="disableImport(op)">Import</ui5-button>
             <ui5-button @click="handleDeploy(op)" :disabled="disableDeploy(op)">Deploy</ui5-button>
           </ui5-table-cell>
       </ui5-table-row>

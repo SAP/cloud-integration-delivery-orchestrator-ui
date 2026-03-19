@@ -1,4 +1,3 @@
-<!-- filepath: /Users/I589335/repos/mmt-devops-ui-cpi-delivery/src/views/DeliveryRuleView.vue -->
 <template>
     <ui5-dialog
         :header-text="selDeliveryRule.ID ? 'Edit Delivery Rule' : 'Create Delivery Rule'"
@@ -80,10 +79,23 @@
         </ui5-toolbar>
     </ui5-dialog>
 
+    <div style="display: flex; align-items: center; gap: 8px; padding: 8px 0;">
+        <ui5-segmented-button>
+            <ui5-segmented-button-item
+                v-for="key in filterKeys"
+                :key="key"
+                :pressed="activeFilter === key"
+                @click="activeFilter = key"
+            >
+                {{ key }} ({{ filterCounts[key] }})
+            </ui5-segmented-button-item>
+        </ui5-segmented-button>
+    </div>
+
     <data-table
         title="Delivery Rules"
         :columns="deliveryRuleColumns"
-        :data="rules"
+        :data="filteredRules"
         :custom-tool-bars="toolBars"
         :handle-add="handleAdd"
         :row-key="(row: DeliveryRule) => row.ID"
@@ -114,6 +126,10 @@ import "@ui5/webcomponents/dist/MultiComboBox.js";
 import "@ui5/webcomponents/dist/MultiComboBoxItem.js";
 import "@ui5/webcomponents/dist/Tag.js";
 import "@ui5/webcomponents/dist/Text.js";
+import "@ui5/webcomponents/dist/SegmentedButton.js";
+import "@ui5/webcomponents/dist/SegmentedButtonItem.js";
+
+type RuleFilterKey = 'All' | 'Active' | 'Skip Approve' | 'Require Jira'
 
 export default defineComponent({
     components: { DataTable },
@@ -125,6 +141,7 @@ export default defineComponent({
         return {
             deliveryRuleColumns,
             rules: [] as DeliveryRule[],
+            activeFilter: 'All' as RuleFilterKey,
             showModal: false,
             toolBars,
             selDeliveryRule: {} as DeliveryRule,
@@ -180,6 +197,30 @@ export default defineComponent({
         }
     },
     computed: {
+        filterKeys(): RuleFilterKey[] {
+            return ['All', 'Active', 'Skip Approve', 'Require Jira']
+        },
+        filterCounts(): Record<RuleFilterKey, number> {
+            return {
+                All: this.rules.length,
+                Active: this.rules.filter(r => r.Active).length,
+                'Skip Approve': this.rules.filter(r => r.SkipApprove).length,
+                'Require Jira': this.rules.filter(r => r.RequireJira).length,
+            }
+        },
+        filteredRules(): DeliveryRule[] {
+            switch (this.activeFilter) {
+                case 'Active':
+                    return this.rules.filter(r => r.Active)
+                case 'Skip Approve':
+                    return this.rules.filter(r => r.SkipApprove)
+                case 'Require Jira':
+                    return this.rules.filter(r => r.RequireJira)
+                case 'All':
+                default:
+                    return this.rules
+            }
+        },
         tenantOptions(): { label: string; value: CpiTenant, disabled: boolean }[] {
             const include = this.selDeliveryRule.IncludedTenants || []
             if (include.length === 0) {

@@ -59,6 +59,12 @@
         {{ key }} ({{ filterCounts[key] }})
       </ui5-segmented-button-item>
     </ui5-segmented-button>
+    <ui5-input
+      :value="searchKeyword"
+      @input="handleSearchInput"
+      placeholder="Search by ID, name, status, Jira, tenant, rule, user..."
+      style="width: 28rem;"
+    />
   </div>
   <data-table
     title="Delivery Requests"
@@ -112,6 +118,7 @@ export default defineComponent({
       uaaUsers: {} as { [key: string]: Promise<UserInfo> }, // userId - userEmail
       loading: false as boolean,
       activeFilter: 'All' as StatusFilterKey,
+      searchKeyword: '',
       sseUnsubscribers: [] as (() => void)[],
       sseRefreshTimer: null as ReturnType<typeof setTimeout> | null,
     }
@@ -125,18 +132,38 @@ export default defineComponent({
       for (const key of this.filterKeys) {
         const group = STATUS_FILTER_GROUPS[key]
         counts[key] = group === null
-          ? this.deliveryRequests.length
-          : this.deliveryRequests.filter(dr => group.has(dr.AggregateStatus)).length
+          ? this.searchedDeliveryRequests.length
+          : this.searchedDeliveryRequests.filter(dr => group.has(dr.AggregateStatus)).length
       }
       return counts
     },
+    searchedDeliveryRequests(): DeliveryRequest[] {
+      const kw = this.searchKeyword.trim().toLowerCase()
+      if (!kw) return this.deliveryRequests
+      return this.deliveryRequests.filter(dr => this.matchesKeyword(dr, kw))
+    },
     filteredDeliveryRequests(): DeliveryRequest[] {
       const group = STATUS_FILTER_GROUPS[this.activeFilter]
-      if (group === null) return this.deliveryRequests
-      return this.deliveryRequests.filter(dr => group.has(dr.AggregateStatus))
+      if (group === null) return this.searchedDeliveryRequests
+      return this.searchedDeliveryRequests.filter(dr => group.has(dr.AggregateStatus))
     },
   },
   methods: {
+    handleSearchInput(event: any) {
+      this.searchKeyword = event?.target?.value || ''
+    },
+    matchesKeyword(dr: DeliveryRequest, kw: string): boolean {
+      return [
+        String(dr.ID || ''),
+        dr.Name || '',
+        dr.AggregateStatus || '',
+        dr.JiraLink || '',
+        dr.SourceTenant?.Name || '',
+        dr.DeliveryRule?.Name || '',
+        dr.CreatedBy || '',
+        dr.UpdatedBy || '',
+      ].some(v => v.toLowerCase().includes(kw))
+    },
     handleRuleChange(event: any) {
       const selectedId = event.target.value
       const selectedOption = this.deliveryRuleOptions.find(op => op.label === selectedId)

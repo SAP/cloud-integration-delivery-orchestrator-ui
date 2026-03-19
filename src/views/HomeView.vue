@@ -3,8 +3,14 @@ import AppCard from '@/components/AppCard.vue'
 import type { AppCount } from '@/service/model'
 import { useRouter } from 'vue-router'
 
+type ChildMeta = { description?: string; statusCount?: () => Promise<AppCount>; width?: string; height?: string }
+
 const router = useRouter()
 const apps = router.getRoutes().filter(r => r.children.length > 0)
+
+function childMeta(child: { meta?: Record<string, unknown> }): ChildMeta {
+  return (child.meta ?? {}) as ChildMeta
+}
 </script>
 
 <template>
@@ -14,7 +20,7 @@ const apps = router.getRoutes().filter(r => r.children.length > 0)
       <AppCard v-for="(child, index) in router.children"
         :key="index"
         :title="child.name as string"
-        :meta="child.meta as { description?: string; statusCount?: () => Promise<AppCount>, width?: string, height?: string }"
+        :meta="childMeta(child)"
         :path="`${router.path}/${child.path}`"
       />
     </div>

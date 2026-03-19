@@ -24,6 +24,7 @@ describe('DeriveNodeAgg', () => {
     RequestState: requestState,
     ImportState: importState,
     DeployState: deployState,
+    SkipDeploy: false,
     LastError: '',
     RetryCountImport: 0,
     RetryCountDeploy: 0,

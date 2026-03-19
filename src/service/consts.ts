@@ -369,7 +369,11 @@ export const deliveryRuleColumns: DataTableColumns<DeliveryRule> = [
     title: 'Active',
     key: 'Active',
     render(row: DeliveryRule) {
-      return row.Active ? 'Yes' : 'No'
+      return h(
+        'ui5-tag',
+        { design: row.Active ? 'Positive' : 'Negative' },
+        { default: () => (row.Active ? 'Yes' : 'No') }
+      )
     }
   },
   {
