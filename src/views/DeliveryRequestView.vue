@@ -491,21 +491,12 @@
     </ui5-toolbar>
   </ui5-dialog>
 
-  <ui5-dialog header-text="Delete Delivery Request" :open="showDeleteDialog"
-    @close="showDeleteDialog = false">
-    <div style="padding: 1rem; display: flex; flex-direction: column; gap: 12px;">
-      <ui5-message-strip design="Negative" hide-close-button>
-        This will permanently delete "{{ deliveryRequest.Name }}".
-        This action cannot be undone.
-      </ui5-message-strip>
-    </div>
-    <ui5-toolbar slot="footer">
-      <ui5-toolbar-button design="Negative" text="Delete"
-        @click="confirmDeleteDr" />
-      <ui5-toolbar-button class="dialogCloser" design="Transparent" text="Close"
-        @click="showDeleteDialog = false" />
-    </ui5-toolbar>
-  </ui5-dialog>
+  <ConfirmDeleteDialog
+    :open="showDeleteDialog"
+    :name="deliveryRequest.Name"
+    @confirm="confirmDeleteDr"
+    @close="showDeleteDialog = false"
+  />
 
 </template>
 
@@ -541,6 +532,7 @@ import type { DeliveryRequest, CpiTenant, Package, Artifact, ArtifactVersionHist
 import DeliveryFlowView from './DeliveryFlowView.vue'
 import CpiTransportFlowView from './CpiTransportFlowView.vue'
 import ArtifactOpTag from '@/components/ArtifactOpTag.vue'
+import ConfirmDeleteDialog from '@/components/ConfirmDeleteDialog.vue'
 import { nextTick } from 'vue'
 import { aggregateStatusToUi5Design, conditionTypeToDesign } from '@/service/statuses'
 import { sseClient } from '@/service/sse'
@@ -600,6 +592,7 @@ export default {
     CpiTransportNode,
     DeliveryFlowView,
     CpiTransportFlowView,
+    ConfirmDeleteDialog,
     ArtifactOpTag,
   },
   props: { planId: { required: true, type: Number } },

@@ -66,6 +66,12 @@
       style="width: 28rem;"
     />
   </div>
+  <ConfirmDeleteDialog
+    :open="showDeleteDialog"
+    :name="pendingDeleteRows[0]?.Name ?? ''"
+    @confirm="confirmDelete"
+    @close="showDeleteDialog = false"
+  />
   <data-table
     title="Delivery Requests"
     :columns="deliveryRequestColumns"
@@ -81,6 +87,7 @@
 <script lang="ts">
 import { defineComponent } from 'vue'
 import DataTable from '@/components/DataTable.vue'
+import ConfirmDeleteDialog from '@/components/ConfirmDeleteDialog.vue'
 import { deliveryRequestColumns, type ToolBar } from '@/service/consts'
 import { DeleteDeliveryRequest, GetDeliveryRequests, CreateDeliveryRequest, GetDeliveryRules, UaaUserInfo, } from '@/service/api';
 import type { DeliveryRequest, DeliveryRule, UserInfo } from '@/service/model';
@@ -100,7 +107,7 @@ import "@ui5/webcomponents/dist/ToolbarButton.js"
 import "@ui5/webcomponents/dist/SegmentedButton.js"
 import "@ui5/webcomponents/dist/SegmentedButtonItem.js"
 export default defineComponent({
-  components: { DataTable },
+  components: { DataTable, ConfirmDeleteDialog },
   data(){
     const toolBars: ToolBar[] = [
       {
@@ -117,6 +124,8 @@ export default defineComponent({
       deliveryRuleOptions: [] as {label: string, value: DeliveryRule, disabled: boolean}[],
       uaaUsers: {} as { [key: string]: Promise<UserInfo> }, // userId - userEmail
       loading: false as boolean,
+      showDeleteDialog: false,
+      pendingDeleteRows: [] as DeliveryRequest[],
       activeFilter: 'All' as StatusFilterKey,
       searchKeyword: '',
       sseUnsubscribers: [] as (() => void)[],
@@ -197,13 +206,19 @@ export default defineComponent({
         // Error displayed by http interceptor
       }
     },
-    async handleDelete(rows: DeliveryRequest[]) {
+    handleDelete(rows: DeliveryRequest[]) {
       if (rows.length === 0) {
-        window.$message.warning('Please select at least one transport plan')
+        window.$message.warning('Please select at least one delivery request')
         return
       }
+      this.pendingDeleteRows = rows
+      this.showDeleteDialog = true
+    },
+    async confirmDelete() {
       try {
-        await DeleteDeliveryRequest(rows[0].ID)
+        await DeleteDeliveryRequest(this.pendingDeleteRows[0].ID)
+        this.showDeleteDialog = false
+        this.pendingDeleteRows = []
         await this.loadDeliveryRequests()
         window.$message?.success?.('Deleted')
       } catch (e) {

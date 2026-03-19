@@ -17,6 +17,9 @@ const router = useRouter()
 const appCount = ref<AppCount>({} as AppCount)
 
 const subtitle = computed(() => props.meta?.description ?? '')
+const statusEntries = computed(() =>
+  Object.entries(appCount.value.StatusCounts || {}).filter(([, value]) => Boolean(value))
+)
 
 const jumpTo = () => {
   if (props.path) router.push(props.path)
@@ -50,17 +53,15 @@ onUnmounted(() => {
     <ui5-card-header slot="header" :title-text="title" :subtitle-text="subtitle" interactive>
     </ui5-card-header>
     <div class="card-content">
-      <ui5-text style="color: var(--sapPositiveColor); font-size: 2rem;">{{ appCount.Total || 0 }}</ui5-text>
-      <ui5-text> Total</ui5-text>
+      <div class="metric-row total-row">
+        <span class="metric-value total-count">{{ appCount.Total || 0 }}</span>
+        <span class="metric-label">Total</span>
+      </div>
       <div class="status-counts">
-        <span v-for="key in Object.keys(appCount.StatusCounts || {})" :key="key" class="status-item">
-          <span v-if="appCount.StatusCounts?.[key]">
-            <ui5-text class="status-count">
-              {{ appCount.StatusCounts?.[key] }}
-            </ui5-text>
-              {{ key }}
-          </span>
-        </span>
+        <div v-for="[key, value] in statusEntries" :key="key" class="metric-row status-item">
+          <span class="metric-value status-count">{{ value }}</span>
+          <span class="metric-label">{{ key }}</span>
+        </div>
       </div>
     </div>
   </ui5-card>
@@ -72,16 +73,40 @@ onUnmounted(() => {
   margin-left: 16px;
 }
 
+.metric-row {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  flex-wrap: nowrap;
+}
+
+.metric-value {
+  line-height: 1;
+  font-weight: 400;
+}
+
+.metric-label {
+  line-height: 1.1;
+}
+
+.total-row {
+  margin-top: 0.25rem;
+}
+
+.total-count {
+  color: var(--sapPositiveColor);
+  font-size: 2rem;
+}
+
 .status-counts {
   margin-top: 0.625rem;
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
   gap: 0.625rem;
 }
 
 .status-item {
-  display: flex;
-  align-items: center;
+  align-items: baseline;
 }
 
 .status-count {
