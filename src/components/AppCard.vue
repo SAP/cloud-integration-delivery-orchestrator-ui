@@ -101,7 +101,7 @@ onUnmounted(() => {
 .status-counts {
   margin-top: 0.625rem;
   display: flex;
-  flex-direction: column;
+  flex-wrap: wrap;
   gap: 0.625rem;
 }
 

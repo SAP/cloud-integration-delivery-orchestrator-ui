@@ -471,7 +471,8 @@
   </ui5-dynamic-page>
 
   <ui5-dialog header-text="Cancel Delivery Request" :open="showCancelDialog"
-    @close="showCancelDialog = false">
+    :busy="cancelingDr"
+    @close="!cancelingDr && (showCancelDialog = false)">
     <div style="padding: 1rem; display: flex; flex-direction: column; gap: 12px;">
       <ui5-message-strip design="Critical" hide-close-button>
         This action is permanent. The delivery request will be marked as CANCELED
@@ -479,14 +480,16 @@
       </ui5-message-strip>
       <ui5-label for="cancel-reason" required>Reason for cancellation</ui5-label>
       <ui5-textarea id="cancel-reason" v-model="cancelReason"
+        :disabled="cancelingDr"
         placeholder="e.g. Requirements changed, no longer needed"
         rows="3" />
     </div>
     <ui5-toolbar slot="footer">
-      <ui5-toolbar-button design="Negative" text="Confirm Cancel"
-        :disabled="!cancelReason.trim()"
+      <ui5-toolbar-button design="Negative" :text="cancelingDr ? 'Canceling...' : 'Confirm Cancel'"
+        :disabled="cancelingDr || !cancelReason.trim()"
         @click="handleCancelDr" />
       <ui5-toolbar-button class="dialogCloser" design="Transparent" text="Close"
+        :disabled="cancelingDr"
         @click="showCancelDialog = false" />
     </ui5-toolbar>
   </ui5-dialog>
@@ -638,6 +641,7 @@ export default {
       approveStepLoading: false,
       showCancelDialog: false,
       cancelReason: '',
+      cancelingDr: false,
       showDeleteDialog: false,
       sseUnsubscribers: [] as (() => void)[],
       sseRefreshTimer: null as ReturnType<typeof setTimeout> | null,
@@ -736,13 +740,16 @@ export default {
       this.$router.go(-1)
     },
     async handleCancelDr() {
+      this.cancelingDr = true
       try {
         await CancelDeliveryRequest(this.deliveryRequest.ID, this.cancelReason.trim())
         this.showCancelDialog = false
         this.cancelReason = ''
-        this.refresh()
+        await this.refresh()
       } catch (e) {
         // HTTP interceptor handles error toast
+      } finally {
+        this.cancelingDr = false
       }
     },
     async updateDr() {
