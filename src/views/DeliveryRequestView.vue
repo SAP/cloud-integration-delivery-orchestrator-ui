@@ -318,7 +318,7 @@
               <div style="display: flex; flex-direction: column; gap:10px">
                 <!-- old(source) artifacts + draft source artifacts -->
                 <div style="display: flex; flex-direction: row; gap: 8px; flex-wrap: wrap;">
-                  <ArtifactOpTag v-for="(op, i) in sourceOps" :i="i" :art-op="op" :stage-type="stateType(op)"
+                  <ArtifactOpTag v-for="(op, i) in sourceOps" :key="op.ID" :i="i" :art-op="op" :stage-type="stateType(op)"
                     @open-artifact-details="openArtifactDetails" 
                     style="margin: 0 5px;"
                   />
@@ -349,7 +349,7 @@
                     <span style="color: var(--sapNegativeColor);">To be Deleted ({{ deleteOps.length }})</span>
                   </ui5-title>
                   <div style="display: flex; flex-direction: row; gap: 8px; flex-wrap: wrap;">
-                    <ArtifactOpTag v-for="(op, i) in deleteOps" :i="i" :art-op="op" :stage-type="stateType(op)"
+                    <ArtifactOpTag v-for="(op, i) in deleteOps" :key="op.ID" :i="i" :art-op="op" :stage-type="stateType(op)"
                       @open-artifact-details="openArtifactDetails" />
                   </div>
                 </div>
@@ -372,7 +372,7 @@
               @select="(v: UserInfo) => { handleSelectApprover(v) }" clearable clear-after-select />
             <ui5-label>Approvers:</ui5-label>
             <div style="display: flex; gap: 10px;">
-              <span v-for="(user_id, _) in deliveryRequest.Approvers">
+              <span v-for="user_id in deliveryRequest.Approvers" :key="user_id">
                 <ui5-busy-indicator v-if="!(uaaUsers[user_id]?.email ?? (uaaUserInfo(user_id), ''))" active :delay="0" size="M" />
                 <ui5-tag v-else @close="handleUnselectApprover(user_id)">
                   {{ uaaUsers[user_id]?.email }}
