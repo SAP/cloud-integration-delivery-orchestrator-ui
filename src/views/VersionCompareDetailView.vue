@@ -184,7 +184,7 @@ const selectAllPackages = () => {
   selectedPackages.value = map
 }
 
-const deselectAllPackages = () => {
+const unselectAllPackages = () => {
   selectedPackages.value = {}
 }
 
@@ -440,7 +440,7 @@ onUnmounted(() => {
       <div class="vcd-pkg-filter-header">
         <ui5-text style="font-size: 0.85rem; font-weight: 600;">Packages:</ui5-text>
         <ui5-button design="Transparent" @click="selectAllPackages" style="font-size: 0.75rem;">Select All</ui5-button>
-        <ui5-button design="Transparent" @click="deselectAllPackages" style="font-size: 0.75rem;">Deselect All</ui5-button>
+        <ui5-button design="Transparent" @click="unselectAllPackages" style="font-size: 0.75rem;">Unselect All</ui5-button>
       </div>
       <div class="vcd-pkg-filter-list">
         <ui5-checkbox
