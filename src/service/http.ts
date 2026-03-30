@@ -65,8 +65,8 @@ service.interceptors.request.use(
 service.interceptors.response.use(
   (response) => {
     const res = response.data
-    if (res.msg) window.$message.info(res.msg)
-    return res.result
+    if (res.message) window.$message.info(res.message)
+    return res.data
   },
   (error) => {
     // Check for session expiry first
@@ -74,7 +74,7 @@ service.interceptors.response.use(
       return Promise.reject(error)
     }
 
-    const message = error.response?.data?.msg ?? error.response?.data?.error ?? error.message
+    const message = error.response?.data?.message ?? error.message
     const httpError: HttpError = {
       message,
       data: error.response?.data,

@@ -145,7 +145,7 @@ export default defineComponent({
                 window.$message.success(message, { duration: 10 * 1000, closable: true })
             } catch (error: any) {
                 const resp = error?.response?.data
-                window.$message.error(`Failed to check tenant status: ${resp?.message ?? resp?.error ?? ''}`, { duration: 30 * 1000, closable: true })
+                window.$message.error(`Failed to check tenant status: ${resp?.message ?? ''}`, { duration: 30 * 1000, closable: true })
             }
         },
         async handleLaunch(row: CpiTenant) {
@@ -155,7 +155,7 @@ export default defineComponent({
                 window.$message.success(message, { duration: 10 * 1000, closable: true })
             } catch (error: any) {
                 const resp = error?.response?.data
-                window.$message.error(`Failed to launch tenant: ${resp?.message ?? resp?.error ?? ''}`, { duration: 30 * 1000, closable: true })
+                window.$message.error(`Failed to launch tenant: ${resp?.message ?? ''}`, { duration: 30 * 1000, closable: true })
             }
         },
         onSelectNodeChange(event: any) {

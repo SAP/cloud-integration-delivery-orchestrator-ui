@@ -625,8 +625,8 @@ onUnmounted(() => {
 
           <!-- Skip errors from failed create (if backend returned validation details) -->
           <ui5-panel
-            v-if="createError?.data?.result?.errors?.length"
-            :header-text="`Validation Errors (${createError.data.result.errors.length})`"
+            v-if="createError?.data?.errors?.length"
+            :header-text="`Validation Errors (${createError.data.errors.length})`"
             class="dr-category-panel dr-category-warn"
           >
             <ui5-table class="dr-artifact-table" no-data-text="">
@@ -635,7 +635,7 @@ onUnmounted(() => {
                 <ui5-table-header-cell>Package</ui5-table-header-cell>
                 <ui5-table-header-cell>Reason</ui5-table-header-cell>
               </ui5-table-header-row>
-              <ui5-table-row v-for="e in createError.data.result.errors" :key="`err-${e.artifactID}::${e.packageID}`">
+              <ui5-table-row v-for="e in createError.data.errors" :key="`err-${e.artifactID}::${e.packageID}`">
                 <ui5-table-cell><span class="dr-cell-ellipsis">{{ e.artifactID }}</span></ui5-table-cell>
                 <ui5-table-cell><span class="dr-cell-secondary">{{ e.packageID }}</span></ui5-table-cell>
                 <ui5-table-cell><ui5-tag design="Negative" style="font-size: 0.65rem;">{{ e.reason }}</ui5-tag></ui5-table-cell>

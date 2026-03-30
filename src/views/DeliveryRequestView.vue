@@ -818,7 +818,7 @@ export default {
         this.artifactVersionHistory = await GetArtifactVersionHistory(`${baseUrl.protocol}//${baseUrl.host}`, PackageID, TechID)
       } catch (error: any) {
         const resp = error?.response?.data
-        window.$message?.error(`Failed to load artifact version history: ${resp?.message ?? resp?.error ?? ''}`, { duration: 30 * 1000, closable: true })
+        window.$message?.error(`Failed to load artifact version history: ${resp?.message ?? ''}`, { duration: 30 * 1000, closable: true })
       } finally {
         this.loadingArtifactHistory = false
       }
@@ -873,7 +873,7 @@ export default {
         await this.checkTr(this.artifactOpDetial)
       } catch (error: any) {
         const resp = error?.response?.data
-        const message = resp?.error ?? resp?.message ?? error ?? ''
+        const message = resp?.message ?? error ?? ''
         window.$message?.error(`Failed to generate transport request: ${message}`, { duration: 30 * 1000, closable: true })
       } finally {
         this.generatingTrLoading = false
@@ -911,7 +911,7 @@ export default {
           } else {
             const error = result.reason
             const resp = error?.response?.data
-            const message = resp?.error ?? resp?.message ?? error?.toString() ?? 'Unknown error'
+            const message = resp?.message ?? error?.toString() ?? 'Unknown error'
             errorResults.push({ op, error: message })
           }
         })
