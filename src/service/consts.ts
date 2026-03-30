@@ -1,4 +1,3 @@
-import { NTag, type DataTableColumns } from 'naive-ui'
 import type { ApiEndpoint, Artifact, Package, TransportGroup, TransportNode, NodeTransportRequest, CpiTenant, DeliveryRule, DeliveryRequest } from './model'
 import { h, type VNode } from 'vue'
 import "@ui5/webcomponents/dist/Tag.js";
@@ -6,7 +5,22 @@ import "@ui5/webcomponents-icons/dist/chain-link.js";
 import "@ui5/webcomponents/dist/Link.js";
 import { aggregateStatusToUi5Design } from './statuses';
 
-export const apiEndpointColums: DataTableColumns<ApiEndpoint> = [
+// Column interface replacing Naive UI's DataTableColumns
+export interface Column {
+  type?: 'selection'
+  multiple?: boolean
+  disabled?: (row: any) => boolean
+  title?: string
+  key?: string
+  resizable?: boolean
+  sortOrder?: string
+  render?: (row: any) => any
+  filter?: (value: any, row: any) => boolean
+  filterOptionValue?: any
+  sorter?: (row1: any, row2: any) => number
+}
+
+export const apiEndpointColums: Column[] = [
   {
     type: 'selection',
     multiple: false,
@@ -32,7 +46,7 @@ export const apiEndpointColums: DataTableColumns<ApiEndpoint> = [
   }
 ]
 
-export const cpiTenantColums: DataTableColumns<CpiTenant> = [
+export const cpiTenantColums: Column[] = [
   {
     type: 'selection',
     multiple: false,
@@ -80,7 +94,7 @@ export const cpiTenantColums: DataTableColumns<CpiTenant> = [
   }
 
 ]
-export const transportGroupColums: DataTableColumns<TransportGroup> = [
+export const transportGroupColums: Column[] = [
   {
     type: 'selection',
     multiple: false,
@@ -111,8 +125,8 @@ export const transportGroupColums: DataTableColumns<TransportGroup> = [
       return h(
         'div',
         importNodes.map(node => h(
-          NTag,
-          { style: { marginRight: '8px' }, type: 'info' },
+          'ui5-tag',
+          { style: { marginRight: '8px' }, design: 'Information' },
           node
         ))
       )
@@ -128,8 +142,8 @@ export const transportGroupColums: DataTableColumns<TransportGroup> = [
       return h(
         'div',
         deployNodes.map(node => h(
-          NTag,
-          { style: { marginRight: '8px' }, type: 'success' },
+          'ui5-tag',
+          { style: { marginRight: '8px' }, design: 'Positive' },
           node
         ))
       )
@@ -147,7 +161,7 @@ export const transportGroupColums: DataTableColumns<TransportGroup> = [
   }
 ]
 
-export const transportNodesColums: DataTableColumns<TransportNode> = [
+export const transportNodesColums: Column[] = [
   {
     type: 'selection',
     multiple: false,
@@ -173,7 +187,7 @@ export const transportNodesColums: DataTableColumns<TransportNode> = [
   }
 ]
 
-export const transportRequestColums: DataTableColumns<NodeTransportRequest> = [
+export const transportRequestColums: Column[] = [
   {
     type: 'selection',
     disabled(row: Object) {
@@ -213,7 +227,7 @@ export const transportRequestColums: DataTableColumns<NodeTransportRequest> = [
   }
 ]
 
-export const packageColums: DataTableColumns<Package> = [
+export const packageColums: Column[] = [
   {
     type: 'selection',
     multiple: false,
@@ -255,7 +269,7 @@ export const packageColums: DataTableColumns<Package> = [
 ]
 
 // design artifact columns
-export const artifactColumns: DataTableColumns<Artifact> = [
+export const artifactColumns: Column[] = [
   {
     type: 'selection',
     disabled(row: Object) {
@@ -285,7 +299,7 @@ export const artifactColumns: DataTableColumns<Artifact> = [
   }
 ]
 
-export const runtimeArtifactColumns: DataTableColumns<Artifact> = [
+export const runtimeArtifactColumns: Column[] = [
   {
     type: 'selection',
     disabled(row: Object) {
@@ -330,7 +344,7 @@ export const runtimeArtifactColumns: DataTableColumns<Artifact> = [
   }
 ]
 
-export const deliveryRuleColumns: DataTableColumns<DeliveryRule> = [
+export const deliveryRuleColumns: Column[] = [
   { type: 'selection', multiple: false },
   {
     title: 'ID',
@@ -457,7 +471,7 @@ export function toLocalTime(str: string) {
   return new Date(str).toLocaleString('zh-CN')
 }
 
-export const deliveryRequestColumns: DataTableColumns<DeliveryRequest> = [
+export const deliveryRequestColumns: Column[] = [
   // { type: 'selection', multiple: false },
   {
     title: 'ID',

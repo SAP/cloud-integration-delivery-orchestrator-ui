@@ -102,7 +102,7 @@ const handleTrigger = async () => {
   try {
     const result = await TriggerVersionCompare(props.ruleId)
     if (result.status === 'running') {
-      window.$message?.success?.('Scan triggered')
+      window.$toast?.success?.('Scan triggered')
     }
     pollUntilComplete()
   } catch (e) {
@@ -301,12 +301,12 @@ const handleCreateDR = async () => {
 
   // Validate JIRA if required
   if (previewData.value.requireJira && !drJiraLink.value.trim()) {
-    window.$message?.warning?.('JIRA link is required for this delivery rule')
+    window.$toast?.warning?.('JIRA link is required for this delivery rule')
     return
   }
 
   if (selectedCount.value === 0) {
-    window.$message?.warning?.('Please select at least one artifact')
+    window.$toast?.warning?.('Please select at least one artifact')
     return
   }
 
@@ -326,7 +326,7 @@ const handleCreateDR = async () => {
       artifactKeys,
     })
     drDialogStep.value = 'result'
-    window.$message?.success?.('Delivery Request created successfully')
+    window.$toast?.success?.('Delivery Request created successfully')
   } catch (err: any) {
     createError.value = err as HttpError
   } finally {

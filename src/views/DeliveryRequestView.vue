@@ -366,10 +366,17 @@
           <ui5-title>Request Approval</ui5-title><br />
           <ui5-busy-indicator v-if="approveInfo.loading" active :delay="0" />
           <div style="display: flex; flex-direction: column" v-else-if="!deliveryRequest.ApprovedBy">
-            <n-auto-complete style="width: 40%;" :options="approverOptions" :loading="searchApproverLoading"
-              :value="searchApprover" placeholder="Search Approvers"
-              @update:value="(v: string) => { searchApprover = v; handleSearchArrover(v) }"
-              @select="(v: UserInfo) => { handleSelectApprover(v) }" clearable clear-after-select />
+            <div style="position: relative; width: 40%;">
+              <ui5-input style="width: 100%;" placeholder="Search Approvers"
+                @input="(e: any) => handleSearchArrover(e.target.value)" />
+              <ui5-busy-indicator v-if="searchApproverLoading" active :delay="0" size="S"
+                style="position: absolute; right: 0.5rem; top: 50%; transform: translateY(-50%);" />
+              <ui5-list v-if="approverOptions.length" class="approver-dropdown"
+                @item-click="(e: any) => onApproverClick(e)">
+                <ui5-li v-for="(opt, idx) in approverOptions" :key="idx"
+                  :data-index="idx">{{ opt.label }}</ui5-li>
+              </ui5-list>
+            </div>
             <ui5-label>Approvers:</ui5-label>
             <div style="display: flex; gap: 10px;">
               <span v-for="user_id in deliveryRequest.Approvers" :key="user_id">
@@ -632,6 +639,7 @@ export default {
       approverOptions: [] as { label: string; value: UserInfo }[],
       searchTimer: null as ReturnType<typeof setTimeout> | null,
       searchApprover: '',
+      skipNextSearch: false,
       uaaUsers: {} as { [key: string]: UserInfo }, // userId - userEmail
       currentUser: {} as UserInfo,
       loadingCpiTenants: true,
@@ -669,6 +677,12 @@ export default {
         this.searchApproverLoading = false
       }, 800)
     },
+    onApproverClick(e: any) {
+      const idx = Number(e.detail.item.dataset.index)
+      const opt = this.approverOptions[idx]
+      if (opt) this.handleSelectApprover(opt.value)
+      this.approverOptions = []
+    },
     handleSelectApprover(user: UserInfo) {
       if (!this.deliveryRequest.Approvers) this.deliveryRequest.Approvers = []
       if (this.deliveryRequest.Approvers.includes(user.id)) return
@@ -677,13 +691,13 @@ export default {
     async handleRequestApprove() {
       // Send to selected approvers
       if (!this.deliveryRequest.Approvers || !this.deliveryRequest.Approvers.length) {
-        window.$message?.warning?.('Please select at least one approver before sending approval request.')
+        window.$toast?.warning?.('Please select at least one approver before sending approval request.')
         return
       }
       this.approveStepLoading = true
       try {
         await RequestApprove(this.deliveryRequest.ID, this.deliveryRequest.Approvers, '')
-        window.$message?.success?.(`Approval request sent to ${this.deliveryRequest.Approvers.map(a => a).join(', ')}`)
+        window.$toast?.success?.(`Approval request sent to ${this.deliveryRequest.Approvers.map(a => a).join(', ')}`)
       } finally {
         this.approveStepLoading = false
       }
@@ -693,7 +707,7 @@ export default {
       try {
         await Approve(this.deliveryRequest.ID, '')
         await this.refresh()
-        window.$message?.success?.('Delivery Request approved.')
+        window.$toast?.success?.('Delivery Request approved.')
       } finally {
         this.approveStepLoading = false
       }
@@ -754,7 +768,7 @@ export default {
     },
     async updateDr() {
       if (!this.deliveryRequest.SourceTenant) {
-        window.$message?.warning?.('Please select a source CPI tenant')
+        window.$toast?.warning?.('Please select a source CPI tenant')
         return
       }
       // No TR validation at save time — backend allows empty TRs (Phase 1).
@@ -818,7 +832,7 @@ export default {
         this.artifactVersionHistory = await GetArtifactVersionHistory(`${baseUrl.protocol}//${baseUrl.host}`, PackageID, TechID)
       } catch (error: any) {
         const resp = error?.response?.data
-        window.$message?.error(`Failed to load artifact version history: ${resp?.message ?? ''}`, { duration: 30 * 1000, closable: true })
+        window.$toast?.error(`Failed to load artifact version history: ${resp?.message ?? ''}`)
       } finally {
         this.loadingArtifactHistory = false
       }
@@ -869,12 +883,12 @@ export default {
         // this.artifactOpDetial.TransportRequestNumber = tr_number
         this.editingTrNumber = tr_number
         this.trInfo = tr_info
-        window.$message?.success(`Generated transport request: ${tr_number}`, { duration: 30 * 1000, closable: true })
+        window.$toast?.success(`Generated transport request: ${tr_number}`)
         await this.checkTr(this.artifactOpDetial)
       } catch (error: any) {
         const resp = error?.response?.data
         const message = resp?.message ?? error ?? ''
-        window.$message?.error(`Failed to generate transport request: ${message}`, { duration: 30 * 1000, closable: true })
+        window.$toast?.error(`Failed to generate transport request: ${message}`)
       } finally {
         this.generatingTrLoading = false
       }
@@ -884,7 +898,7 @@ export default {
       const opsToGen = [...this.addOps.filter(op => !op.TransportRequestNumber || !op.TransportRequestNumber.trim()),
                          ...this.missingTrOps]
       if (!opsToGen.length) {
-        window.$message?.warning?.('No artifacts need TR generation')
+        window.$toast?.warning?.('No artifacts need TR generation')
         return
       }
       this.generatingTrsLoading = true
@@ -919,12 +933,12 @@ export default {
         // Show results
         if (successResults.length > 0) {
           const successList = successResults.map(r => `${r.op.ArtifactTechID}@${r.op.ArtifactVersion}: ${r.trNumber}`).join('\n')
-          window.$message?.success(`Successfully generated ${successResults.length} transport request(s):\n${successList}`, { duration: 30 * 1000, closable: true })
+          window.$toast?.success(`Successfully generated ${successResults.length} transport request(s):\n${successList}`)
         }
 
         if (errorResults.length > 0) {
           const errorList = errorResults.map(e => `${e.op.ArtifactTechID}@${e.op.ArtifactVersion}: ${e.error}`).join('\n')
-          window.$message?.error(`Failed to generate ${errorResults.length} transport request(s):\n${errorList}`, { duration: 30 * 1000, closable: true })
+          window.$toast?.error(`Failed to generate ${errorResults.length} transport request(s):\n${errorList}`)
         }
       } finally {
         this.generatingTrsLoading = false
@@ -938,7 +952,7 @@ export default {
         s => op.DeployState === s || op.DeployState === `DEPLOY_${s}`
       )
       if (deployBlocked && !op.SkipDeploy) {
-        window.$message?.warning?.(`Cannot skip deploy: deploy state is ${op.DeployState}`)
+        window.$toast?.warning?.(`Cannot skip deploy: deploy state is ${op.DeployState}`)
         return
       }
 
@@ -1029,7 +1043,7 @@ export default {
           .filter(a => {
             const op = this.sourceOps.find(op => op.ArtifactTechID === a.TechID && op.ArtifactVersion === a.Version) || {} as ArtifactTenantOperation
             if (op.RequestState !== 'NOT_REQUESTED')
-              window.$message?.warning?.(`Cannot remove artifact ${a.TechID}@${a.Version} as its request state is ${op.RequestState}`)
+              window.$toast?.warning?.(`Cannot remove artifact ${a.TechID}@${a.Version} as its request state is ${op.RequestState}`)
             return op.RequestState === 'NOT_REQUESTED' // can only remove not requested artifacts. Other states are in delivery process
           })
           .map(a => this.allOps.findIndex(op => op.ArtifactTechID === a.TechID && op.ArtifactVersion === a.Version)) // NOTE: if remove, should also remove all target tenant ops meanwhile
@@ -1255,5 +1269,18 @@ export default {
   text-overflow: ellipsis;
   min-width: 0;
   margin-left: 4rem;
+}
+
+.approver-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 200;
+  background: #fff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  border-radius: 4px;
+  max-height: 200px;
+  overflow-y: auto;
 }
 </style>

@@ -6,9 +6,9 @@ import axios from 'axios'
  * without a global toast, and can handle the error inline (e.g. in a dialog).
  */
 export interface HttpError {
-  /** Human-readable error message (from backend `error` or `msg` field, or Axios default) */
+  /** Human-readable error message (from backend `message` field, or Axios default) */
   message: string
-  /** Full response body from the backend (preserves structured data like `result`) */
+  /** Full response body from the backend (preserves structured data like `errors`) */
   data?: any
   /** HTTP status code */
   status?: number
@@ -28,14 +28,7 @@ const service = axios.create({})
 // Check if session is expired and redirect to logout
 const checkSessionExpired = (error: any) => {
   if (error?.response?.status === 401) {
-    window.$message.warning(
-      'Session expired. Redirecting to login...',
-      {
-        closable: true,
-        duration: 3000
-      }
-    )
-    // Reload page to trigger re-login
+    window.$toast?.warning('Session expired. Redirecting to login...')
     setTimeout(() => {
       window.location.reload()
     }, 1000)
@@ -52,12 +45,7 @@ service.interceptors.request.use(
     if (checkSessionExpired(error)) {
       return Promise.reject(error)
     }
-    window.$message.error(`request failed: ${error}`,
-      {
-        closable: true,
-        duration: 1000*30
-      }
-    )
+    window.$toast?.error(`request failed: ${error}`)
     return Promise.reject(error)
   }
 )
@@ -65,7 +53,7 @@ service.interceptors.request.use(
 service.interceptors.response.use(
   (response) => {
     const res = response.data
-    if (res.message) window.$message.info(res.message)
+    if (res.message) window.$toast?.info(res.message)
     return res.data
   },
   (error) => {
@@ -83,13 +71,7 @@ service.interceptors.response.use(
 
     // Only show global toast if silentError is not set on the request config
     if (!error.config?.silentError) {
-      window.$message.error(
-        message,
-        {
-          closable: true,
-          duration: 1000*30
-        }
-      )
+      window.$toast?.error(message)
     }
 
     return Promise.reject(httpError)

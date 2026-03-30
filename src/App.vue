@@ -2,7 +2,8 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 
 import { useRouter } from 'vue-router'
-import MessageItem from '@/components/MessageComp.vue'
+import ToastContainer from '@/components/toast/ToastContainer.vue'
+import { setToastRef, initGlobalToast } from '@/components/toast/useToast'
 import { CurrentUser } from './service/api'
 import { sseClient } from './service/sse'
 import "@ui5/webcomponents-fiori/dist/ShellBar.js"
@@ -20,11 +21,16 @@ import "@ui5/webcomponents/dist/ListItemStandard.js";
 // Router
 const router = useRouter()
 
+// Toast
+const toastContainer = ref()
+
 const userInfo = ref<{ [key: string]: string }>({})
 const openProfile = ref(false)
 
-// Lifecycle: load current user
+// Lifecycle
 onMounted(async () => {
+  setToastRef(toastContainer.value)
+  initGlobalToast()
   userInfo.value = await CurrentUser()
   sseClient.connect('/api/v1/events')
 })
@@ -78,10 +84,8 @@ const userName = computed(() => `${userInfo.value.firstname || ''} ${userInfo.va
   </ui5-popover>
 
   <div class="body-class">
-    <n-message-provider placement="bottom-left">
-      <MessageItem />
-      <router-view />
-    </n-message-provider>
+    <ToastContainer ref="toastContainer" />
+    <router-view />
   </div>
 </template>
 
