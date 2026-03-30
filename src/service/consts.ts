@@ -1,28 +1,12 @@
-import Tag from 'primevue/tag'
+import { NTag, type DataTableColumns } from 'naive-ui'
 import type { ApiEndpoint, Artifact, Package, TransportGroup, TransportNode, NodeTransportRequest, CpiTenant, DeliveryRule, DeliveryRequest } from './model'
 import { h, type VNode } from 'vue'
 import "@ui5/webcomponents/dist/Tag.js";
 import "@ui5/webcomponents-icons/dist/chain-link.js";
-
-// Temporary Column interface replacing Naive UI's DataTableColumns.
-// Will be removed in Phase 2 when migrating to PrimeVue DataTable.
-export interface Column {
-  type?: 'selection'
-  multiple?: boolean
-  disabled?: (row: any) => boolean
-  title?: string
-  key?: string
-  resizable?: boolean
-  sortOrder?: string
-  render?: (row: any) => any
-  filter?: (value: any, row: any) => boolean
-  filterOptionValue?: any
-  sorter?: (row1: any, row2: any) => number
-}
 import "@ui5/webcomponents/dist/Link.js";
 import { aggregateStatusToUi5Design } from './statuses';
 
-export const apiEndpointColums: Column[] = [
+export const apiEndpointColums: DataTableColumns<ApiEndpoint> = [
   {
     type: 'selection',
     multiple: false,
@@ -48,7 +32,7 @@ export const apiEndpointColums: Column[] = [
   }
 ]
 
-export const cpiTenantColums: Column[] = [
+export const cpiTenantColums: DataTableColumns<CpiTenant> = [
   {
     type: 'selection',
     multiple: false,
@@ -96,7 +80,7 @@ export const cpiTenantColums: Column[] = [
   }
 
 ]
-export const transportGroupColums: Column[] = [
+export const transportGroupColums: DataTableColumns<TransportGroup> = [
   {
     type: 'selection',
     multiple: false,
@@ -127,7 +111,7 @@ export const transportGroupColums: Column[] = [
       return h(
         'div',
         importNodes.map(node => h(
-          Tag,
+          NTag,
           { style: { marginRight: '8px' }, type: 'info' },
           node
         ))
@@ -144,7 +128,7 @@ export const transportGroupColums: Column[] = [
       return h(
         'div',
         deployNodes.map(node => h(
-          Tag,
+          NTag,
           { style: { marginRight: '8px' }, type: 'success' },
           node
         ))
@@ -163,7 +147,7 @@ export const transportGroupColums: Column[] = [
   }
 ]
 
-export const transportNodesColums: Column[] = [
+export const transportNodesColums: DataTableColumns<TransportNode> = [
   {
     type: 'selection',
     multiple: false,
@@ -189,7 +173,7 @@ export const transportNodesColums: Column[] = [
   }
 ]
 
-export const transportRequestColums: Column[] = [
+export const transportRequestColums: DataTableColumns<NodeTransportRequest> = [
   {
     type: 'selection',
     disabled(row: Object) {
@@ -229,7 +213,7 @@ export const transportRequestColums: Column[] = [
   }
 ]
 
-export const packageColums: Column[] = [
+export const packageColums: DataTableColumns<Package> = [
   {
     type: 'selection',
     multiple: false,
@@ -271,7 +255,7 @@ export const packageColums: Column[] = [
 ]
 
 // design artifact columns
-export const artifactColumns: Column[] = [
+export const artifactColumns: DataTableColumns<Artifact> = [
   {
     type: 'selection',
     disabled(row: Object) {
@@ -301,7 +285,7 @@ export const artifactColumns: Column[] = [
   }
 ]
 
-export const runtimeArtifactColumns: Column[] = [
+export const runtimeArtifactColumns: DataTableColumns<Artifact> = [
   {
     type: 'selection',
     disabled(row: Object) {
@@ -346,7 +330,7 @@ export const runtimeArtifactColumns: Column[] = [
   }
 ]
 
-export const deliveryRuleColumns: Column[] = [
+export const deliveryRuleColumns: DataTableColumns<DeliveryRule> = [
   { type: 'selection', multiple: false },
   {
     title: 'ID',
@@ -473,7 +457,7 @@ export function toLocalTime(str: string) {
   return new Date(str).toLocaleString('zh-CN')
 }
 
-export const deliveryRequestColumns: Column[] = [
+export const deliveryRequestColumns: DataTableColumns<DeliveryRequest> = [
   // { type: 'selection', multiple: false },
   {
     title: 'ID',

@@ -201,14 +201,14 @@ export default defineComponent({
         await CreateDeliveryRequest(this.selectedDeliveryRequest)
         this.showModal = false
         await this.loadDeliveryRequests()
-        window.$toast?.success?.('Saved')
+        window.$message?.success?.('Saved')
       } catch (e) {
         // Error displayed by http interceptor
       }
     },
     handleDelete(rows: DeliveryRequest[]) {
       if (rows.length === 0) {
-        window.$toast.warning('Please select at least one delivery request')
+        window.$message.warning('Please select at least one delivery request')
         return
       }
       this.pendingDeleteRows = rows
@@ -220,7 +220,7 @@ export default defineComponent({
         this.showDeleteDialog = false
         this.pendingDeleteRows = []
         await this.loadDeliveryRequests()
-        window.$toast?.success?.('Deleted')
+        window.$message?.success?.('Deleted')
       } catch (e) {
         // Error displayed by http interceptor
       }

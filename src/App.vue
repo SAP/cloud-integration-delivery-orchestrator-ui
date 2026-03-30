@@ -2,9 +2,7 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 
 import { useRouter } from 'vue-router'
-import { useToast } from 'primevue/usetoast'
-import Toast from 'primevue/toast'
-import { initGlobalToast } from '@/composables/useGlobalToast'
+import MessageItem from '@/components/MessageComp.vue'
 import { CurrentUser } from './service/api'
 import { sseClient } from './service/sse'
 import "@ui5/webcomponents-fiori/dist/ShellBar.js"
@@ -21,10 +19,6 @@ import "@ui5/webcomponents/dist/List.js";
 import "@ui5/webcomponents/dist/ListItemStandard.js";
 // Router
 const router = useRouter()
-
-// Initialize global toast
-const toast = useToast()
-initGlobalToast(toast)
 
 const userInfo = ref<{ [key: string]: string }>({})
 const openProfile = ref(false)
@@ -84,8 +78,10 @@ const userName = computed(() => `${userInfo.value.firstname || ''} ${userInfo.va
   </ui5-popover>
 
   <div class="body-class">
-    <Toast position="bottom-left" />
-    <router-view />
+    <n-message-provider placement="bottom-left">
+      <MessageItem />
+      <router-view />
+    </n-message-provider>
   </div>
 </template>
 

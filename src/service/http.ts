@@ -28,7 +28,7 @@ const service = axios.create({})
 // Check if session is expired and redirect to logout
 const checkSessionExpired = (error: any) => {
   if (error?.response?.status === 401) {
-    window.$toast.warning(
+    window.$message.warning(
       'Session expired. Redirecting to login...',
       {
         closable: true,
@@ -52,7 +52,7 @@ service.interceptors.request.use(
     if (checkSessionExpired(error)) {
       return Promise.reject(error)
     }
-    window.$toast.error(`request failed: ${error}`,
+    window.$message.error(`request failed: ${error}`,
       {
         closable: true,
         duration: 1000*30
@@ -65,7 +65,7 @@ service.interceptors.request.use(
 service.interceptors.response.use(
   (response) => {
     const res = response.data
-    if (res.message) window.$toast.info(res.message)
+    if (res.message) window.$message.info(res.message)
     return res.data
   },
   (error) => {
@@ -83,7 +83,7 @@ service.interceptors.response.use(
 
     // Only show global toast if silentError is not set on the request config
     if (!error.config?.silentError) {
-      window.$toast.error(
+      window.$message.error(
         message,
         {
           closable: true,

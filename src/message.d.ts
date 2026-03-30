@@ -1,6 +1,6 @@
-import type { ToastAPI } from './composables/useGlobalToast'
+import type { MessageApiInjection } from 'naive-ui/lib/message/src/MessageProvider'
 declare global {
   interface Window {
-    $toast: ToastAPI
+    $message: MessageApiInjection
   }
 }

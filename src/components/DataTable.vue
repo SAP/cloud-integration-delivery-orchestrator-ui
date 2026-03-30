@@ -63,7 +63,7 @@ const VNodeRenderer = defineComponent({
     return this.$props.vnode
   }
 })
-import { type ToolBar, type RowAction, type Column } from '@/service/consts'
+import { type ToolBar, type RowAction } from '@/service/consts'
 import "@ui5/webcomponents/dist/Table.js";
 import "@ui5/webcomponents/dist/TableRow.js";
 import "@ui5/webcomponents/dist/TableCell.js";
@@ -81,12 +81,13 @@ import "@ui5/webcomponents-fiori/dist/IllustratedMessage.js";
 import "@ui5/webcomponents-fiori/dist/illustrations/NoData.js";
 import "@ui5/webcomponents/dist/TableRowAction.js";
 import "@ui5/webcomponents/dist/TableRowActionNavigation.js";
+import type { DataTableColumns } from 'naive-ui';
 
 export default defineComponent({
   components: { VNodeRenderer },
   props: {
     title: { type: String, required: true },
-    columns: { type: Array as PropType<Column[]>, required: true },
+    columns: { type: Array as PropType<DataTableColumns<any>>, required: true },
     data: { type: Array, required: true },
     rowKey: { required: true },
     defaultCheckedRowKeys: { type: Array<string | number> },

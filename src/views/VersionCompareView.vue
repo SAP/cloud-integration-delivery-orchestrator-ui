@@ -57,7 +57,7 @@ const handleTrigger = async (ruleId: number, event: Event) => {
   try {
     const result = await TriggerVersionCompare(ruleId)
     if (result.status === 'running') {
-      window.$toast?.success?.('Scan triggered')
+      window.$message?.success?.('Scan triggered')
     }
     await loadSummaries()
   } catch (e) {
@@ -162,7 +162,7 @@ const saveIncludedPackages = async () => {
       description: pkgMap.get(id) || '',
     }))
     await UpdateIncludedPackages(packages)
-    window.$toast?.success?.('Included packages updated')
+    window.$message?.success?.('Included packages updated')
     showIncludedDialog.value = false
   } catch {
     // error displayed by http interceptor
