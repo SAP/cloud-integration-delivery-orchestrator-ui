@@ -167,7 +167,7 @@ export default defineComponent({
         },
         async handleDelete(rows: DeliveryRule[]) {
             if (rows.length === 0) {
-                window.$message.warning('Please select a delivery rule')
+                window.$toast.warning('Please select a delivery rule')
                 return
             }
             await DeleteDeliveryRule(rows[0].ID)
@@ -179,7 +179,7 @@ export default defineComponent({
         },
         handleEdit(rows: DeliveryRule[]) {
             if (rows.length === 0) {
-                window.$message.warning('Please select a delivery rule')
+                window.$toast.warning('Please select a delivery rule')
                 return
             }
             this.selDeliveryRule = { ...rows[0] }

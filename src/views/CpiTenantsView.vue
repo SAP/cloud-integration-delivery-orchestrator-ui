@@ -120,7 +120,7 @@ export default defineComponent({
         },
         async handleDelete(rows: CpiTenant[]) {
             if (rows.length === 0) {
-                window.$message.warning('Please select at least one Cpi Tenant')
+                window.$toast.warning('Please select at least one Cpi Tenant')
                 return
             }
             await DeleteCpiTenant(rows[0].ID)
@@ -132,7 +132,7 @@ export default defineComponent({
         },
         handleEdit(rows: CpiTenant[]) {
             if (rows.length === 0) {
-                window.$message.warning('Please select one Cpi Tenant')
+                window.$toast.warning('Please select one Cpi Tenant')
                 return
             }
             this.selectedCpiTenant = { ...rows[0] }
@@ -142,20 +142,20 @@ export default defineComponent({
             const baseUrl = new URL(row.CpiEndpoint.url)
             try {
                 const { message } = await CheckTenantStatus(`${baseUrl.protocol}//${baseUrl.host}`)
-                window.$message.success(message, { duration: 10 * 1000, closable: true })
+                window.$toast.success(message, { duration: 10 * 1000, closable: true })
             } catch (error: any) {
                 const resp = error?.response?.data
-                window.$message.error(`Failed to check tenant status: ${resp?.message ?? ''}`, { duration: 30 * 1000, closable: true })
+                window.$toast.error(`Failed to check tenant status: ${resp?.message ?? ''}`, { duration: 30 * 1000, closable: true })
             }
         },
         async handleLaunch(row: CpiTenant) {
             const baseUrl = new URL(row.CpiEndpoint.url)
             try {
                 const { message } = await InitCpiTenant(`${baseUrl.protocol}//${baseUrl.host}`)
-                window.$message.success(message, { duration: 10 * 1000, closable: true })
+                window.$toast.success(message, { duration: 10 * 1000, closable: true })
             } catch (error: any) {
                 const resp = error?.response?.data
-                window.$message.error(`Failed to launch tenant: ${resp?.message ?? ''}`, { duration: 30 * 1000, closable: true })
+                window.$toast.error(`Failed to launch tenant: ${resp?.message ?? ''}`, { duration: 30 * 1000, closable: true })
             }
         },
         onSelectNodeChange(event: any) {
