@@ -35,6 +35,7 @@ import "@ui5/webcomponents/dist/Toolbar.js"
 import "@ui5/webcomponents/dist/ToolbarButton.js"
 import "@ui5/webcomponents/dist/Icon.js"
 import "@ui5/webcomponents-icons/dist/shipping-status.js"
+import "@ui5/webcomponents/dist/MessageStrip.js"
 
 const props = defineProps<{ ruleId: number }>()
 const router = useRouter()
@@ -65,10 +66,28 @@ const sourceTenant = computed(() => tenants.value.find(t => t.isSource))
 const targetTenants = computed(() => tenants.value.filter(t => !t.isSource))
 
 // Apply local package filter on top of server-filtered data
+// In adhoc mode, also apply mismatchOnly filter locally (server returns full data)
 const filteredPackages = computed<VersionComparePackage[]>(() => {
-  const pkgs = data.value?.packages ?? []
-  if (!pkgFilterInitialized.value) return pkgs
-  return pkgs.filter(p => selectedPackages.value[p.packageID] === true)
+  let pkgs = data.value?.packages ?? []
+  if (pkgFilterInitialized.value) {
+    pkgs = pkgs.filter(p => selectedPackages.value[p.packageID] === true)
+  }
+
+  // Adhoc mode: apply mismatchOnly locally using match fields from response
+  if (isAdhoc.value && mismatchOnly.value) {
+    pkgs = pkgs.map(pkg => ({
+      ...pkg,
+      artifacts: (pkg.artifacts ?? []).filter(art => {
+        return Object.values(art.versions ?? {}).some(v => {
+          if (showDesignTime.value && v.designTimeMatch === false) return true
+          if (showRunTime.value && v.runtimeMatch === false) return true
+          return false
+        })
+      })
+    })).filter(pkg => (pkg.artifacts?.length ?? 0) > 0)
+  }
+
+  return pkgs
 })
 
 const totalArtifacts = computed(() => {
@@ -192,6 +211,7 @@ const unselectAllPackages = () => {
 }
 
 watch([showDesignTime, showRunTime, mismatchOnly], () => {
+  if (isAdhoc.value) return  // adhoc data is local, no reload needed
   if (data.value?.status === 'completed') {
     loadData()
   }
@@ -427,6 +447,12 @@ onUnmounted(() => {
         <ui5-button v-if="!isAdhoc" design="Transparent" icon="refresh" @click="loadData" :disabled="loading">Refresh</ui5-button>
       </div>
     </div>
+
+    <!-- Adhoc mode: info banner -->
+    <ui5-message-strip v-if="isAdhoc && data?.status === 'completed'" design="Critical" hide-close-button style="margin-bottom: 0.75rem;">
+      Temporary version compare, results are not persisted.
+      Comparing: {{ tenants.map(t => t.isSource ? `${t.name} (baseline)` : t.name).join(', ') }}
+    </ui5-message-strip>
 
     <!-- Meta info -->
     <div v-if="data && data.status !== 'none'" class="vcd-meta">
