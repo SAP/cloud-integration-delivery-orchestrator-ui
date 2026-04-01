@@ -91,6 +91,12 @@ const router = createRouter({
           name: 'Delivery Rule',
           component: () => import('@/views/DeliveryRuleView.vue'),
           meta: { description: 'Manage Delivery Rules', statusCount: deliveryRuleCounts, requiredScope: 'DeliveryRule.Read' }
+        },
+        {
+          path: 'system-config',
+          name: 'System Configuration',
+          component: () => import('@/views/SystemConfigView.vue'),
+          meta: { description: 'Integration Registry & Connectivity Check', requiredScope: 'CpiTenant.Manage' }
         }
       ]
     },

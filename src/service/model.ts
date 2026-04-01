@@ -372,3 +372,24 @@ export interface CreateDRFromMismatchResponse {
   deliveryRequest: DeliveryRequest
   summary: CreateDRFromMismatchSummary
 }
+
+// --- System Configuration ---
+
+export interface IntegrationConfig {
+  type: string
+  destinationName: string
+  enabled: boolean
+  description: string
+}
+
+export interface ConnectivityStatus {
+  name: string
+  type: string    // "database" | "tms" | "cpi_tenant" | "integration"
+  status: string  // "ok" | "error" | "disabled"
+  message?: string
+}
+
+export interface ConnectivityReport {
+  checkedAt: string
+  results: ConnectivityStatus[]
+}

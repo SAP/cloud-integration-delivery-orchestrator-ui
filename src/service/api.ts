@@ -1,6 +1,6 @@
 import axios from 'axios'
 import http from './http'
-import type { ApiEndpoint, Artifact, ArtifactTenantOperation, ArtifactVersionHistoryItem, AppCount, CpiTenant, CpiTenantNodeData, CreateDRFromMismatchRequest, CreateDRFromMismatchResponse, DeliverOpRequest, DeliveryRequest, DeliveryRule, NodeTransportRequest, Package, PreviewDRResponse, RuntimeArtifact, TransportGroup, TransportNode, TransportRoute, TriggerResult, UserInfo, VersionCompareIncludedPackage, VersionCompareResponse, VersionCompareSummaryItem } from './model'
+import type { ApiEndpoint, Artifact, ArtifactTenantOperation, ArtifactVersionHistoryItem, AppCount, ConnectivityReport, CpiTenant, CreateDRFromMismatchRequest, CreateDRFromMismatchResponse, DeliverOpRequest, DeliveryRequest, DeliveryRule, IntegrationConfig, NodeTransportRequest, Package, PreviewDRResponse, RuntimeArtifact, TransportNode, TransportRoute, TriggerResult, UserInfo, VersionCompareIncludedPackage, VersionCompareResponse, VersionCompareSummaryItem } from './model'
 import type { AggregateStatus, DeployState, ImportState, RequestState } from './statuses'
 
 export const GetDrCounts = () => {
@@ -139,28 +139,20 @@ export const CheckArtifactNodeStatus = (artifacts: Artifact[]) => {
 }
 
 export const CheckTenantStatus = async (cpi_tenant: string) => {
-  const {data} = await axios.get(
-    '/cpi-cookie-service/api/check_tenant_status',
-    {
-      params: {
-        cpi_tenant: cpi_tenant,
-      },
-      timeout: 8*1000
-    }
-  )
-  return data
+  const resp = await axios.get('/api/v1/cookie-service/check_tenant_status', {
+    params: { cpi_tenant },
+    timeout: 8 * 1000,
+  })
+  return resp.data as { message: string }
 }
 
-// NOTE: cpi cookie service
 export const InitCpiTenant = async (cpi_tenant: string) => {
-  const {data} = await axios.post(
-    '/cpi-cookie-service/api/init_tenant',
-    {
-      cpi_tenant: cpi_tenant
-    },
-    { timeout: 60 * 1000 }
+  const resp = await axios.post(
+    '/api/v1/cookie-service/init_tenant',
+    { cpi_tenant },
+    { timeout: 60 * 1000 },
   )
-  return data
+  return resp.data as { message: string }
 }
 
 // returns {tr_info: string, tr_number: string}
@@ -170,17 +162,17 @@ export const GenTransportRequest = async (
   target_artifact_id: string,
   comment: string
 ) => {
-  const { data } = await axios.post(
-    '/cpi-cookie-service/api/transport_request',
+  const resp = await axios.post(
+    '/api/v1/cookie-service/transport_request',
     {
       target_package_tech_name,
-      target_artifact_name: target_artifact_id, // actually is artifact id, but in cpi native API context it's 'Name'
+      target_artifact_name: target_artifact_id,
       cpi_tenant: cpi_tenant_url,
-      comment
+      comment,
     },
-    { timeout: 90 * 1000 }
+    { timeout: 90 * 1000 },
   )
-  return data
+  return resp.data as { tr_info: string; tr_number: string }
 }
 
 // version history
@@ -189,18 +181,15 @@ export const GetArtifactVersionHistory = async (
   targetPackageTechName: string,
   targetArtifactName: string
 ): Promise<ArtifactVersionHistoryItem[]> => {
-  const { data } = await axios.get<ArtifactVersionHistoryItem[]>(
-    '/cpi-cookie-service/api/version_history',
-    {
-      params: {
-        cpi_tenant: cpiTenant,
-        target_package_tech_name: targetPackageTechName,
-        target_artifact_name: targetArtifactName
-      },
-      timeout: 8*1000
-    }
-  )
-  return data
+  const resp = await axios.get('/api/v1/cookie-service/version_history', {
+    params: {
+      cpi_tenant: cpiTenant,
+      target_package_tech_name: targetPackageTechName,
+      target_artifact_name: targetArtifactName,
+    },
+    timeout: 8 * 1000,
+  })
+  return resp.data as ArtifactVersionHistoryItem[]
 }
 
 export const ImportOps = (opIDs: number[], tenant: number, drID: number) => {
@@ -317,6 +306,20 @@ export const CreateDRFromMismatch = (ruleId: number, req: CreateDRFromMismatchRe
 
 export const AdhocVersionCompare = (tenantIDs: number[]) => {
   return http.post('/api/v1/versionCompare/adhoc', { tenantIDs }) as Promise<VersionCompareResponse>
+}
+
+// --- System Configuration ---
+
+export const GetIntegrations = () => {
+  return http.get('/api/v1/system/integrations') as Promise<IntegrationConfig[]>
+}
+
+export const UpdateIntegration = (type: string, payload: { destinationName: string; enabled: boolean; description: string }) => {
+  return http.put(`/api/v1/system/integrations/${type}`, payload) as Promise<IntegrationConfig>
+}
+
+export const CheckConnectivity = () => {
+  return http.get('/api/v1/system/connectivity') as Promise<ConnectivityReport>
 }
 
 // Cpi tenant operations mapping
