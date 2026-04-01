@@ -37,8 +37,8 @@
             <ui5-toolbar-button design="Transparent" text="Cancel" @click="showModal = false"></ui5-toolbar-button>
         </ui5-toolbar>
     </ui5-dialog>
-    <data-table title="Cpi Tenants" :columns="cpiTenantColums" :data="cpiTenants" :custom-tool-bars="toolBars"
-        :handle-add="handleAdd" :row-key="(row: CpiTenant) => row.ID" :row-actions="rowActions" :key="cpiTenants.length"
+    <data-table title="Cpi Tenants" :columns="cpiTenantColums" :data="cpiTenants" :custom-tool-bars="hasScope('CpiTenant.Manage') ? toolBars : []"
+        :handle-add="hasScope('CpiTenant.Manage') ? handleAdd : undefined" :row-key="(row: CpiTenant) => row.ID" :row-actions="hasScope('CpiTenant.Manage') ? rowActions : []" :key="cpiTenants.length"
         :loading="loading" />
 
 </template>
@@ -60,9 +60,14 @@ import "@ui5/webcomponents/dist/ComboBoxItem.js";
 import "@ui5/webcomponents/dist/Input.js";
 import "@ui5/webcomponents/dist/SuggestionItem.js";
 import "@ui5/webcomponents/dist/Text.js";
+import { useAuth } from '@/composables/useAuth'
 
 export default defineComponent({
     components: { DataTable },
+    setup() {
+        const { hasScope } = useAuth()
+        return { hasScope }
+    },
     data() {
         const toolBars: ToolBar<CpiTenant>[] = [
             {

@@ -96,8 +96,8 @@
         title="Delivery Rules"
         :columns="deliveryRuleColumns"
         :data="filteredRules"
-        :custom-tool-bars="toolBars"
-        :handle-add="handleAdd"
+        :custom-tool-bars="hasScope('DeliveryRule.Manage') ? toolBars : []"
+        :handle-add="hasScope('DeliveryRule.Manage') ? handleAdd : undefined"
         :row-key="(row: DeliveryRule) => row.ID"
         :key="rules.length"
         :loading="loading"
@@ -128,11 +128,16 @@ import "@ui5/webcomponents/dist/Tag.js";
 import "@ui5/webcomponents/dist/Text.js";
 import "@ui5/webcomponents/dist/SegmentedButton.js";
 import "@ui5/webcomponents/dist/SegmentedButtonItem.js";
+import { useAuth } from '@/composables/useAuth'
 
 type RuleFilterKey = 'All' | 'Active' | 'Skip Approve' | 'Require Jira'
 
 export default defineComponent({
     components: { DataTable },
+    setup() {
+        const { hasScope } = useAuth()
+        return { hasScope }
+    },
     data() {
         const toolBars: ToolBar<DeliveryRule>[] = [
             { text: 'Edit', func: (rows: DeliveryRule[]) => this.handleEdit(rows) },

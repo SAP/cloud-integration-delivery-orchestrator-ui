@@ -315,6 +315,10 @@ export const CreateDRFromMismatch = (ruleId: number, req: CreateDRFromMismatchRe
   return http.post(`/api/v1/deliveryRule/${ruleId}/versionCompare/createDR`, req, { silentError: true }) as Promise<CreateDRFromMismatchResponse>
 }
 
+export const AdhocVersionCompare = (tenantIDs: number[]) => {
+  return http.post('/api/v1/versionCompare/adhoc', { tenantIDs }) as Promise<VersionCompareResponse>
+}
+
 // Cpi tenant operations mapping
 export const TenantOps = (ops: ArtifactTenantOperation[]) => {
   const tenantToOps: {[key: number] : {[key: string]: ArtifactTenantOperation}} = {}  // cpi tenant ID - map[trNumber]ArtifactTenantOperation

@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { GetVersionCompareSummary, TriggerVersionCompare, GetIncludedPackages, UpdateIncludedPackages, GetCpiTenants, GetPackages } from '@/service/api'
+import { GetVersionCompareSummary, TriggerVersionCompare, GetIncludedPackages, UpdateIncludedPackages, GetCpiTenants, GetPackages, AdhocVersionCompare } from '@/service/api'
 import type { VersionCompareSummaryItem, SnapshotStatus, CpiTenant, Package } from '@/service/model'
 import { toLocalTime } from '@/service/consts'
+import { useAuth } from '@/composables/useAuth'
 
 import "@ui5/webcomponents/dist/Card.js"
 import "@ui5/webcomponents/dist/CardHeader.js"
@@ -22,8 +23,13 @@ import "@ui5/webcomponents/dist/List.js"
 import "@ui5/webcomponents/dist/ListItemStandard.js"
 import "@ui5/webcomponents/dist/Title.js"
 import "@ui5/webcomponents-icons/dist/search.js"
+import "@ui5/webcomponents-icons/dist/compare.js"
+import "@ui5/webcomponents-icons/dist/synchronize.js"
+import "@ui5/webcomponents-icons/dist/action-settings.js"
+import "@ui5/webcomponents/dist/ToggleButton.js"
 
 const router = useRouter()
+const { hasScope } = useAuth()
 const summaries = ref<VersionCompareSummaryItem[]>([])
 const loading = ref(false)
 const triggeringRules = ref<Set<number>>(new Set())
@@ -172,6 +178,44 @@ const saveIncludedPackages = async () => {
 }
 
 onMounted(loadSummaries)
+
+// --- Adhoc Compare Dialog ---
+const showAdhocDialog = ref(false)
+const adhocTenants = ref<CpiTenant[]>([])
+const adhocSelected = ref<Set<number>>(new Set())
+const adhocLoading = ref(false)
+
+const openAdhocDialog = async () => {
+  adhocSelected.value = new Set()
+  adhocLoading.value = false
+  if (tenants.value.length === 0) {
+    tenants.value = await GetCpiTenants().catch(() => [] as CpiTenant[])
+  }
+  adhocTenants.value = tenants.value
+  showAdhocDialog.value = true
+}
+
+const toggleAdhocTenant = (tenantId: number, checked: boolean) => {
+  const next = new Set(adhocSelected.value)
+  if (checked) next.add(tenantId)
+  else next.delete(tenantId)
+  adhocSelected.value = next
+}
+
+const handleAdhocCompare = async () => {
+  if (adhocSelected.value.size < 2) return
+  adhocLoading.value = true
+  try {
+    const tenantIDs = [...adhocSelected.value]
+    const result = await AdhocVersionCompare(tenantIDs)
+    showAdhocDialog.value = false
+    router.push({ name: 'Adhoc Version Compare', state: { adhocData: JSON.stringify(result) } })
+  } catch {
+    // error displayed by http interceptor
+  } finally {
+    adhocLoading.value = false
+  }
+}
 </script>
 
 <template>
@@ -179,6 +223,7 @@ onMounted(loadSummaries)
     <div class="vc-header">
       <ui5-text style="font-size: 1.25rem; font-weight: bold;">Version Compare</ui5-text>
       <div class="vc-header-actions">
+        <ui5-button v-if="hasScope('VersionCompare.Adhoc')" design="Attention" icon="compare" @click="openAdhocDialog">Adhoc Compare</ui5-button>
         <ui5-button design="Transparent" icon="action-settings" @click="openIncludedDialog">Manage Included Packages</ui5-button>
         <ui5-button design="Emphasized" @click="loadSummaries" :disabled="loading">Refresh</ui5-button>
       </div>
@@ -308,6 +353,39 @@ onMounted(loadSummaries)
         <ui5-text>No active delivery rules found.</ui5-text>
       </div>
     </ui5-busy-indicator>
+
+    <!-- Adhoc Compare Dialog -->
+    <ui5-dialog :open="showAdhocDialog" @close="showAdhocDialog = false" header-text="Adhoc Version Compare" style="width: 36rem;">
+      <div class="adhoc-content">
+        <ui5-text style="font-size: 0.8rem; color: var(--sapNeutralTextColor); margin-bottom: 0.75rem; display: block;">
+          Select 2 or more tenants to compare. The first selected tenant is used as the baseline.
+        </ui5-text>
+
+        <div class="adhoc-tenant-grid">
+          <ui5-toggle-button
+            v-for="t in adhocTenants"
+            :key="t.ID"
+            :pressed="adhocSelected.has(t.ID)"
+            @click="toggleAdhocTenant(t.ID, !adhocSelected.has(t.ID))"
+            design="Default"
+          >{{ t.Name }}</ui5-toggle-button>
+        </div>
+
+        <ui5-text v-if="adhocSelected.size > 0" style="font-size: 0.8rem; margin-top: 0.75rem; display: block;">
+          {{ adhocSelected.size }} tenant(s) selected
+        </ui5-text>
+      </div>
+
+      <ui5-toolbar slot="footer">
+        <ui5-toolbar-button
+          design="Emphasized"
+          :text="adhocLoading ? 'Comparing...' : 'Compare'"
+          @click="handleAdhocCompare"
+          :disabled="adhocSelected.size < 2 || adhocLoading"
+        />
+        <ui5-toolbar-button design="Transparent" text="Cancel" @click="showAdhocDialog = false" :disabled="adhocLoading" />
+      </ui5-toolbar>
+    </ui5-dialog>
   </div>
 </template>
 
@@ -440,5 +518,16 @@ onMounted(loadSummaries)
 .ipd-empty-available {
   padding: 1rem;
   text-align: center;
+}
+
+/* Adhoc Compare Dialog */
+.adhoc-content {
+  padding: 1rem;
+}
+
+.adhoc-tenant-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
 }
 </style>

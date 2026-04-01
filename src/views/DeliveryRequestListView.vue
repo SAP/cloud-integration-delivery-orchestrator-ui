@@ -46,7 +46,7 @@
       </div>
     </div>
     <ui5-toolbar slot="footer">
-      <ui5-toolbar-button class="dialogCloser" design="Emphasized" text="Create" @click="onCreate"></ui5-toolbar-button>
+      <ui5-toolbar-button v-if="hasScope('DeliveryRequest.Write')" class="dialogCloser" design="Emphasized" text="Create" @click="onCreate"></ui5-toolbar-button>
       <ui5-toolbar-button class="dialogCloser" design="Transparent" text="Cancel" @click="showModal = false"></ui5-toolbar-button>
     </ui5-toolbar>
   </ui5-dialog>
@@ -93,6 +93,7 @@ import { DeleteDeliveryRequest, GetDeliveryRequests, CreateDeliveryRequest, GetD
 import type { DeliveryRequest, DeliveryRule, UserInfo } from '@/service/model';
 import { STATUS_FILTER_GROUPS, type StatusFilterKey } from '@/service/statuses';
 import { sseClient } from '@/service/sse';
+import { useAuth } from '@/composables/useAuth'
 
 import "@ui5/webcomponents/dist/Dialog.js";
 import "@ui5/webcomponents/dist/Button.js";
@@ -108,6 +109,10 @@ import "@ui5/webcomponents/dist/SegmentedButton.js"
 import "@ui5/webcomponents/dist/SegmentedButtonItem.js"
 export default defineComponent({
   components: { DataTable, ConfirmDeleteDialog },
+  setup() {
+    const { hasScope } = useAuth()
+    return { hasScope }
+  },
   data(){
     const toolBars: ToolBar[] = [
       {

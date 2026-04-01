@@ -14,6 +14,7 @@ import type {
 } from '@/service/model'
 import { toLocalTime } from '@/service/consts'
 import type { HttpError } from '@/service/http'
+import { useAuth } from '@/composables/useAuth'
 
 import "@ui5/webcomponents/dist/Tag.js"
 import "@ui5/webcomponents/dist/Text.js"
@@ -37,7 +38,9 @@ import "@ui5/webcomponents-icons/dist/shipping-status.js"
 
 const props = defineProps<{ ruleId: number }>()
 const router = useRouter()
+const { hasScope } = useAuth()
 
+const isAdhoc = computed(() => props.ruleId === 0)
 const data = ref<VersionCompareResponse | null>(null)
 const ruleName = ref('')
 const loading = ref(false)
@@ -350,7 +353,30 @@ const toggleArtifact = (a: PreviewDRArtifact, checked: boolean) => {
 }
 
 onMounted(async () => {
-  // Fetch rule name in parallel with snapshot data
+  if (isAdhoc.value) {
+    // Adhoc mode: load data from router state
+    const raw = history.state?.adhocData
+    if (raw) {
+      try {
+        data.value = JSON.parse(raw) as VersionCompareResponse
+        ruleName.value = 'Adhoc Compare'
+        // Initialize package filter
+        if (allPackageIDs.value.length > 0) {
+          const map: Record<string, boolean> = {}
+          for (const id of allPackageIDs.value) map[id] = true
+          selectedPackages.value = map
+          pkgFilterInitialized.value = true
+        }
+      } catch {
+        data.value = null
+      }
+    } else {
+      router.push('/jobs/version-compare')
+    }
+    return
+  }
+
+  // Rule-based mode: fetch rule name in parallel with snapshot data
   const rulePromise = GetDeliveryRule(props.ruleId).then(r => { ruleName.value = r.Name }).catch(() => {})
   const dataPromise = loadData()
   await Promise.all([rulePromise, dataPromise])
@@ -381,6 +407,7 @@ onUnmounted(() => {
       </div>
       <div class="vcd-header-right">
         <ui5-button
+          v-if="!isAdhoc && hasScope('VersionCompare.Trigger')"
           design="Attention"
           icon="shipping-status"
           :disabled="data?.status !== 'completed'"
@@ -389,6 +416,7 @@ onUnmounted(() => {
           Create Delivery Request
         </ui5-button>
         <ui5-button
+          v-if="!isAdhoc && hasScope('VersionCompare.Trigger')"
           design="Emphasized"
           icon="synchronize"
           :disabled="data?.status === 'running' || triggering"
@@ -396,7 +424,7 @@ onUnmounted(() => {
         >
           {{ data?.status === 'running' ? 'Scanning...' : 'Trigger Scan' }}
         </ui5-button>
-        <ui5-button design="Transparent" icon="refresh" @click="loadData" :disabled="loading">Refresh</ui5-button>
+        <ui5-button v-if="!isAdhoc" design="Transparent" icon="refresh" @click="loadData" :disabled="loading">Refresh</ui5-button>
       </div>
     </div>
 
@@ -591,7 +619,7 @@ onUnmounted(() => {
         <ui5-text style="color: var(--sapNegativeColor);">
           Scan failed: {{ data.error }}
         </ui5-text>
-        <ui5-button design="Emphasized" @click="handleTrigger" style="margin-top: 1rem;">Retry</ui5-button>
+        <ui5-button v-if="!isAdhoc" design="Emphasized" @click="handleTrigger" style="margin-top: 1rem;">Retry</ui5-button>
       </div>
     </ui5-busy-indicator>
 

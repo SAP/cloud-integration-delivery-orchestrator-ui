@@ -58,6 +58,7 @@ const router = createRouter({
           name: 'Delivery Requests',
           component: () => import('@/views/DeliveryRequestListView.vue'),
           meta: { description: 'Transport, Deploy Artifacts to CPI Tenants', statusCount: deliveryRequestCounts,
+              requiredScope: 'DeliveryRequest.Read',
               width: '20rem',
               height: '11rem'
            }
@@ -67,6 +68,7 @@ const router = createRouter({
           name: 'Version Compare',
           component: () => import('@/views/VersionCompareView.vue'),
           meta: { description: 'Compare Artifact Versions Across Tenants', statusCount: versionCompareCounts,
+              requiredScope: 'VersionCompare.Read',
               width: '20rem',
               height: '11rem'
            }
@@ -82,13 +84,13 @@ const router = createRouter({
           path: 'cpi-tenants',
           name: 'CPI Tenants',
           component: () => import('@/views/CpiTenantsView.vue'),
-          meta: { description: 'Manage CPI Tenants', statusCount: cpiTenantCounts }
+          meta: { description: 'Manage CPI Tenants', statusCount: cpiTenantCounts, requiredScope: 'CpiTenant.Read' }
         },
         {
           path: 'delivery-rule',
           name: 'Delivery Rule',
           component: () => import('@/views/DeliveryRuleView.vue'),
-          meta: { description: 'Manage Delivery Rules', statusCount: deliveryRuleCounts }
+          meta: { description: 'Manage Delivery Rules', statusCount: deliveryRuleCounts, requiredScope: 'DeliveryRule.Read' }
         }
       ]
     },
@@ -103,6 +105,12 @@ const router = createRouter({
       name: 'Version Compare Detail',
       component: () => import('@/views/VersionCompareDetailView.vue'),
       props: route => ({ ruleId: Number(route.params.ruleId) })
+    },
+    {
+      path: '/jobs/version-compare/adhoc',
+      name: 'Adhoc Version Compare',
+      component: () => import('@/views/VersionCompareDetailView.vue'),
+      props: () => ({ ruleId: 0 })
     }
   ]
 })

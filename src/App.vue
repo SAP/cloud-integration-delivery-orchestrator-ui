@@ -5,33 +5,40 @@ import { useRouter } from 'vue-router'
 import ToastContainer from '@/components/toast/ToastContainer.vue'
 import { setToastRef, initGlobalToast } from '@/components/toast/useToast'
 import { CurrentUser } from './service/api'
+import { useAuth } from './composables/useAuth'
 import { sseClient } from './service/sse'
 import "@ui5/webcomponents-fiori/dist/ShellBar.js"
 import "@ui5/webcomponents-fiori/dist/ShellBarBranding.js"
+import "@ui5/webcomponents-fiori/dist/UserMenu.js"
+import "@ui5/webcomponents-fiori/dist/UserMenuAccount.js"
+import "@ui5/webcomponents-fiori/dist/UserMenuItem.js"
 import "@ui5/webcomponents-icons/dist/nav-back.js"
 import "@ui5/webcomponents-icons/dist/sys-help.js"
+import "@ui5/webcomponents-icons/dist/globe.js"
+import "@ui5/webcomponents-icons/dist/role.js"
+import "@ui5/webcomponents-icons/dist/key.js"
 import "@ui5/webcomponents/dist/Avatar.js"
 import "@ui5/webcomponents/dist/Button.js"
 import "@ui5/webcomponents-fiori/dist/ShellBarItem.js"
-import "@ui5/webcomponents/dist/Popover.js"
-import "@ui5/webcomponents/dist/Icon.js";
-import "@ui5/webcomponents-icons/dist/log.js";
-import "@ui5/webcomponents/dist/List.js";
-import "@ui5/webcomponents/dist/ListItemStandard.js";
+
 // Router
 const router = useRouter()
+
+// Auth
+const { userScopes, userOrigin, loadScopes } = useAuth()
 
 // Toast
 const toastContainer = ref()
 
-const userInfo = ref<{ [key: string]: string }>({})
-const openProfile = ref(false)
+const userInfo = ref<{ [key: string]: any }>({})
+const openMenu = ref(false)
 
 // Lifecycle
 onMounted(async () => {
   setToastRef(toastContainer.value)
   initGlobalToast()
   userInfo.value = await CurrentUser()
+  loadScopes()
   sseClient.connect('/api/v1/events')
 })
 
@@ -39,7 +46,8 @@ onUnmounted(() => {
   sseClient.disconnect()
 })
 
-function handleLogout() {
+function handleLogout(e: CustomEvent) {
+  e.preventDefault()
   window.location.href = '/logout'
 }
 
@@ -47,13 +55,20 @@ function handleHelp() {
   window.open('https://wiki.one.int.sap/wiki/x/ZUH3WQE', '_blank')
 }
 
+function handleMenuItemClick() {
+  openMenu.value = false
+}
+
 // Computed
 const canBack = computed(() => router.currentRoute.value.path !== '/')
 const avatarInit = computed(
   () => `${userInfo.value.firstname?.charAt(0) || ''}${userInfo.value.lastname?.charAt(0) || ''}`
 )
-const userEmail = computed(() => userInfo.value.email)
+const userEmail = computed(() => userInfo.value.email || '')
 const userName = computed(() => `${userInfo.value.firstname || ''} ${userInfo.value.lastname || ''}`)
+const userRoles = computed(() =>
+  (userInfo.value.groups || []).map((g: any) => g.display || g.value)
+)
 </script>
 
 <template>
@@ -64,24 +79,46 @@ const userName = computed(() => `${userInfo.value.firstname || ''} ${userInfo.va
     </ui5-shellbar-branding>
     <ui5-button v-if="canBack" @click="() => router.go(-1)" icon="nav-back" slot="startButton"></ui5-button>
     <ui5-shellbar-item @click="handleHelp" icon="sys-help" text="Help"></ui5-shellbar-item>
-    <ui5-avatar 
-      @click="() => { openProfile = !openProfile }" 
-      id="pop-user-profile" 
+    <ui5-avatar
+      @click="() => { openMenu = !openMenu }"
+      id="user-menu-opener"
       slot="profile"
       :initials="avatarInit"></ui5-avatar>
   </ui5-shellbar>
 
-  <ui5-popover opener="pop-user-profile" :open="openProfile" :header-text="userName" placement="Bottom">
-    <div class="popover-content">
-      <ui5-label>{{ userEmail }}</ui5-label>
+  <ui5-user-menu
+    opener="user-menu-opener"
+    :open="openMenu"
+    @item-click="handleMenuItemClick"
+    @sign-out-click="handleLogout"
+    @close="() => { openMenu = false }"
+  >
+    <ui5-user-menu-account slot="accounts"
+      :title-text="userName"
+      :subtitle-text="userEmail"
+      :avatar-initials="avatarInit"
+    ></ui5-user-menu-account>
 
-      <ui5-list separators="None" style="margin-block-end: 0.75rem;">
-        <ui5-li additional-text="Sign Out" icon="log" @click="handleLogout">
-        </ui5-li>
-      </ui5-list>
-      
-    </div>
-  </ui5-popover>
+    <ui5-user-menu-item text="Identity Provider" icon="globe">
+      <ui5-user-menu-item :text="userOrigin"></ui5-user-menu-item>
+    </ui5-user-menu-item>
+
+    <ui5-user-menu-item v-if="userRoles.length" text="Roles" icon="role">
+      <ui5-user-menu-item
+        v-for="role in userRoles"
+        :key="role"
+        :text="role"
+      ></ui5-user-menu-item>
+    </ui5-user-menu-item>
+
+    <ui5-user-menu-item v-if="userScopes.length" text="Scopes" icon="key">
+      <ui5-user-menu-item
+        v-for="scope in userScopes"
+        :key="scope"
+        :text="scope"
+      ></ui5-user-menu-item>
+    </ui5-user-menu-item>
+  </ui5-user-menu>
 
   <div class="body-class">
     <ToastContainer ref="toastContainer" />

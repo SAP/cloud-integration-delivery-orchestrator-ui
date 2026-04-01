@@ -136,7 +136,7 @@
         @click="toggleArtifact(artifactDetail.PackageID, artifactDetail)">
       </ui5-toolbar-button>
       <ui5-toolbar-button
-        v-if="artifactOpDetial.ID !== undefined"
+        v-if="artifactOpDetial.ID !== undefined && hasScope('DeliveryRequest.Operate')"
         :text="artifactOpDetial.SkipDeploy ? 'Enable Deploy' : 'Skip Deploy'"
         :design="artifactOpDetial.SkipDeploy ? 'Positive' : 'Attention'"
         :tooltip="artifactOpDetial.SkipDeploy ? 'Re-enable deploy phase for this artifact' : 'Skip deploy phase — artifact only requires import'"
@@ -166,10 +166,10 @@
       <ui5-tag :design="aggrStatusToDesign">{{ deliveryRequest.AggregateStatus }}</ui5-tag>
 
       <ui5-toolbar class="actionsBar" id="actionsToolbar" slot="actionsBar" design="Transparent">
-        <ui5-toolbar-button icon="delete" @click="showDeleteDialog = true" design="Transparent"
+        <ui5-toolbar-button v-if="hasScope('DeliveryRequest.Write')" icon="delete" @click="showDeleteDialog = true" design="Transparent"
           tooltip="Delete Delivery Request"></ui5-toolbar-button>
         <ui5-toolbar-button
-          v-if="canCancel"
+          v-if="canCancel && hasScope('DeliveryRequest.Operate')"
           icon="stop"
           @click="showCancelDialog = true"
           design="Attention"
@@ -389,8 +389,9 @@
 
             <div style="display: flex; margin-top:20px">
               <!-- Approve/Skip Approval button -->
-              <ui5-button 
-                :disabled="approveInfo.disable" 
+              <ui5-button
+                v-if="hasScope('DeliveryRequest.Operate')"
+                :disabled="approveInfo.disable"
                 :design="approveInfo.disable ? 'Attention' : 'Positive'"
                 :loading="approveStepLoading"
                 :loading-delay="0"
@@ -399,9 +400,9 @@
                 {{ approveInfo.display }}
               </ui5-button>
 
-              <ui5-button 
-                design="Transparent" 
-                v-if="deliveryRequest.Approvers" 
+              <ui5-button
+                v-if="deliveryRequest.Approvers && hasScope('DeliveryRequest.Operate')"
+                design="Transparent"
                 :disabled="missingTrOps.length > 0"
                 :loading="approveStepLoading" 
                 :loading-delay="0"
@@ -546,6 +547,7 @@ import ConfirmDeleteDialog from '@/components/ConfirmDeleteDialog.vue'
 import { nextTick } from 'vue'
 import { aggregateStatusToUi5Design, conditionTypeToDesign } from '@/service/statuses'
 import { sseClient } from '@/service/sse'
+import { useAuth } from '@/composables/useAuth'
 
 
 import "@ui5/webcomponents-fiori/dist/DynamicPage.js";
@@ -597,6 +599,10 @@ import "@ui5/webcomponents-fiori/dist/WizardStep.js";
 
 export default {
   name: 'TransportPlanView',
+  setup() {
+    const { hasScope } = useAuth()
+    return { hasScope }
+  },
   components: {
     VueFlow,
     CpiTransportNode,
