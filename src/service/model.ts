@@ -65,6 +65,12 @@ export interface Condition {
   Timestamp: string
 }
 
+export type TenantLifecycleState = 'draft' | 'not_ready' | 'readying' | 'ready'
+export type PrerequisiteStatus = 'missing' | 'ready' | 'failed' | 'registering'
+export type BootstrapJobState = 'running' | 'waiting_user_action' | 'partially_applied' | 'failed' | 'finished'
+export type BootstrapJobType = 'preview' | 'apply' | 'retry'
+export type BootstrapFailureType = 'waiting_user_action' | 'permission_blocked' | 'remote_system_error' | 'config_mismatch' | ''
+
 export interface CpiTenant {
   ID: number
   Name: string
@@ -74,10 +80,107 @@ export interface CpiTenant {
   CpiEndpoint: ApiEndpoint
   Group: string
 
+  // RFC-013: CF identity fields (required for bootstrap)
+  CfApiEndpoint: string
+  CfOrg: string
+  CfSpace: string
+
+  // RFC-013: Bootstrap lifecycle
+  LifecycleState: TenantLifecycleState
+  BlockingReason: string
+
+  // RFC-013: Prerequisite status
+  PirApiStatus: PrerequisiteStatus
+  CasApplicationStatus: PrerequisiteStatus
+  CasStandardStatus: PrerequisiteStatus
+  CloudIntegrationDestStatus: PrerequisiteStatus
+  ContentAssemblyDestStatus: PrerequisiteStatus
+  TransportManagementDestStatus: PrerequisiteStatus
+
+  // RFC-013: TMS Node registration
+  TmsSourceNodeName: string
+  TmsNodeRegistrationStatus: PrerequisiteStatus
+
+  // RFC-013: Destination references
+  CasEngineDestinationName: string
+  PirApiDestinationName: string
+
   CreatedAt: string
   UpdatedAt: string
   CreatedBy: string
   UpdatedBy: string
+}
+
+// --- Bootstrap types ---
+
+export interface BootstrapInspection {
+  spaceAccessible: boolean
+  hasSpaceDeveloperRole: boolean
+  missingItems: string[]
+  permissionIssues: string[]
+  waitingUserAction: string[]
+}
+
+export interface BootstrapPreview {
+  tenantId: number
+  inspection: BootstrapInspection
+}
+
+export interface BootstrapJob {
+  ID: number
+  CreatedAt: string
+  UpdatedAt: string
+  CpiTenantID: number
+  JobType: BootstrapJobType
+  State: BootstrapJobState
+  CurrentStep: string
+  FailureType: BootstrapFailureType
+  ErrorDetail: string
+  MissingPrerequisites: string[] | null
+  PermissionFindings: string[] | null
+  CredentialActions: { destinationName: string; actionType: string }[] | null
+  StartedAt: string
+  EndedAt: string | null
+}
+
+// --- TMS Node registration types ---
+
+export interface TmsNodeStatus {
+  tmsNodeRegistrationStatus: PrerequisiteStatus
+  tmsSourceNodeName: string
+}
+
+export interface TmsNodeRoute {
+  id: number
+  name: string
+  sourceNode: { id: number }
+  targetNode: { id: number }
+}
+
+export interface TmsRoutesResponse {
+  nodeName: string
+  routes: TmsNodeRoute[]
+}
+
+export interface TmsNodeConfirmResponse {
+  tenantId: number
+  tmsNodeRegistrationStatus: PrerequisiteStatus
+  routes: TmsNodeRoute[]
+}
+
+// --- Central TMS Context ---
+
+export interface CentralTmsContext {
+  ID: number
+  SubscriberZoneID: string
+  DisplayName: string
+  SubaccountID: string
+  Region: string
+  TmsApiEndpoint: string
+  TmsApiDestinationName: string
+  DefaultNodeNamePattern: string
+  NodeManagementApiAvailable: boolean
+  LastValidatedAt: string | null
 }
 
 

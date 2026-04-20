@@ -1,4 +1,4 @@
-import type { ApiEndpoint, Artifact, Package, TransportGroup, TransportNode, NodeTransportRequest, CpiTenant, DeliveryRule, DeliveryRequest } from './model'
+import type { ApiEndpoint, Artifact, Package, TransportGroup, TransportNode, NodeTransportRequest, CpiTenant, DeliveryRule, DeliveryRequest, TenantLifecycleState, PrerequisiteStatus } from './model'
 import { h, type VNode } from 'vue'
 import "@ui5/webcomponents/dist/Tag.js";
 import "@ui5/webcomponents-icons/dist/chain-link.js";
@@ -91,6 +91,36 @@ export const cpiTenantColums: Column[] = [
     title: 'Group',
     key: 'Group',
     resizable: true
+  },
+  {
+    title: 'Lifecycle',
+    key: 'LifecycleState',
+    resizable: true,
+    render(row: CpiTenant) {
+      const designMap: Record<TenantLifecycleState, string> = {
+        draft: 'Information',
+        not_ready: 'Critical',
+        readying: 'Information',
+        ready: 'Positive',
+      }
+      const state = row.LifecycleState || 'draft'
+      return h('ui5-tag', { design: designMap[state] ?? 'Neutral', style: 'font-size: 0.75rem' }, state)
+    }
+  },
+  {
+    title: 'TMS Node',
+    key: 'TmsNodeRegistrationStatus',
+    resizable: true,
+    render(row: CpiTenant) {
+      const designMap: Record<PrerequisiteStatus, string> = {
+        missing: 'Neutral',
+        registering: 'Information',
+        ready: 'Positive',
+        failed: 'Negative',
+      }
+      const status = row.TmsNodeRegistrationStatus || 'missing'
+      return h('ui5-tag', { design: designMap[status] ?? 'Neutral', style: 'font-size: 0.75rem' }, status)
+    }
   }
 
 ]

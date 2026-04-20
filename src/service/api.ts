@@ -1,6 +1,6 @@
 import axios from 'axios'
 import http from './http'
-import type { ApiEndpoint, Artifact, ArtifactTenantOperation, AppCount, CasPackage, ConnectivityReport, CpiTenant, CreateDRFromMismatchRequest, CreateDRFromMismatchResponse, DeliverOpRequest, DeliveryRequest, DeliveryRule, GenerateTRResponse, IntegrationConfig, NodeTransportRequest, Package, PreviewDRResponse, RuntimeArtifact, TransportNode, TransportRoute, TriggerResult, UserInfo, VersionCompareIncludedPackage, VersionCompareResponse, VersionCompareSummaryItem } from './model'
+import type { ApiEndpoint, Artifact, ArtifactTenantOperation, AppCount, BootstrapJob, BootstrapPreview, CasPackage, CentralTmsContext, ConnectivityReport, CpiTenant, CreateDRFromMismatchRequest, CreateDRFromMismatchResponse, DeliverOpRequest, DeliveryRequest, DeliveryRule, GenerateTRResponse, IntegrationConfig, NodeTransportRequest, Package, PreviewDRResponse, RuntimeArtifact, TmsNodeConfirmResponse, TmsNodeStatus, TmsRoutesResponse, TransportNode, TransportRoute, TriggerResult, UserInfo, VersionCompareIncludedPackage, VersionCompareResponse, VersionCompareSummaryItem } from './model'
 import type { AggregateStatus, DeployState, ImportState, RequestState } from './statuses'
 
 export const GetDrCounts = () => {
@@ -272,6 +272,56 @@ export const CreateDRFromMismatch = (ruleId: number, req: CreateDRFromMismatchRe
 
 export const AdhocVersionCompare = (tenantIDs: number[]) => {
   return http.post('/api/v1/versionCompare/adhoc', { tenantIDs }) as Promise<VersionCompareResponse>
+}
+
+// --- Bootstrap ---
+
+export const PreviewBootstrap = (tenantId: number, cfToken: string) => {
+  return http.post(`/api/v1/cpiTenant/${tenantId}/bootstrap/preview`, { cfToken }) as Promise<BootstrapPreview>
+}
+
+export const ApplyBootstrap = (tenantId: number, cfToken: string) => {
+  return http.post(`/api/v1/cpiTenant/${tenantId}/bootstrap/apply`, { cfToken }) as Promise<{ jobId: number }>
+}
+
+export const GetBootstrapStatus = (tenantId: number) => {
+  return http.get(`/api/v1/cpiTenant/${tenantId}/bootstrap/status`) as Promise<BootstrapJob>
+}
+
+export const RetryBootstrap = (tenantId: number, cfToken: string) => {
+  return http.post(`/api/v1/cpiTenant/${tenantId}/bootstrap/retry`, { cfToken }) as Promise<{ jobId: number }>
+}
+
+export const ResetBootstrap = (tenantId: number) => {
+  return http.post(`/api/v1/cpiTenant/${tenantId}/bootstrap/reset`, {}) as Promise<{ tenantId: number }>
+}
+
+// --- TMS Node Registration ---
+
+export const RegisterTmsNode = (tenantId: number, payload: { mode: 'manual' | 'auto'; nodeName?: string }) => {
+  return http.post(`/api/v1/cpiTenant/${tenantId}/tms-node/register`, payload) as Promise<TmsNodeStatus>
+}
+
+export const GetTmsNodeStatus = (tenantId: number) => {
+  return http.get(`/api/v1/cpiTenant/${tenantId}/tms-node/status`) as Promise<TmsNodeStatus>
+}
+
+export const GetTmsNodeRoutes = (tenantId: number) => {
+  return http.get(`/api/v1/cpiTenant/${tenantId}/tms-node/routes`) as Promise<TmsRoutesResponse>
+}
+
+export const ConfirmTmsRoutes = (tenantId: number) => {
+  return http.post(`/api/v1/cpiTenant/${tenantId}/tms-node/confirm`, {}) as Promise<TmsNodeConfirmResponse>
+}
+
+// --- Central TMS Context ---
+
+export const GetCentralTmsContext = () => {
+  return http.get('/api/v1/centralTmsContext') as Promise<CentralTmsContext>
+}
+
+export const UpsertCentralTmsContext = (payload: Partial<CentralTmsContext>) => {
+  return http.put('/api/v1/centralTmsContext', payload) as Promise<CentralTmsContext>
 }
 
 // --- System Configuration ---

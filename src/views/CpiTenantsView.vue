@@ -9,6 +9,18 @@
             <ui5-input :value="selectedCpiTenant.Name || ''" @change="selectedCpiTenant.Name = $event.target.value"
                 placeholder="Cpi Tenant Name, e.g. cpi-mmt-dev" style="width: 100%;" />
 
+            <ui5-text style="font-weight: bold;">CF API Endpoint</ui5-text>
+            <ui5-input :value="selectedCpiTenant.CfApiEndpoint || ''" @change="selectedCpiTenant.CfApiEndpoint = $event.target.value"
+                placeholder="https://api.cf.eu10.hana.ondemand.com" style="width: 100%; margin-top: 0.5rem;" />
+
+            <ui5-text style="font-weight: bold;">CF Org (GUID)</ui5-text>
+            <ui5-input :value="selectedCpiTenant.CfOrg || ''" @change="selectedCpiTenant.CfOrg = $event.target.value"
+                placeholder="CF organisation GUID" style="width: 100%; margin-top: 0.5rem;" />
+
+            <ui5-text style="font-weight: bold;">CF Space (GUID)</ui5-text>
+            <ui5-input :value="selectedCpiTenant.CfSpace || ''" @change="selectedCpiTenant.CfSpace = $event.target.value"
+                placeholder="CF space GUID for service instances" style="width: 100%; margin-top: 0.5rem;" />
+
             <ui5-text style="font-weight: bold;">TMS Node</ui5-text>
             <ui5-combobox :value="selectedCpiTenant.TransportNodeName || ''" @change="onSelectNodeChange"
                 placeholder="Choose TMS Transport Nodes" style="width: 100%; margin-top: 0.5rem;">
