@@ -49,31 +49,6 @@
           <ui5-table-cell>{{ artifactDetail.Description }}</ui5-table-cell>
         </ui5-table-row>
       </ui5-table>
-      <!-- Version history -->
-      <div style="display: flex; flex-direction: column;">
-        <div style="display: flex; align-items: center; margin: 10px 0">
-          <ui5-label>Version History</ui5-label>
-          <ui5-button design="Transparent" v-if="!loadingArtifactHistory && !artifactVersionHistory.length"
-            @click="loadVersionHistory">Load</ui5-button>
-        </div>
-        <div v-if="loadingArtifactHistory">
-          <ui5-busy-indicator active :delay="0" style="width: 60%; margin-top:8px" />
-        </div>
-        <ui5-table v-else-if="artifactVersionHistory.length" overflow-mode="Scroll" style="height: 300px;" sticky>
-          <ui5-table-header-row slot="headerRow" sticky>
-            <ui5-table-header-cell min-width="250px">Comment</ui5-table-header-cell>
-            <ui5-table-header-cell>Created By</ui5-table-header-cell>
-            <ui5-table-header-cell width="90px">Version</ui5-table-header-cell>
-            <ui5-table-header-cell>Date</ui5-table-header-cell>
-          </ui5-table-header-row>
-          <ui5-table-row v-for="h in artifactVersionHistory" :key="h.semanticVersion">
-            <ui5-table-cell>{{ h.comment }}</ui5-table-cell>
-            <ui5-table-cell>{{ h.createdBy }}</ui5-table-cell>
-            <ui5-table-cell>{{ h.semanticVersion }}</ui5-table-cell>
-            <ui5-table-cell>{{ new Date(Number(h.createdDate)).toLocaleString('zh-CN') }}</ui5-table-cell>
-          </ui5-table-row>
-        </ui5-table>
-      </div>
       <!-- ops details -->
       <div style="display: flex; flex-direction: column" v-if='Object.keys(artifactOpDetial).length'>
         <ui5-table>
@@ -256,18 +231,13 @@
             <!-- Package & Artifacts Section -->
             <div v-if="selectedPackages.length">
               <ui5-panel v-for="pkg in selectedPackages" :key="pkg.Id" :header-text="`${pkg.Name} - ${pkg.Version}`"
-                @toggle="loadPackageArtifacts(pkg.Id)" collapsed style="margin-bottom: 10px;">
-                <ui5-busy-indicator v-if="loadingPackages[pkg.Id] || !packageArtifacts[pkg.Id]" active :delay="0"
+                collapsed style="margin-bottom: 10px;">
+                <ui5-busy-indicator v-if="packagesLoading" active :delay="0"
                   style="display:flex; justify-content:center; align-items:center; width:100%; height: 80px;">
                 </ui5-busy-indicator>
                 <div v-else>
                   <div v-if="(packageArtifacts[pkg.Id] || []).length === 0">
-                    <ui5-illustrated-message name="NoData" design="Dot">
-                      <div slot="subtitle">
-                        <ui5-button icon="refresh" design="Transparent"
-                          @click="loadPackageArtifacts(pkg.Id, true)"></ui5-button>
-                      </div>
-                    </ui5-illustrated-message>
+                    <ui5-illustrated-message name="NoData" design="Dot" />
                   </div>
                   <div v-else>
                     <div style="display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0;">
@@ -333,6 +303,8 @@
                     <ui5-button
                       @click="batchGenTrs"
                       :loading="generatingTrsLoading"
+                      :disabled="missingTrOps.length === 0"
+                      :tooltip="missingTrOps.length === 0 ? 'Save the delivery request first, then generate TRs' : ''"
                       design="Transparent">
                         Generate TRs
                     </ui5-button>
@@ -517,9 +489,9 @@ import {
   GetDeliveryRequest,
   UpdateDeliveryRequest,
   GetPackages,
-  GetPackageArtifacts,
+  GetCasContentResources,
+  GenerateTR,
   DeleteDeliveryRequest,
-  GetArtifactVersionHistory,
   TenantOps,
   SyncStatus,
   DeleteOps,
@@ -531,15 +503,13 @@ import {
   UaaUserInfo,
   CheckTrExistence,
   CurrentUser,
-  GenTransportRequest,
-  DeliveryRuleCheck,
   CancelDeliveryRequest,
 } from '@/service/api'
 import { CANCELLABLE_STATUSES, type ConditionType } from '@/service/statuses'
 import { toLocalTime } from '@/service/consts'
 import { VueFlow } from '@vue-flow/core'
 import CpiTransportNode from '@/components/CpiTransportNode.vue'
-import type { DeliveryRequest, CpiTenant, Package, Artifact, ArtifactVersionHistoryItem, ArtifactTenantOperation, UserInfo, Condition } from '@/service/model'
+import type { CasPackage, DeliveryRequest, CpiTenant, Package, Artifact, ArtifactTenantOperation, UserInfo, Condition } from '@/service/model'
 import DeliveryFlowView from './DeliveryFlowView.vue'
 import CpiTransportFlowView from './CpiTransportFlowView.vue'
 import ArtifactOpTag from '@/components/ArtifactOpTag.vue'
@@ -621,8 +591,7 @@ export default {
       cpiTenants: [] as CpiTenant[],
       tenantPkgs: [] as Package[],
       selectedPackages: [] as Package[],
-      packageArtifacts: {} as { [key: string]: Artifact[] }, // packages to their artifacts, this is like a cache for package
-      loadingPackages: {} as { [key: string]: boolean },
+      packageArtifacts: {} as { [key: string]: Artifact[] }, // packages to their artifacts, loaded from CAS
       selPkgArtifacts: {} as { [key: string]: Artifact[] },  // selected artifacts within each package, [package id, array of artifact]
       packagesLoading: false,
       artifactSearch: {} as { [key: string]: string },
@@ -630,13 +599,11 @@ export default {
       showArtifactDetails: false,
       artifactDetail: {} as Artifact,
       artifactOpDetial: {} as ArtifactTenantOperation,
-      artifactVersionHistory: [] as ArtifactVersionHistoryItem[],
       editingTrNumber: '' as string, // tr number being edited, will assign to artifactOpDetial when saved
       checkingTrLoading: false,
       generatingTrLoading: false,
-      trInfo: '' as string, // displays info about tr number after checking
+      trInfo: '' as string, // displays tr URL after generation
       draftSourceOps: [] as { op: ArtifactTenantOperation, newTr: string, oldTr: string }[], // operations being drafted (source ops only)
-      loadingArtifactHistory: false,
       showFlowModal: false,
       deleteOps: [] as ArtifactTenantOperation[], // indexes of operations to be deleted
       addOps: [] as ArtifactTenantOperation[],
@@ -729,30 +696,42 @@ export default {
     async refresh() {
       this.deliveryRequest = await GetDeliveryRequest(this.planId)
 
-      // load packages in this cpi tenant
-      const cpiEndpoint = this.deliveryRequest.SourceTenant.CpiEndpoint.name
+      // load packages + artifacts from CAS in one call
       this.packagesLoading = true
-      if (!this.tenantPkgs.length) this.tenantPkgs = await GetPackages(cpiEndpoint)
+      try {
+        const casData = await GetCasContentResources(this.deliveryRequest.SourceTenant.ID)
+        this.tenantPkgs = casData.map(cp => ({
+          Id: cp.id, Name: cp.name, Version: cp.version,
+          Description: '', Mode: '', ModifiedBy: '', ModifiedAt: '',
+        } as Package))
+        casData.forEach(cp => {
+          this.packageArtifacts[cp.id] = cp.artifacts.map(a => ({
+            TechID: a.techID, Version: a.version, PackageID: cp.id,
+            Name: a.name, Type: a.type,
+            Description: '', CreatedBy: '', CreatedAt: '',
+            ModifiedBy: '', ModifiedAt: '', TaskId: '', Status: '',
+          } as Artifact))
+        })
+      } finally {
+        this.packagesLoading = false
+      }
 
-      await Promise.all( // load all artifacts for selected packages
-        this.sourceOps.map(op => this.loadPackageArtifacts(op.Artifact.PackageID))
+      await Promise.all( // restore selections for already-saved ops
+        this.sourceOps.map(op => {
+          const packageId = op.Artifact.PackageID
+          if (!this.selPkgArtifacts[packageId]) this.selPkgArtifacts[packageId] = []
+          const findIdx = this.packageArtifacts[packageId]?.findIndex(a => a.TechID === op.ArtifactTechID && a.Version === op.ArtifactVersion)
+          if (findIdx < 0) {
+            // TODO: handle artifact not found in package, may be deleted or invalid version
+          }
+          this.selPkgArtifacts[packageId].push(op.Artifact)
+          const pkg = this.tenantPkgs.find(p => p.Id === packageId)
+          if (pkg && !this.selectedPackages.find(p => p.Id === pkg.Id)) this.selectedPackages.push(pkg)
+        })
       )
-      this.sourceOps.map(op => {
-        const packageId = op.Artifact.PackageID
-        if (!this.selPkgArtifacts[packageId]) this.selPkgArtifacts[packageId] = []
-
-        const findIdx = this.packageArtifacts[packageId]?.findIndex(a => a.TechID === op.ArtifactTechID && a.Version === op.ArtifactVersion)
-        if (findIdx < 0) {
-          // TODO: handle artifact not found in package, may be deleted or invalid version
-        }
-        this.selPkgArtifacts[packageId].push(op.Artifact)
-        const pkg = this.tenantPkgs.find(p => p.Id === packageId)
-        if (pkg && !this.selectedPackages.find(p => p.Id === pkg.Id)) this.selectedPackages.push(pkg)
-      })
       this.deleteOps = []
       this.addOps = []
       this.draftSourceOps = []
-      this.packagesLoading = false
     },
     async confirmDeleteDr() {
       await DeleteDeliveryRequest(this.planId)
@@ -792,14 +771,6 @@ export default {
         await this.refresh()
       }
     },
-    async loadPackageArtifacts(pkgId: string, reload: boolean = false) {
-      if (this.packageArtifacts[pkgId] && !reload) return // already loaded
-      const cpiDest = this.deliveryRequest?.SourceTenant?.CpiEndpoint.name
-      if (!cpiDest) return
-      this.loadingPackages[pkgId] = true
-      this.packageArtifacts[pkgId] = await GetPackageArtifacts(cpiDest, pkgId)
-      this.loadingPackages[pkgId] = false
-    },
     filteredArtifacts(pkgId: string): Artifact[] {
       const list = this.packageArtifacts[pkgId] || []
       const kw = (this.artifactSearch[pkgId] || '').trim().toLowerCase()
@@ -828,21 +799,6 @@ export default {
     clearSelections(pkgId: string) {
       this.selPkgArtifacts[pkgId] = []
     },
-    async loadVersionHistory() {
-      const baseUrl = new URL(this.deliveryRequest.SourceTenant.CpiEndpoint.url)
-      const { PackageID, TechID } = this.artifactDetail || {}
-      try {
-        this.loadingArtifactHistory = true
-        // NOTE: request has no interception when calling cpi-cookie-service, should manually handel exceptions.
-        // Same with auto generate TR.
-        this.artifactVersionHistory = await GetArtifactVersionHistory(`${baseUrl.protocol}//${baseUrl.host}`, PackageID, TechID)
-      } catch (error: any) {
-        const resp = error?.response?.data
-        window.$toast?.error(`Failed to load artifact version history: ${resp?.message ?? ''}`)
-      } finally {
-        this.loadingArtifactHistory = false
-      }
-    },
     // check TR number existence
     async checkTr(op: ArtifactTenantOperation) {
       this.checkingTrLoading = true
@@ -865,86 +821,62 @@ export default {
         this.checkingTrLoading = false
       }
     },
-    async genSingleTr(op: ArtifactTenantOperation): Promise<{ tr_number: string; tr_info: string }> {
-      const baseUrl = new URL(this.deliveryRequest.SourceTenant.CpiEndpoint.url)
-      const { PackageID, TechID, Version } = op.Artifact || {}
-
-      await DeliveryRuleCheck(this.deliveryRequest.ID, [op])
-
-      const description = `Delivery Request #${this.deliveryRequest.ID}. Transport Request for artifact ${TechID}:${Version} in package ${PackageID} by ${this.currentUser?.email}`
-
-      return await GenTransportRequest(
-        `${baseUrl.protocol}//${baseUrl.host}`,
-        PackageID,
-        TechID,
-        description
-      )
-    },
     async handleGenTr() {
+      if (!this.artifactOpDetial.ID) {
+        window.$toast?.warning?.('Save the delivery request first before generating a TR')
+        return
+      }
       try {
         this.generatingTrLoading = true
         this.isEditingTr = true
-        const { tr_number, tr_info } = await this.genSingleTr(this.artifactOpDetial)
-
-        // this.artifactOpDetial.TransportRequestNumber = tr_number
-        this.editingTrNumber = tr_number
-        this.trInfo = tr_info
-        window.$toast?.success(`Generated transport request: ${tr_number}`)
-        await this.checkTr(this.artifactOpDetial)
-      } catch (error: any) {
-        const resp = error?.response?.data
-        const message = resp?.message ?? error ?? ''
-        window.$toast?.error(`Failed to generate transport request: ${message}`)
+        const { succeeded, failed } = await GenerateTR(
+          this.deliveryRequest.SourceTenant.ID,
+          this.deliveryRequest.ID,
+          [this.artifactOpDetial.ID],
+        )
+        const opIDKey = String(this.artifactOpDetial.ID)
+        const tr = succeeded[opIDKey]
+        if (tr) {
+          this.editingTrNumber = tr.transportRequestID
+          this.artifactOpDetial.TransportRequestNumber = tr.transportRequestID
+          this.trInfo = tr.transportRequestURL
+          // Update in-memory sourceOp — TR is already persisted by backend
+          const sourceOp = this.sourceOps.find(op => op.ID === this.artifactOpDetial.ID)
+          if (sourceOp) sourceOp.TransportRequestNumber = tr.transportRequestID
+          window.$toast?.success(`Generated transport request: ${tr.transportRequestID}`)
+        } else {
+          window.$toast?.error(`Failed to generate transport request: ${failed[opIDKey] ?? 'Unknown error'}`)
+        }
       } finally {
         this.generatingTrLoading = false
       }
     },
     async batchGenTrs() {
-      // Collect all ops that need TRs: new addOps + saved ops with empty TR
-      const opsToGen = [...this.addOps.filter(op => !op.TransportRequestNumber || !op.TransportRequestNumber.trim()),
-                         ...this.missingTrOps]
+      const opsToGen = this.missingTrOps
       if (!opsToGen.length) {
-        window.$toast?.warning?.('No artifacts need TR generation')
+        window.$toast?.warning?.('Save the delivery request first, then generate TRs for new artifacts')
         return
       }
       this.generatingTrsLoading = true
       try {
-        // Generate TR for all artifacts in parallel
-        const results = await Promise.allSettled(
-          opsToGen.map(op => this.genSingleTr(op))
+        const { succeeded, failed } = await GenerateTR(
+          this.deliveryRequest.SourceTenant.ID,
+          this.deliveryRequest.ID,
+          opsToGen.map(op => op.ID),
         )
-        const successResults: { op: ArtifactTenantOperation; trNumber: string }[] = []
-        const errorResults: { op: ArtifactTenantOperation; error: string }[] = []
-
-        // Process results
-        results.forEach((result, index) => {
-          const op = opsToGen[index]
-          if (result.status === 'fulfilled') {
-            const { tr_number } = result.value
-            op.TransportRequestNumber = tr_number
-            successResults.push({ op, trNumber: tr_number })
-            // Track saved ops as drafts so updateDr() sends the change
-            const isSavedOp = this.sourceOps.find(s => s.ID === op.ID)
-            if (isSavedOp && !this.draftSourceOps.find(d => d.op.ID === op.ID)) {
-              this.draftSourceOps.push({ op: isSavedOp, newTr: tr_number, oldTr: '' })
-            }
-          } else {
-            const error = result.reason
-            const resp = error?.response?.data
-            const message = resp?.message ?? error?.toString() ?? 'Unknown error'
-            errorResults.push({ op, error: message })
-          }
-        })
-
-        // Show results
-        if (successResults.length > 0) {
-          const successList = successResults.map(r => `${r.op.ArtifactTechID}@${r.op.ArtifactVersion}: ${r.trNumber}`).join('\n')
-          window.$toast?.success(`Successfully generated ${successResults.length} transport request(s):\n${successList}`)
+        // Update in-memory TR numbers — already persisted by backend
+        for (const [opIDStr, tr] of Object.entries(succeeded)) {
+          const op = this.sourceOps.find(s => String(s.ID) === opIDStr)
+          if (op) op.TransportRequestNumber = tr.transportRequestID
         }
-
-        if (errorResults.length > 0) {
-          const errorList = errorResults.map(e => `${e.op.ArtifactTechID}@${e.op.ArtifactVersion}: ${e.error}`).join('\n')
-          window.$toast?.error(`Failed to generate ${errorResults.length} transport request(s):\n${errorList}`)
+        const successCount = Object.keys(succeeded).length
+        const failCount = Object.keys(failed).length
+        if (successCount > 0) {
+          window.$toast?.success(`Successfully generated ${successCount} transport request(s)`)
+        }
+        if (failCount > 0) {
+          const errorList = Object.entries(failed).map(([id, err]) => `op ${id}: ${err}`).join('\n')
+          window.$toast?.error(`Failed to generate ${failCount} transport request(s):\n${errorList}`)
         }
       } finally {
         this.generatingTrsLoading = false
@@ -976,7 +908,6 @@ export default {
     openArtifactDetails(a: Artifact, op?: ArtifactTenantOperation) {
       this.artifactDetail = a
       this.showArtifactDetails = true
-      this.artifactVersionHistory = []
       this.artifactOpDetial = op || {} as ArtifactTenantOperation
       this.editingTrNumber = this.artifactOpDetial.TransportRequestNumber
       this.trInfo = ''

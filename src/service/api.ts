@@ -1,6 +1,6 @@
 import axios from 'axios'
 import http from './http'
-import type { ApiEndpoint, Artifact, ArtifactTenantOperation, ArtifactVersionHistoryItem, AppCount, ConnectivityReport, CpiTenant, CreateDRFromMismatchRequest, CreateDRFromMismatchResponse, DeliverOpRequest, DeliveryRequest, DeliveryRule, IntegrationConfig, NodeTransportRequest, Package, PreviewDRResponse, RuntimeArtifact, TransportNode, TransportRoute, TriggerResult, UserInfo, VersionCompareIncludedPackage, VersionCompareResponse, VersionCompareSummaryItem } from './model'
+import type { ApiEndpoint, Artifact, ArtifactTenantOperation, AppCount, CasPackage, ConnectivityReport, CpiTenant, CreateDRFromMismatchRequest, CreateDRFromMismatchResponse, DeliverOpRequest, DeliveryRequest, DeliveryRule, GenerateTRResponse, IntegrationConfig, NodeTransportRequest, Package, PreviewDRResponse, RuntimeArtifact, TransportNode, TransportRoute, TriggerResult, UserInfo, VersionCompareIncludedPackage, VersionCompareResponse, VersionCompareSummaryItem } from './model'
 import type { AggregateStatus, DeployState, ImportState, RequestState } from './statuses'
 
 export const GetDrCounts = () => {
@@ -37,6 +37,17 @@ export const GetPackages = (tenantId: number | string) => {
   return http.get('/api/v1/tanant/packages', {
     params: { tenant: tenantId }
   }) as Promise<Package[]>
+}
+
+export const GetCasContentResources = (tenantId: number) => {
+  return http.get(`/api/v1/cpiTenant/${tenantId}/cas/contentResources`) as Promise<CasPackage[]>
+}
+
+export const GenerateTR = (tenantId: number, deliveryRequestID: number, artifactOperationIDs: number[]) => {
+  return http.post(`/api/v1/cpiTenant/${tenantId}/generateTR`, {
+    deliveryRequestID,
+    artifactOperationIDs,
+  }) as Promise<GenerateTRResponse>
 }
 
 export const GetPackageArtifacts = (tenantId: string, packageId: string) => {
@@ -155,43 +166,6 @@ export const InitCpiTenant = async (cpi_tenant: string) => {
   return resp.data as { message: string }
 }
 
-// returns {tr_info: string, tr_number: string}
-export const GenTransportRequest = async (
-  cpi_tenant_url: string,
-  target_package_tech_name: string,
-  target_artifact_id: string,
-  comment: string
-) => {
-  const resp = await axios.post(
-    '/api/v1/cookie-service/transport_request',
-    {
-      target_package_tech_name,
-      target_artifact_name: target_artifact_id,
-      cpi_tenant: cpi_tenant_url,
-      comment,
-    },
-    { timeout: 90 * 1000 },
-  )
-  return resp.data as { tr_info: string; tr_number: string }
-}
-
-// version history
-export const GetArtifactVersionHistory = async (
-  cpiTenant: string,
-  targetPackageTechName: string,
-  targetArtifactName: string
-): Promise<ArtifactVersionHistoryItem[]> => {
-  const resp = await axios.get('/api/v1/cookie-service/version_history', {
-    params: {
-      cpi_tenant: cpiTenant,
-      target_package_tech_name: targetPackageTechName,
-      target_artifact_name: targetArtifactName,
-    },
-    timeout: 8 * 1000,
-  })
-  return resp.data as ArtifactVersionHistoryItem[]
-}
-
 export const ImportOps = (opIDs: number[], tenant: number, drID: number) => {
   const req: DeliverOpRequest ={
     opIDs: opIDs,
@@ -248,14 +222,6 @@ export const RequestApprove = (drID: number, approvers: string[], comment: strin
 export const Approve = (drID: number, comment: string | []): Promise<DeliveryRequest> => {
   return http.post('/api/v1/deliveryRequest/approve', 
     {deliveryRequestID: drID, comment: comment})
-}
-
-export const DeliveryRuleCheck = async (drID: number, ops: ArtifactTenantOperation[]) => {
-  if (ops.length === 0) return Promise.resolve([])
-  await http.post(
-    '/api/v1/deliveryRule/ruleCheck',
-    {ops: ops, deliveryRequestID: drID}
-  )
 }
 
 // --- Version Compare ---

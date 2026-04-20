@@ -373,6 +373,34 @@ export interface CreateDRFromMismatchResponse {
   summary: CreateDRFromMismatchSummary
 }
 
+// --- CAS (Content Archive Service) ---
+
+export interface CasArtifact {
+  techID: string
+  guid: string
+  name: string
+  type: string
+  version: string
+  exportable: boolean
+}
+
+export interface CasPackage {
+  id: string
+  name: string
+  version: string
+  artifacts: CasArtifact[]
+}
+
+export interface GenerateTRResult {
+  transportRequestID: string
+  transportRequestURL: string
+}
+
+export interface GenerateTRResponse {
+  succeeded: { [opID: string]: GenerateTRResult }
+  failed: { [opID: string]: string }
+}
+
 // --- System Configuration ---
 
 export interface IntegrationConfig {
