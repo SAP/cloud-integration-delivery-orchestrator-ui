@@ -15,13 +15,6 @@
                     <ui5-input :value="selectedCpiTenant.Name || ''" @change="selectedCpiTenant.Name = $event.target.value"
                         style="width: 100%;" />
 
-                    <ui5-text class="field-label">CPI Api Endpoint</ui5-text>
-                    <ui5-combobox :value="selectedCpiTenant.CpiEndpoint?.name || ''" @change="onSelectEndpointChange"
-                        style="width: 100%;">
-                        <ui5-cb-item v-for="ep in cpiEndpoints" :key="ep.name" :value="ep.name"
-                            :additional-text="ep.url" :text="ep.name" />
-                    </ui5-combobox>
-
                     <ui5-text class="field-label">Tag</ui5-text>
                     <ui5-input :value="selectedCpiTenant.Group || ''" @change="onSelectTag"
                         placeholder="e.g. Dev, Test, Production" showSuggestions style="width: 100%;">
@@ -86,13 +79,6 @@
                             <ui5-input :value="selectedCpiTenant.Name || ''"
                                 @input="selectedCpiTenant.Name = $event.target.value"
                                 placeholder="cpi-mmt-dev" style="width: 100%;" />
-
-                            <ui5-text class="field-label">CPI Api Endpoint</ui5-text>
-                            <ui5-combobox :value="selectedCpiTenant.CpiEndpoint?.name || ''" @change="onSelectEndpointChange"
-                                placeholder="Choose CPI Api Endpoint" style="width: 100%;">
-                                <ui5-cb-item v-for="ep in cpiEndpoints" :key="ep.name" :value="ep.name"
-                                    :additional-text="ep.url" :text="ep.name" />
-                            </ui5-combobox>
 
                             <ui5-text class="field-label">Tag</ui5-text>
                             <ui5-input :value="selectedCpiTenant.Group || ''" @input="onSelectTag"
@@ -323,34 +309,18 @@
 
                         <template v-if="selectedCpiTenant.TmsNodeRegistrationStatus === 'missing'
                             || selectedCpiTenant.TmsNodeRegistrationStatus === 'failed'">
-
-                            <template v-if="centralTmsContext?.NodeManagementApiAvailable">
-                                <ui5-text style="font-size: 0.85rem; color: var(--sapContent_LabelColor); margin: 0.75rem 0 0.5rem; display: block;">
-                                    Auto mode is available. The system will create the TMS Node automatically.
-                                </ui5-text>
-                                <div style="display: flex; gap: 0.5rem; align-items: center;">
-                                    <ui5-button design="Emphasized" :disabled="tmsLoading" @click="onAutoRegisterTmsNode">
-                                        Auto Create Node
-                                    </ui5-button>
-                                    <ui5-busy-indicator v-if="tmsLoading" size="Small" active />
-                                </div>
-                            </template>
-
-                            <template v-else>
-                                <ui5-text style="font-size: 0.85rem; color: var(--sapContent_LabelColor); margin: 0.75rem 0 0.5rem; display: block;">
-                                    Manual mode: enter the name of an existing TMS Node to register.
-                                </ui5-text>
-                                <ui5-text class="field-label">TMS Source Node Name *</ui5-text>
-                                <ui5-input :value="tmsNodeName" @input="tmsNodeName = $event.target.value"
-                                    placeholder="Existing TMS node name" style="width: 100%;" :disabled="tmsLoading" />
-                                <div style="display: flex; gap: 0.5rem; margin-top: 0.75rem; align-items: center;">
-                                    <ui5-button design="Emphasized" :disabled="!tmsNodeName || tmsLoading" @click="onManualRegisterTmsNode">
-                                        Verify &amp; Register
-                                    </ui5-button>
-                                    <ui5-busy-indicator v-if="tmsLoading" size="Small" active />
-                                </div>
-                            </template>
-
+                            <ui5-text style="font-size: 0.85rem; color: var(--sapContent_LabelColor); margin: 0.75rem 0 0.5rem; display: block;">
+                                Manual mode: enter the name of an existing TMS Node to register.
+                            </ui5-text>
+                            <ui5-text class="field-label">TMS Source Node Name *</ui5-text>
+                            <ui5-input :value="tmsNodeName" @input="tmsNodeName = $event.target.value"
+                                placeholder="Existing TMS node name" style="width: 100%;" :disabled="tmsLoading" />
+                            <div style="display: flex; gap: 0.5rem; margin-top: 0.75rem; align-items: center;">
+                                <ui5-button design="Emphasized" :disabled="!tmsNodeName || tmsLoading" @click="onManualRegisterTmsNode">
+                                    Verify &amp; Register
+                                </ui5-button>
+                                <ui5-busy-indicator v-if="tmsLoading" size="Small" active />
+                            </div>
                         </template>
 
                         <template v-else-if="selectedCpiTenant.TmsNodeRegistrationStatus === 'registering'">
@@ -360,12 +330,6 @@
                                 Node <strong>{{ selectedCpiTenant.TmsSourceNodeName }}</strong> has been registered.
                                 Configure Routes in the TMS UI, then confirm below.
                             </ui5-text>
-                            <div style="margin-top: 0.75rem;">
-                                <ui5-link v-if="centralTmsContext?.TmsApiEndpoint"
-                                    :href="centralTmsContext.TmsApiEndpoint" target="_blank" style="font-size: 0.85rem;">
-                                    Open TMS UI ↗
-                                </ui5-link>
-                            </div>
                             <div style="display: flex; gap: 0.5rem; margin-top: 0.75rem; flex-wrap: wrap; align-items: center;">
                                 <ui5-button design="Default" :disabled="tmsLoading" @click="onRefreshRoutes">
                                     I have configured Routes — Refresh
@@ -436,14 +400,14 @@ import { defineComponent, h } from 'vue'
 import DataTable from '@/components/DataTable.vue'
 import { cpiTenantColums, type ToolBar, type RowAction } from '@/service/consts'
 import {
-    DeleteCpiTenant, GetCPIApiEndpoints, GetCpiTenants, UpsertCpiTenant,
+    DeleteCpiTenant, GetCpiTenants, UpsertCpiTenant,
     SaveCfIdentity, ListCfOrgs, ListCfSpaces, ExchangeCfPasscode,
     PreviewBootstrap, ApplyBootstrap, GetBootstrapStatus, RetryBootstrap, ResetBootstrap,
     RegisterTmsNode, GetTmsNodeRoutes, ConfirmTmsRoutes,
     GetCentralTmsContext,
 } from '@/service/api'
 import type {
-    CpiTenant, ApiEndpoint, BootstrapPreview, BootstrapJob,
+    CpiTenant, BootstrapPreview, BootstrapJob,
     TmsNodeRoute, TenantLifecycleState, PrerequisiteStatus, CentralTmsContext,
 } from '@/service/model'
 import "@ui5/webcomponents/dist/TableRowAction.js"
@@ -493,7 +457,6 @@ export default defineComponent({
             toolBars,
             rowActions,
             selectedCpiTenant: {} as CpiTenant,
-            cpiEndpoints: [] as ApiEndpoint[],
             centralTmsContext: null as CentralTmsContext | null,
             loading: false,
             saving: false,
@@ -888,17 +851,12 @@ export default defineComponent({
 
         // ── Form helpers ───────────────────────────────────────────────────────
 
-        onSelectEndpointChange(event: any) {
-            const ep = this.cpiEndpoints.find(e => e.name === event.target.value)
-            if (ep) this.selectedCpiTenant.CpiEndpoint = ep
-        },
         onSelectTag(event: any) {
             this.selectedCpiTenant.Group = event.target.value
         },
     },
     async created() {
         await this.refresh()
-        this.cpiEndpoints = await GetCPIApiEndpoints() || []
         try {
             this.centralTmsContext = await GetCentralTmsContext()
         } catch {

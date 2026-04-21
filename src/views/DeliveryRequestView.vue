@@ -1062,9 +1062,17 @@ export default {
     },
     cpiTenantLink() {
       const tenant = this.deliveryRequest.SourceTenant
-      if (!tenant || !tenant.CpiEndpoint) return ''
-      const baseUrl = new URL(tenant.CpiEndpoint.url)
-      return `${baseUrl.protocol}//${baseUrl.host}/itspaces/shell/design`
+      if (!tenant?.CfApiEndpoint) return ''
+      // Derive the Integration Suite design URL from the CF API endpoint.
+      // CF API: https://api.cf.<region>.hana.ondemand.com
+      // IT Spaces: https://<tenant-subdomain>.integrationsuite.<region>.hana.ondemand.com/itspaces/shell/design
+      // Fallback: use the CF API host base for linking to the subaccount.
+      try {
+        const cfUrl = new URL(tenant.CfApiEndpoint)
+        return `${cfUrl.protocol}//${cfUrl.host}`
+      } catch {
+        return ''
+      }
     },
     aggrStatusToDesign() {
       return aggregateStatusToUi5Design(this.deliveryRequest.AggregateStatus)

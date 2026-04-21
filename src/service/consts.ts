@@ -77,13 +77,10 @@ export const cpiTenantColums: Column[] = [
     }
   },
   {
-    title: 'CPI Api Endpoint',
-    key: 'CpiEndpoint',
+    title: 'CPI Destination',
+    key: 'PirApiDestinationName',
     render(row: CpiTenant) {
-      return h(
-        'div',
-        `${row.CpiEndpoint.name}(${row.CpiEndpoint.url})`
-      )
+      return h('div', row.PirApiDestinationName || '—')
     },
     resizable: true
   },

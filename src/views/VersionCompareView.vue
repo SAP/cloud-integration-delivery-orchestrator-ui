@@ -140,7 +140,7 @@ const onTenantChange = async (event: Event) => {
   if (!tenant) return
   loadingPackages.value = true
   try {
-    tenantPackages.value = (await GetPackages(tenant.CpiEndpoint.name)) ?? []
+    tenantPackages.value = (await GetPackages(tenant.ID)) ?? []
   } catch {
     tenantPackages.value = []
   } finally {

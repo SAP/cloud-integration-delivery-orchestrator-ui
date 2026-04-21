@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
-import { CheckConnectivity, GetIntegrations, UpdateIntegration } from '@/service/api'
-import type { ConnectivityStatus, IntegrationConfig } from '@/service/model'
+import { CheckConnectivity, GetIntegrations, UpdateIntegration, GetCentralTmsContext, UpsertCentralTmsContext } from '@/service/api'
+import type { ConnectivityStatus, IntegrationConfig, CentralTmsContext } from '@/service/model'
 
 import "@ui5/webcomponents/dist/Title.js"
 import "@ui5/webcomponents/dist/Button.js"
@@ -24,18 +24,12 @@ import "@ui5/webcomponents/dist/MessageStrip.js"
 import "@ui5/webcomponents-icons/dist/refresh.js"
 import "@ui5/webcomponents-icons/dist/edit.js"
 
+// ── Integration Registry ──────────────────────────────────────────────────────
+
 const integrations = ref<IntegrationConfig[]>([])
 const integrationsLoading = ref(false)
-const connectivityResults = ref<ConnectivityStatus[]>([])
-const connectivityLoading = ref(false)
-const checkedAt = ref('')
-
 const showEditDialog = ref(false)
 const editingConfig = ref<IntegrationConfig | null>(null)
-
-const infraResults = computed(() => connectivityResults.value.filter(r => r.type === 'database' || r.type === 'tms'))
-const cpiTenantResults = computed(() => connectivityResults.value.filter(r => r.type === 'cpi_tenant'))
-const integrationResults = computed(() => connectivityResults.value.filter(r => r.type === 'integration'))
 
 const loadIntegrations = async () => {
   integrationsLoading.value = true
@@ -45,19 +39,6 @@ const loadIntegrations = async () => {
     window.$toast.error('Failed to load integrations: ' + (e?.response?.data?.message ?? e?.message ?? ''))
   } finally {
     integrationsLoading.value = false
-  }
-}
-
-const runConnectivityCheck = async () => {
-  connectivityLoading.value = true
-  try {
-    const report = await CheckConnectivity()
-    connectivityResults.value = report.results || []
-    checkedAt.value = new Date(report.checkedAt).toLocaleString()
-  } catch (e: any) {
-    window.$toast.error('Connectivity check failed: ' + (e?.response?.data?.message ?? e?.message ?? ''))
-  } finally {
-    connectivityLoading.value = false
   }
 }
 
@@ -82,6 +63,29 @@ const onSaveIntegration = async () => {
   }
 }
 
+// ── System Connectivity ───────────────────────────────────────────────────────
+
+const connectivityResults = ref<ConnectivityStatus[]>([])
+const connectivityLoading = ref(false)
+const checkedAt = ref('')
+
+const infraResults = computed(() => connectivityResults.value.filter(r => r.type === 'database' || r.type === 'tms'))
+const cpiTenantResults = computed(() => connectivityResults.value.filter(r => r.type === 'cpi_tenant'))
+const integrationResults = computed(() => connectivityResults.value.filter(r => r.type === 'integration'))
+
+const runConnectivityCheck = async () => {
+  connectivityLoading.value = true
+  try {
+    const report = await CheckConnectivity()
+    connectivityResults.value = report.results || []
+    checkedAt.value = new Date(report.checkedAt).toLocaleString()
+  } catch (e: any) {
+    window.$toast.error('Connectivity check failed: ' + (e?.response?.data?.message ?? e?.message ?? ''))
+  } finally {
+    connectivityLoading.value = false
+  }
+}
+
 const statusDesign = (status: string): string => {
   if (status === 'ok') return 'Positive'
   if (status === 'error') return 'Negative'
@@ -95,7 +99,55 @@ const statusLabel = (status: string): string => {
   return status
 }
 
-onMounted(() => loadIntegrations())
+// ── Central TMS Context ───────────────────────────────────────────────────────
+
+const tmsContext = ref<CentralTmsContext | null>(null)
+const tmsContextLoading = ref(false)
+const showTmsEditDialog = ref(false)
+const tmsEditDestName = ref('')
+const tmsSaving = ref(false)
+
+const tmsConfigured = computed(() => !!tmsContext.value?.TmsApiDestinationName)
+
+const loadTmsContext = async () => {
+  tmsContextLoading.value = true
+  try {
+    tmsContext.value = await GetCentralTmsContext()
+  } catch (e: any) {
+    // 404 = not yet configured — not an error
+    if (e?.response?.status !== 404) {
+      window.$toast.error('Failed to load Central TMS context: ' + (e?.response?.data?.message ?? e?.message ?? ''))
+    }
+    tmsContext.value = null
+  } finally {
+    tmsContextLoading.value = false
+  }
+}
+
+const openTmsEditDialog = () => {
+  tmsEditDestName.value = tmsContext.value?.TmsApiDestinationName ?? ''
+  showTmsEditDialog.value = true
+}
+
+const onSaveTmsContext = async () => {
+  if (!tmsEditDestName.value.trim()) return
+  tmsSaving.value = true
+  try {
+    tmsContext.value = await UpsertCentralTmsContext({ TmsApiDestinationName: tmsEditDestName.value.trim() })
+    window.$toast.success('Central TMS context saved')
+    showTmsEditDialog.value = false
+  } catch (e: any) {
+    window.$toast.error('Failed to save: ' + (e?.response?.data?.message ?? e?.message ?? ''))
+  } finally {
+    tmsSaving.value = false
+  }
+}
+
+// ── Lifecycle ─────────────────────────────────────────────────────────────────
+
+onMounted(async () => {
+  await Promise.all([loadIntegrations(), loadTmsContext()])
+})
 </script>
 
 <template>
@@ -130,6 +182,35 @@ onMounted(() => loadIntegrations())
     </ui5-toolbar>
   </ui5-dialog>
 
+  <!-- Edit Central TMS Context Dialog -->
+  <ui5-dialog
+    header-text="Configure Central TMS"
+    :open="showTmsEditDialog"
+    @before-close="showTmsEditDialog = false"
+    style="width: 36rem;">
+    <div class="sc-dialog-content">
+      <ui5-message-strip design="Information" hide-close-button style="margin-bottom: 1rem;">
+        Enter the name of the BTP destination in the provider subaccount that holds TMS OAuth credentials.
+        This destination is used both for TMS API calls and as the credential source for each tenant's
+        TransportManagementService destination during bootstrap.
+      </ui5-message-strip>
+      <ui5-label required>TMS API Destination Name</ui5-label>
+      <ui5-input
+        :value="tmsEditDestName"
+        @input="tmsEditDestName = ($event as any).target.value"
+        placeholder="e.g. tms"
+        style="width: 100%;" />
+    </div>
+    <ui5-toolbar slot="footer">
+      <ui5-toolbar-button
+        design="Emphasized"
+        text="Save"
+        :disabled="!tmsEditDestName.trim() || tmsSaving"
+        @click="onSaveTmsContext" />
+      <ui5-toolbar-button design="Transparent" text="Cancel" @click="showTmsEditDialog = false" />
+    </ui5-toolbar>
+  </ui5-dialog>
+
   <div class="sc-container">
     <!-- Header -->
     <div class="sc-header">
@@ -138,6 +219,47 @@ onMounted(() => loadIntegrations())
         Check Connectivity
       </ui5-button>
     </div>
+
+    <!-- Central TMS Context -->
+    <ui5-panel header-text="Central TMS" fixed>
+      <ui5-busy-indicator :active="tmsContextLoading" size="M" style="width: 100%;">
+        <div class="sc-tms-body">
+          <ui5-message-strip
+            v-if="!tmsConfigured && !tmsContextLoading"
+            design="Critical"
+            hide-close-button
+            style="margin-bottom: 1rem;">
+            Central TMS is not configured. Tenant bootstrap will be blocked until a TMS API destination name is provided.
+          </ui5-message-strip>
+
+          <div class="sc-tms-fields">
+            <div class="sc-tms-field">
+              <span class="sc-tms-label">TMS API Destination Name</span>
+              <span class="sc-tms-value">
+                <ui5-tag v-if="tmsConfigured" design="Positive" style="font-size: 0.8rem;">
+                  {{ tmsContext!.TmsApiDestinationName }}
+                </ui5-tag>
+                <ui5-tag v-else design="Negative" style="font-size: 0.8rem;">Not configured</ui5-tag>
+              </span>
+            </div>
+            <div class="sc-tms-field" v-if="tmsContext?.LastValidatedAt">
+              <span class="sc-tms-label">Last Validated</span>
+              <span class="sc-tms-value">{{ new Date(tmsContext.LastValidatedAt).toLocaleString() }}</span>
+            </div>
+            <div class="sc-tms-field" v-if="tmsContext?.TmsApiEndpoint">
+              <span class="sc-tms-label">TMS API Endpoint</span>
+              <span class="sc-tms-value sc-tms-endpoint">{{ tmsContext.TmsApiEndpoint }}</span>
+            </div>
+          </div>
+
+          <div style="margin-top: 1rem;">
+            <ui5-button design="Transparent" icon="edit" @click="openTmsEditDialog">
+              {{ tmsConfigured ? 'Edit' : 'Configure' }}
+            </ui5-button>
+          </div>
+        </div>
+      </ui5-busy-indicator>
+    </ui5-panel>
 
     <!-- Integration Registry -->
     <ui5-panel header-text="Integration Registry" fixed>
@@ -326,5 +448,38 @@ onMounted(() => loadIntegrations())
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.sc-tms-body {
+  padding: 0.25rem 0;
+}
+
+.sc-tms-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+}
+
+.sc-tms-field {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.sc-tms-label {
+  font-size: 0.875rem;
+  color: var(--sapContent_LabelColor);
+  min-width: 14rem;
+}
+
+.sc-tms-value {
+  font-size: 0.875rem;
+  color: var(--sapTextColor);
+}
+
+.sc-tms-endpoint {
+  font-family: var(--sapFontMonospaceFamily, monospace);
+  font-size: 0.8rem;
+  color: var(--sapNeutralTextColor);
 }
 </style>

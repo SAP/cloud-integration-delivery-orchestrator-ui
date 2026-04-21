@@ -77,7 +77,6 @@ export interface CpiTenant {
   TransportNodeID: number
   TransportNodeName: string
   TransportNodeDescription: string
-  CpiEndpoint: ApiEndpoint
   Group: string
 
   // RFC-013: CF identity fields (required for bootstrap)
@@ -172,15 +171,9 @@ export interface TmsNodeConfirmResponse {
 
 export interface CentralTmsContext {
   ID: number
-  SubscriberZoneID: string
-  DisplayName: string
-  SubaccountID: string
-  Region: string
-  TmsApiEndpoint: string
   TmsApiDestinationName: string
-  DefaultNodeNamePattern: string
-  NodeManagementApiAvailable: boolean
   LastValidatedAt: string | null
+  TmsApiEndpoint?: string
 }
 
 
