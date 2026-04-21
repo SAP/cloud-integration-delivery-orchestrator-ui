@@ -310,13 +310,18 @@
                         <template v-if="selectedCpiTenant.TmsNodeRegistrationStatus === 'missing'
                             || selectedCpiTenant.TmsNodeRegistrationStatus === 'failed'">
                             <ui5-text style="font-size: 0.85rem; color: var(--sapContent_LabelColor); margin: 0.75rem 0 0.5rem; display: block;">
-                                Manual mode: enter the name of an existing TMS Node to register.
+                                Select an existing TMS Node to register.
                             </ui5-text>
-                            <ui5-text class="field-label">TMS Source Node Name *</ui5-text>
-                            <ui5-input :value="tmsNodeName" @input="tmsNodeName = $event.target.value"
-                                placeholder="Existing TMS node name" style="width: 100%;" :disabled="tmsLoading" />
+                            <ui5-text class="field-label">TMS Source Node *</ui5-text>
+                            <ui5-select style="width: 100%;" :disabled="tmsLoading"
+                                @change="selectedTmsNode = tmsNodes.find(n => n.id === Number($event.detail.selectedOption.value) ) ?? null">
+                                <ui5-option value="">— select a node —</ui5-option>
+                                <ui5-option v-for="node in tmsNodes" :key="node.id" :value="String(node.id)">
+                                    {{ node.name }}{{ node.description ? ' — ' + node.description : '' }}
+                                </ui5-option>
+                            </ui5-select>
                             <div style="display: flex; gap: 0.5rem; margin-top: 0.75rem; align-items: center;">
-                                <ui5-button design="Emphasized" :disabled="!tmsNodeName || tmsLoading" @click="onManualRegisterTmsNode">
+                                <ui5-button design="Emphasized" :disabled="!selectedTmsNode || tmsLoading" @click="onRegisterTmsNode">
                                     Verify &amp; Register
                                 </ui5-button>
                                 <ui5-busy-indicator v-if="tmsLoading" size="Small" active />
@@ -404,11 +409,11 @@ import {
     SaveCfIdentity, ListCfOrgs, ListCfSpaces, ExchangeCfPasscode,
     PreviewBootstrap, ApplyBootstrap, GetBootstrapStatus, RetryBootstrap, ResetBootstrap,
     RegisterTmsNode, GetTmsNodeRoutes, ConfirmTmsRoutes,
-    GetCentralTmsContext,
+    GetCentralTmsContext, GetTransportNodes,
 } from '@/service/api'
 import type {
     CpiTenant, BootstrapPreview, BootstrapJob,
-    TmsNodeRoute, TenantLifecycleState, PrerequisiteStatus, CentralTmsContext,
+    TmsNodeRoute, TenantLifecycleState, PrerequisiteStatus, CentralTmsContext, TransportNode,
 } from '@/service/model'
 import "@ui5/webcomponents/dist/TableRowAction.js"
 import "@ui5/webcomponents-icons/dist/edit.js"
@@ -479,7 +484,8 @@ export default defineComponent({
             bootstrapJob: null as BootstrapJob | null,
             pollTimer: null as ReturnType<typeof setInterval> | null,
             // TMS Node state
-            tmsNodeName: '',
+            selectedTmsNode: null as TransportNode | null,
+            tmsNodes: [] as TransportNode[],
             tmsLoading: false,
             tmsRoutes: [] as TmsNodeRoute[],
         }
@@ -568,6 +574,7 @@ export default defineComponent({
             await this.loadBootstrapJob()
             if (this.selectedCpiTenant.LifecycleState === 'readying') this.startPoll()
             if (row.TmsSourceNodeName) await this.loadRoutes()
+            await this.loadTmsNodes()
         },
         closeManageModal() {
             this.showManageModal = false
@@ -576,7 +583,7 @@ export default defineComponent({
             this.cfIdentity = { cfApiEndpoint: '', cfOrg: '', cfSpace: '' }
             this.bootstrapPreview = null
             this.bootstrapJob = null
-            this.tmsNodeName = ''
+            this.selectedTmsNode = null
             this.tmsRoutes = []
         },
 
@@ -805,30 +812,25 @@ export default defineComponent({
             this.tmsLoading = true
             try { await this.loadRoutes() } finally { this.tmsLoading = false }
         },
-        async onAutoRegisterTmsNode() {
-            this.tmsLoading = true
+        async loadTmsNodes() {
             try {
-                await RegisterTmsNode(this.selectedCpiTenant.ID, { mode: 'auto' })
-                window.$toast.success('Node created automatically — configure Routes in TMS UI')
-                await this.refresh()
-                const updated = this.cpiTenants.find(t => t.ID === this.selectedCpiTenant.ID)
-                if (updated) this.selectedCpiTenant = { ...updated }
+                const nodes = await GetTransportNodes()
+                this.tmsNodes = nodes
             } catch (e: any) {
-                window.$toast.error(e?.response?.data?.message ?? 'Auto registration failed')
-            } finally {
-                this.tmsLoading = false
+                window.$toast.error(e?.response?.data?.message ?? 'Failed to load TMS nodes')
             }
         },
-        async onManualRegisterTmsNode() {
+        async onRegisterTmsNode() {
+            if (!this.selectedTmsNode) return
             this.tmsLoading = true
             try {
-                await RegisterTmsNode(this.selectedCpiTenant.ID, { mode: 'manual', nodeName: this.tmsNodeName })
-                window.$toast.success(`Node "${this.tmsNodeName}" verified — configure Routes in TMS UI`)
+                await RegisterTmsNode(this.selectedCpiTenant.ID, { nodeId: this.selectedTmsNode.id, nodeName: this.selectedTmsNode.name })
+                window.$toast.success(`Node "${this.selectedTmsNode.name}" verified — configure Routes in TMS UI`)
                 await this.refresh()
                 const updated = this.cpiTenants.find(t => t.ID === this.selectedCpiTenant.ID)
                 if (updated) this.selectedCpiTenant = { ...updated }
             } catch (e: any) {
-                window.$toast.error(e?.response?.data?.message ?? 'Manual registration failed')
+                window.$toast.error(e?.response?.data?.message ?? 'Registration failed')
             } finally {
                 this.tmsLoading = false
             }

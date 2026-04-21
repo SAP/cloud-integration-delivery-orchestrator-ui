@@ -314,7 +314,7 @@ export const ResetBootstrap = (tenantId: number) => {
 
 // --- TMS Node Registration ---
 
-export const RegisterTmsNode = (tenantId: number, payload: { mode: 'manual' | 'auto'; nodeName?: string }) => {
+export const RegisterTmsNode = (tenantId: number, payload: { nodeId: number; nodeName: string }) => {
   return http.post(`/api/v1/cpiTenant/${tenantId}/tms-node/register`, payload) as Promise<TmsNodeStatus>
 }
 
