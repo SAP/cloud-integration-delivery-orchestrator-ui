@@ -65,7 +65,7 @@ export interface Condition {
   Timestamp: string
 }
 
-export type TenantLifecycleState = 'draft' | 'not_ready' | 'readying' | 'ready'
+export type TenantLifecycleState = 'draft' | 'configured' | 'not_ready' | 'readying' | 'ready'
 export type PrerequisiteStatus = 'missing' | 'ready' | 'failed' | 'registering'
 export type BootstrapJobState = 'running' | 'waiting_user_action' | 'partially_applied' | 'failed' | 'finished'
 export type BootstrapJobType = 'preview' | 'apply' | 'retry'

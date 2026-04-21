@@ -99,6 +99,7 @@ export const cpiTenantColums: Column[] = [
     render(row: CpiTenant) {
       const designMap: Record<TenantLifecycleState, string> = {
         draft: 'Information',
+        configured: 'Set2',
         not_ready: 'Critical',
         readying: 'Information',
         ready: 'Positive',

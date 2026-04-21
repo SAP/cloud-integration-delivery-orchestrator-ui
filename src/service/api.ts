@@ -288,6 +288,22 @@ export const GetBootstrapStatus = (tenantId: number) => {
   return http.get(`/api/v1/cpiTenant/${tenantId}/bootstrap/status`) as Promise<BootstrapJob>
 }
 
+export const SaveCfIdentity = (tenantId: number, payload: { cfApiEndpoint: string; cfOrg: string; cfSpace: string; cfToken: string }) => {
+  return http.put(`/api/v1/cpiTenant/${tenantId}/cfIdentity`, payload) as Promise<{ tenantId: number }>
+}
+
+export const ExchangeCfPasscode = (cfApiEndpoint: string, passcode: string) => {
+  return http.post('/api/v1/cf/token', { cfApiEndpoint, passcode }) as Promise<{ accessToken: string }>
+}
+
+export const ListCfOrgs = (cfApiEndpoint: string, cfToken: string) => {
+  return http.post('/api/v1/cf/orgs', { cfApiEndpoint, cfToken }) as Promise<{ guid: string; name: string }[]>
+}
+
+export const ListCfSpaces = (cfApiEndpoint: string, cfToken: string, orgGuid: string) => {
+  return http.post('/api/v1/cf/spaces', { cfApiEndpoint, cfToken, orgGuid }) as Promise<{ guid: string; name: string }[]>
+}
+
 export const RetryBootstrap = (tenantId: number, cfToken: string) => {
   return http.post(`/api/v1/cpiTenant/${tenantId}/bootstrap/retry`, { cfToken }) as Promise<{ jobId: number }>
 }
