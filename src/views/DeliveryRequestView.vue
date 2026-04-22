@@ -91,14 +91,27 @@
               @click="checkTr(artifactOpDetial)" design="Transparent">
               Check
             </ui5-button>
-            <ui5-button :loading="generatingTrLoading" @click="handleGenTr" design="Transparent">Auto Generate</ui5-button>
+            <ui5-button :loading="generatingTrLoading"
+              :disabled="artifactOpDetial.RequestState === 'TR_GENERATING'"
+              :tooltip="artifactOpDetial.RequestState === 'TR_GENERATING' ? 'TR generation in progress…' : ''"
+              @click="handleGenTr" design="Transparent">Auto Generate</ui5-button>
             <ui5-button v-show="isEditingTr"
               @click="{ isEditingTr = false; editingTrNumber = artifactOpDetial.TransportRequestNumber }"
               design="Transparent">
               Cancel
             </ui5-button>
           </div>
-          <ui5-text v-if="trInfo" style="color: var(--sapPositiveColor); font-size: var(--sapFontSize);">{{ trInfo }}</ui5-text>
+          <ui5-message-strip
+            v-if="artifactOpDetial.RequestState === 'TR_GENERATING'"
+            design="Information" :hide-close-button="true" style="width: fit-content; font-size: var(--sapFontSize);">
+            TR generation in progress — this may take up to a few minutes.
+          </ui5-message-strip>
+          <ui5-message-strip
+            v-else-if="artifactOpDetial.RequestState === 'TR_FAILED' && artifactOpDetial.TrError"
+            design="Negative" :hide-close-button="true" style="width: fit-content; font-size: var(--sapFontSize);">
+            TR generation failed: {{ artifactOpDetial.TrError }}
+          </ui5-message-strip>
+          <ui5-text v-else-if="trInfo" style="color: var(--sapPositiveColor); font-size: var(--sapFontSize);">{{ trInfo }}</ui5-text>
         </div>
 
       </div>
@@ -207,6 +220,39 @@
 
             <!-- packages & artifacts section -->
             <ui5-title size="H6"> Packages ({{ selectedPackages.length }}) </ui5-title>
+
+            <!-- Global artifact search — searches across all loaded packages -->
+            <div style="display: flex; flex-direction: column; gap: 6px;">
+              <ui5-input
+                :value="globalArtifactSearch"
+                @input="globalArtifactSearch = ($event.target as HTMLInputElement).value"
+                placeholder="Search artifacts by name / version across all packages"
+                show-clear-icon
+                :disabled="packagesLoading"
+                style="width: 40%;"
+              />
+              <div v-if="globalArtifactSearch && globalArtifactResults.length" style="display: flex; flex-wrap: wrap; gap: 6px; max-height: 200px; overflow-y: auto; padding: 4px 0;">
+                <ui5-segmented-button
+                  v-for="item in globalArtifactResults"
+                  :key="item.pkg.Id + '-' + item.artifact.TechID + '@' + item.artifact.Version"
+                  items-fit-content selection-mode="Multiple">
+                  <ui5-segmented-button-item
+                    :selected="isArtifactSelected(item.pkg.Id, item.artifact)"
+                    @click="toggleArtifact(item.pkg.Id, item.artifact)">
+                    {{ item.artifact.TechID }}@{{ item.artifact.Version }}
+                    <ui5-tag design="Information" style="margin-left: 4px; font-size: 0.7rem;">{{ item.pkg.Name }}</ui5-tag>
+                  </ui5-segmented-button-item>
+                  <ui5-segmented-button-item icon="italic-text" @click="openArtifactDetails(item.artifact)" tooltip="Show Details" />
+                </ui5-segmented-button>
+              </div>
+              <ui5-illustrated-message
+                v-else-if="globalArtifactSearch && !globalArtifactResults.length && !packagesLoading"
+                name="NoData" design="Dot"
+                title-text="No artifacts found"
+                :subtitle-text="`No artifacts match '${globalArtifactSearch}'`"
+                style="height: 80px;" />
+            </div>
+
             <div>
               <!-- Loading Skeleton -->
               <ui5-busy-indicator v-if="packagesLoading" active :delay="0"
@@ -268,23 +314,11 @@
                 </div>
               </ui5-panel>
             </div>
-            <!-- selected Artifacts list -->
+              <!-- Selected Artifacts list -->
             <div v-if="selArtifactOps.length || deleteOps.length" style="margin-top:18px; display: flex; flex-direction: column; gap:10px">
               <ui5-title size="H6">
                 Selected Artifacts ({{ selArtifactOps.length }})
               </ui5-title>
-              <!-- Missing TR warning for saved ops with empty TR (e.g. auto-created from Version Compare) -->
-              <div v-if="missingTrOps.length > 0" style="display: flex; align-items: center; gap: 8px;">
-                <ui5-message-strip design="Critical" :hide-close-button="true" style="width: fit-content;">
-                  {{ missingTrOps.length }} artifact(s) missing Transport Request numbers. Generate TRs before requesting approval.
-                </ui5-message-strip>
-                <ui5-button
-                  @click="batchGenTrs"
-                  :loading="generatingTrsLoading"
-                  design="Transparent">
-                    Generate TRs for All Missing
-                </ui5-button>
-              </div>
               <div style="display: flex; flex-direction: column; gap:10px">
                 <!-- old(source) artifacts + draft source artifacts -->
                 <div style="display: flex; flex-direction: row; gap: 8px; flex-wrap: wrap;">
@@ -300,14 +334,6 @@
                   </ui5-title>
                   <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
                     <ui5-message-strip design="Critical" :hide-close-button="true" style="width: fit-content;">TRs required before requesting approval</ui5-message-strip>
-                    <ui5-button
-                      @click="batchGenTrs"
-                      :loading="generatingTrsLoading"
-                      :disabled="missingTrOps.length === 0"
-                      :tooltip="missingTrOps.length === 0 ? 'Save the delivery request first, then generate TRs' : ''"
-                      design="Transparent">
-                        Generate TRs
-                    </ui5-button>
                   </div>
                   <div style="display: flex; flex-direction: row; gap: 8px; flex-wrap: wrap;">
                     <ArtifactOpTag v-for="(op, i) in addOps" :key="`add-${op.ArtifactTechID}@${op.ArtifactVersion}`"
@@ -627,6 +653,7 @@ export default {
       sseUnsubscribers: [] as (() => void)[],
       sseRefreshTimer: null as ReturnType<typeof setTimeout> | null,
       activeConditionFilter: 'All' as 'All' | ConditionType,
+      globalArtifactSearch: '',
     }
   },
   methods: {
@@ -706,7 +733,7 @@ export default {
         } as Package))
         casData.forEach(cp => {
           this.packageArtifacts[cp.id] = cp.artifacts.map(a => ({
-            TechID: a.techID, Version: a.version, PackageID: cp.id,
+            TechID: a.name, Version: a.version, PackageID: cp.id,
             Name: a.name, Type: a.type,
             Description: '', CreatedBy: '', CreatedAt: '',
             ModifiedBy: '', ModifiedAt: '', TaskId: '', Status: '',
@@ -789,8 +816,16 @@ export default {
       const arr = this.selPkgArtifacts[pkgId]
 
       const foundIdx = arr.findIndex(x => x.TechID == a.TechID && x.Version == a.Version)
-      if (foundIdx >= 0) arr.splice(foundIdx, 1) // clear selection
-      else arr.push(a) // select
+      if (foundIdx >= 0) {
+        arr.splice(foundIdx, 1) // clear selection
+      } else {
+        arr.push(a) // select
+        // ensure the package is in selectedPackages (needed when toggling from global search)
+        const pkg = this.tenantPkgs.find(p => p.Id === pkgId)
+        if (pkg && !this.selectedPackages.find(p => p.Id === pkg.Id)) {
+          this.selectedPackages.push(pkg)
+        }
+      }
     },
     selectAllFiltered(pkgId: string) {
       const keys = this.filteredArtifacts(pkgId)
@@ -938,6 +973,8 @@ export default {
       if (delIndex >= 0) return '1' // to be deleted
       const addIndex = this.addOps.findIndex(addOp => addOp.ArtifactTechID === op.ArtifactTechID && addOp.ArtifactVersion === op.ArtifactVersion)
       if (addIndex >= 0) return '4' // to be added
+      if (op.RequestState === 'TR_GENERATING') return '2' // generating TR (information/blue)
+      if (op.RequestState === 'TR_FAILED') return '8'    // TR failed (negative/red)
       const draftIndex = this.draftSourceOps?.findIndex(draftOp => draftOp.op.ID === op.ID)
       if (draftIndex >= 0) return '3' // drafted
       if (op.RequestState === 'NOT_REQUESTED') return '5'
@@ -1026,9 +1063,14 @@ export default {
     selArtifactOps(): ArtifactTenantOperation[] {
       return [...this.sourceOps.filter(op => this.deleteOps.findIndex(d => d.ID === op.ID) < 0), ...this.addOps]
     },
-    // Saved source ops that have empty TransportRequestNumber (e.g. auto-created from Version Compare)
+    // Saved source ops that are missing TRs or have TR in a non-terminal in-progress/failed state
     missingTrOps(): ArtifactTenantOperation[] {
-      return this.sourceOps.filter(op => !op.TransportRequestNumber || !op.TransportRequestNumber.trim())
+      return this.sourceOps.filter(op =>
+        !op.TransportRequestNumber ||
+        !op.TransportRequestNumber.trim() ||
+        op.RequestState === 'TR_GENERATING' ||
+        op.RequestState === 'TR_FAILED'
+      )
     },
     tenantToOps(): { [key: number]: { [key: string]: ArtifactTenantOperation } } { // only used in delivert flow view
       return TenantOps(this.allOps) || {} // cpi tenant ID - map[trNumber]ArtifactTenantOperation
@@ -1093,6 +1135,24 @@ export default {
       const list = (this.deliveryRequest.Conditions || []) as Condition[]
       if (this.activeConditionFilter === 'All') return list
       return list.filter(c => c.State === this.activeConditionFilter)
+    },
+    globalArtifactResults(): { pkg: Package; artifact: Artifact }[] {
+      const kw = this.globalArtifactSearch.trim().toLowerCase()
+      if (!kw) return []
+      const results: { pkg: Package; artifact: Artifact }[] = []
+      for (const pkg of this.tenantPkgs) {
+        const arts = this.packageArtifacts[pkg.Id] || []
+        for (const a of arts) {
+          if (
+            a.TechID.toLowerCase().includes(kw) ||
+            a.Version.toLowerCase().includes(kw) ||
+            (a.Type && a.Type.toLowerCase().includes(kw))
+          ) {
+            results.push({ pkg, artifact: a })
+          }
+        }
+      }
+      return results
     },
   },
   async created() {

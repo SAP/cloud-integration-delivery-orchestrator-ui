@@ -3,7 +3,9 @@ export type RequestState =
   | 'NOT_REQUESTED'
   | 'REQUESTING'
   | 'READY'
-  | 'FAILED';
+  | 'FAILED'
+  | 'TR_GENERATING'  // background TR generation in progress
+  | 'TR_FAILED';     // TR generation failed; manual retry available
 
 // Import Phase
 export type ImportState =

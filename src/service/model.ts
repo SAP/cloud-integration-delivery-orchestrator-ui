@@ -19,6 +19,7 @@ export interface ArtifactTenantOperation {
   Tenant: CpiTenant
 
   TransportRequestNumber: string
+  TrError?: string  // non-empty when RequestState = TR_FAILED
 
   // Lifecycle states (backend enum/string values: RequestState / ImportState / DeployState)
   RequestState: RequestState
@@ -470,7 +471,6 @@ export interface CreateDRFromMismatchResponse {
 // --- CAS (Content Archive Service) ---
 
 export interface CasArtifact {
-  techID: string
   guid: string
   name: string
   type: string

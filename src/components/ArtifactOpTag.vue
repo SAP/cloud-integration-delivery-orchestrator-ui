@@ -1,6 +1,6 @@
 <template>
-    <ui5-tag 
-        :id="`sel-${i}-${artOp.ArtifactTechID}@${artOp.ArtifactVersion}`" 
+    <ui5-tag
+        :id="`sel-${i}-${artOp.ArtifactTechID}@${artOp.ArtifactVersion}`"
         :key="`sel-${i}-${artOp.ArtifactTechID}@${artOp.ArtifactVersion}`"
         design="Set2"
         :color-scheme="stageType"
@@ -9,7 +9,15 @@
 
         {{ artOp.ArtifactTechID }}@{{ artOp.ArtifactVersion }}
         -
-        TR: <template v-if="artOp.TransportRequestNumber">{{ artOp.TransportRequestNumber }}</template><span v-else style="color: var(--sapWarningColor); font-weight: bold;">Required</span>
+        <template v-if="artOp.RequestState === 'TR_GENERATING'">
+            <span style="color: var(--sapInformationColor); font-style: italic;">Generating TR…</span>
+        </template>
+        <template v-else-if="artOp.RequestState === 'TR_FAILED'">
+            <span style="color: var(--sapNegativeColor); font-weight: bold;">TR Failed</span>
+        </template>
+        <template v-else>
+            TR: <template v-if="artOp.TransportRequestNumber">{{ artOp.TransportRequestNumber }}</template><span v-else style="color: var(--sapWarningColor); font-weight: bold;">Required</span>
+        </template>
         <span v-if="artOp.SkipDeploy" style="margin-left: 4px; color: var(--sapNeutralColor); font-style: italic;" title="Deploy skipped — this artifact only requires import">(Skip Deploy)</span>
     </ui5-tag>
 </template>
