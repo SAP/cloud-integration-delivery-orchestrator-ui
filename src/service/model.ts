@@ -35,6 +35,11 @@ export interface ArtifactTenantOperation {
 
   // Raw condition/action bytes (backend []byte). Treat as base64 or JSON string.
   Conditions: string
+
+  // CAS cache fields — passed at InsertOps time so backend can skip CAS lookup during TR generation
+  CasArtifactGUID?: string
+  CasPackageResourceID?: string
+  CasArtifactExportable?: boolean
 }
 
 export interface DeliveryRequest {
@@ -242,6 +247,8 @@ export interface Artifact {
   TechID: string
   Version: string
   PackageID: string
+  PackageName: string
+  PackageVersion: string
   Name: string
   Type: string
   Description: string
@@ -251,6 +258,10 @@ export interface Artifact {
   ModifiedAt: string
   TaskId: string
   Status: string
+  // CAS cache fields — populated when artifact originates from CAS content resources
+  CasArtifactGUID?: string
+  CasPackageResourceID?: string
+  CasArtifactExportable?: boolean
 }
 
 export interface RuntimeArtifact {
@@ -480,6 +491,7 @@ export interface CasArtifact {
 
 export interface CasPackage {
   id: string
+  resourceID: string
   name: string
   version: string
   artifacts: CasArtifact[]

@@ -734,9 +734,13 @@ export default {
         casData.forEach(cp => {
           this.packageArtifacts[cp.id] = cp.artifacts.map(a => ({
             TechID: a.name, Version: a.version, PackageID: cp.id,
+            PackageName: cp.name, PackageVersion: cp.version,
             Name: a.name, Type: a.type,
             Description: '', CreatedBy: '', CreatedAt: '',
             ModifiedBy: '', ModifiedAt: '', TaskId: '', Status: '',
+            CasArtifactGUID: a.guid,
+            CasPackageResourceID: cp.resourceID,
+            CasArtifactExportable: a.exportable,
           } as Artifact))
         })
       } finally {
@@ -1040,6 +1044,9 @@ export default {
               ImportState: 'NOT_STARTED',
               DeployState: 'NOT_STARTED',
               SkipDeploy: false,
+              CasArtifactGUID: a.CasArtifactGUID,
+              CasPackageResourceID: a.CasPackageResourceID,
+              CasArtifactExportable: a.CasArtifactExportable,
             } as ArtifactTenantOperation
           })
       },
