@@ -74,7 +74,7 @@ const nodes = computed<Node[]>(() => {
       height: 400
     })
   })
-  const sourceNodeID = props.deliveryRequest.SourceTenant.TransportNodeID
+  const sourceNodeID = props.deliveryRequest.SourceTenant.TmsSourceNodeID
   const sourceTenantID = props.deliveryRequest.SourceTenant.ID
   const sourceNode = {
     id: String(sourceNodeID),
@@ -113,7 +113,7 @@ const graph = computed(() => {
 
 const nodeToTenant = computed<{ [key: number]: CpiTenant }>(() => {
   const cache: { [key: number]: CpiTenant } = {}
-  props.cpiTenants.forEach((opt) => (cache[opt.TransportNodeID] = opt))
+  props.cpiTenants.forEach((opt) => (cache[opt.TmsSourceNodeID] = opt))
   return cache
 })
 

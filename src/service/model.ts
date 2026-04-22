@@ -74,9 +74,6 @@ export type BootstrapFailureType = 'waiting_user_action' | 'permission_blocked' 
 export interface CpiTenant {
   ID: number
   Name: string
-  TransportNodeID: number
-  TransportNodeName: string
-  TransportNodeDescription: string
   Group: string
 
   // RFC-013: CF identity fields (required for bootstrap)
@@ -97,6 +94,7 @@ export interface CpiTenant {
   TransportManagementDestStatus: PrerequisiteStatus
 
   // RFC-013: TMS Node registration
+  TmsSourceNodeID: number
   TmsSourceNodeName: string
   TmsNodeRegistrationStatus: PrerequisiteStatus
 

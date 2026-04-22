@@ -70,10 +70,8 @@ export const cpiTenantColums: Column[] = [
     key: 'TmsNode',
     resizable: true,
     render(row: CpiTenant) {
-      return h(
-        'div',
-        `${row.TransportNodeName}#${row.TransportNodeID}`
-      )
+      if (!row.TmsSourceNodeName) return h('div', '—')
+      return h('div', `${row.TmsSourceNodeName} #${row.TmsSourceNodeID}`)
     }
   },
   {

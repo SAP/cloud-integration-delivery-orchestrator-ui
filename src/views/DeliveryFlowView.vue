@@ -35,7 +35,7 @@ const props = defineProps<{
 // transport node ID to cpi tenant
 const nodeToTenant = computed<{ [key: number]: CpiTenant }>(() => {
     const cache: { [key: number]: CpiTenant } = {}
-    props.cpiTenants.forEach(opt => { cache[opt.TransportNodeID] = opt })
+    props.cpiTenants.forEach(opt => { cache[opt.TmsSourceNodeID] = opt })
     return cache
 })
 
@@ -63,7 +63,7 @@ const toGroupNode = computed<{ [key: number]: Node }>(() => {
     const groupNodeMap: { [key: number]: Node } = {}
     Object.entries(tenantGroups).forEach(([groupLabel, tenants]) => {
         const isSource = tenants.some(t => props.deliveryRequest?.SourceTenant && t.ID === props.deliveryRequest.SourceTenant.ID)
-        const isTail = tenants.map(t => !childNodes.value[t.TransportNodeID] || childNodes.value[t.TransportNodeID].length === 0).every(v => v)
+        const isTail = tenants.map(t => !childNodes.value[t.TmsSourceNodeID] || childNodes.value[t.TmsSourceNodeID].length === 0).every(v => v)
         const groupNode: Node = {
             id: `n-group-${groupLabel}`,
             data: {
@@ -79,7 +79,7 @@ const toGroupNode = computed<{ [key: number]: Node }>(() => {
             width: 300,
             height: 200,
         }
-        tenants.forEach(t => { groupNodeMap[t.TransportNodeID] = groupNode })
+        tenants.forEach(t => { groupNodeMap[t.TmsSourceNodeID] = groupNode })
     })
     return groupNodeMap
 })

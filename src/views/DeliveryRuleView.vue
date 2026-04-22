@@ -236,12 +236,12 @@ export default defineComponent({
                 }))
             }
             const includeRoutes = this.transportRoutes.filter(
-                route => include.some(t => t.TransportNodeID === route.sourceNodeId)
+                route => include.some(t => t.TmsSourceNodeID === route.sourceNodeId)
             )
             return this.cpiTenants.map(t => ({
                 label: t.Name,
-                value: t, 
-                disabled: !includeRoutes.some(route => route.targetNodeId === t.TransportNodeID) 
+                value: t,
+                disabled: !includeRoutes.some(route => route.targetNodeId === t.TmsSourceNodeID)
             }))
         }
     },
