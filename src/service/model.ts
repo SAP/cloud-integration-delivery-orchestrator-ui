@@ -9,11 +9,18 @@ export interface ArtifactTenantOperation {
 
   DeliveryRequestID: number
 
-  ArtifactID: number
-  Artifact: Artifact
+  // Artifact identity fields — flattened (RFC-015). ArtifactID/Artifact kept for
+  // backward-compat read of existing responses; new ops must send flat fields.
+  ArtifactID?: number
+  Artifact?: Artifact
 
   ArtifactTechID: string
   ArtifactVersion: string
+  ArtifactName: string
+  ArtifactType: string
+  PackageID: string
+  PackageName: string
+  PackageVersion: string
 
   TenantID: number
   Tenant: CpiTenant
@@ -526,4 +533,24 @@ export interface ConnectivityStatus {
 export interface ConnectivityReport {
   checkedAt: string
   results: ConnectivityStatus[]
+}
+
+export interface BackfillOpDetail {
+  opID: number
+  tenantID: number
+  name: string
+  version: string
+  oldTechID: string
+  newTechID?: string
+  status: 'fixed' | 'skipped' | 'failed'
+  error?: string
+}
+
+export interface BackfillTechIDResult {
+  total: number
+  fixed: number
+  skipped: number
+  failed: number
+  dryRun: boolean
+  details: BackfillOpDetail[]
 }

@@ -749,13 +749,13 @@ export default {
 
       await Promise.all( // restore selections for already-saved ops
         this.sourceOps.map(op => {
-          const packageId = op.Artifact.PackageID
+          const packageId = op.PackageID
           if (!this.selPkgArtifacts[packageId]) this.selPkgArtifacts[packageId] = []
           const findIdx = this.packageArtifacts[packageId]?.findIndex(a => a.TechID === op.ArtifactTechID && a.Version === op.ArtifactVersion)
           if (findIdx < 0) {
             // TODO: handle artifact not found in package, may be deleted or invalid version
           }
-          this.selPkgArtifacts[packageId].push(op.Artifact)
+          this.selPkgArtifacts[packageId].push({ TechID: op.ArtifactTechID, Version: op.ArtifactVersion, Name: op.ArtifactName, Type: op.ArtifactType, PackageID: op.PackageID, PackageName: op.PackageName, PackageVersion: op.PackageVersion } as Artifact)
           const pkg = this.tenantPkgs.find(p => p.Id === packageId)
           if (pkg && !this.selectedPackages.find(p => p.Id === pkg.Id)) this.selectedPackages.push(pkg)
         })
@@ -1012,7 +1012,7 @@ export default {
     selPkgArtifacts: {
       handler(newVal: { [key: string]: Artifact[] }) {
         const newArtis = Object.values(newVal || {}).flat()
-        const oldArtis = this.sourceOps.map(op => op.Artifact)
+        const oldArtis = this.sourceOps.map(op => ({ TechID: op.ArtifactTechID, Version: op.ArtifactVersion } as Artifact))
 
         const added = newArtis.filter(a => !oldArtis.find(o => o.TechID === a.TechID && o.Version === a.Version))
         const removed = oldArtis.filter(a => !newArtis.find(n => n.TechID === a.TechID && n.Version === a.Version))
@@ -1037,7 +1037,11 @@ export default {
               DeliveryRequestID: this.deliveryRequest.ID,
               ArtifactTechID: a.TechID,
               ArtifactVersion: a.Version,
-              Artifact: a,
+              ArtifactName: a.Name,
+              ArtifactType: a.Type,
+              PackageID: a.PackageID,
+              PackageName: a.PackageName,
+              PackageVersion: a.PackageVersion,
               TenantID: this.deliveryRequest.SourceTenant.ID,
               Tenant: this.deliveryRequest.SourceTenant,
               RequestState: "NOT_REQUESTED",

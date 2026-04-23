@@ -36,7 +36,20 @@ const emit = defineEmits<{
 }>()
 
 function openArtifactDetails(op: ArtifactTenantOperation) {
-    emit('open-artifact-details', op.Artifact, op)
+    const artifact: Artifact = {
+        TechID: op.ArtifactTechID,
+        Version: op.ArtifactVersion,
+        Name: op.ArtifactName,
+        Type: op.ArtifactType,
+        PackageID: op.PackageID,
+        PackageName: op.PackageName,
+        PackageVersion: op.PackageVersion,
+        Description: '', CreatedBy: '', CreatedAt: '', ModifiedBy: '', ModifiedAt: '', TaskId: '', Status: '',
+        CasArtifactGUID: op.CasArtifactGUID,
+        CasPackageResourceID: op.CasPackageResourceID,
+        CasArtifactExportable: op.CasArtifactExportable,
+    }
+    emit('open-artifact-details', artifact, op)
 }
 
 </script>

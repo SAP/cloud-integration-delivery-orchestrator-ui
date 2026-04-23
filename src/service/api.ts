@@ -1,6 +1,6 @@
 import axios from 'axios'
 import http from './http'
-import type { ApiEndpoint, Artifact, ArtifactTenantOperation, AppCount, BootstrapJob, BootstrapPreview, CasPackage, CentralTmsContext, ConnectivityReport, CpiTenant, CreateDRFromMismatchRequest, CreateDRFromMismatchResponse, DeliverOpRequest, DeliveryRequest, DeliveryRule, GenerateTRResponse, IntegrationConfig, NodeTransportRequest, Package, PreviewDRResponse, RuntimeArtifact, TmsNodeConfirmResponse, TmsNodeStatus, TmsRoutesResponse, TransportNode, TransportRoute, TriggerResult, UserInfo, VersionCompareIncludedPackage, VersionCompareResponse, VersionCompareSummaryItem } from './model'
+import type { ApiEndpoint, Artifact, ArtifactTenantOperation, AppCount, BackfillTechIDResult, BootstrapJob, BootstrapPreview, CasPackage, CentralTmsContext, ConnectivityReport, CpiTenant, CreateDRFromMismatchRequest, CreateDRFromMismatchResponse, DeliverOpRequest, DeliveryRequest, DeliveryRule, GenerateTRResponse, IntegrationConfig, NodeTransportRequest, Package, PreviewDRResponse, RuntimeArtifact, TmsNodeConfirmResponse, TmsNodeStatus, TmsRoutesResponse, TransportNode, TransportRoute, TriggerResult, UserInfo, VersionCompareIncludedPackage, VersionCompareResponse, VersionCompareSummaryItem } from './model'
 import type { AggregateStatus, DeployState, ImportState, RequestState } from './statuses'
 
 export const GetDrCounts = () => {
@@ -196,7 +196,12 @@ export const InsertOps = (drID: number, ops: ArtifactTenantOperation[]): Promise
 }
 export const UpdateOps = (drID: number, ops: ArtifactTenantOperation[]): Promise<ArtifactTenantOperation[]> => {
   if (ops.length === 0) return Promise.resolve([])
-  return http.put(`/api/v1/deliveryRequest/updateOps`, {ops: ops, deliveryRequestID: drID})
+  const items = ops.map(op => ({
+    ID: op.ID,
+    TransportRequestNumber: op.TransportRequestNumber,
+    SkipDeploy: op.SkipDeploy,
+  }))
+  return http.put(`/api/v1/deliveryRequest/updateOps`, {ops: items, deliveryRequestID: drID})
 }
 export const SyncStatus = (drID: number) => {
   return http.post(`/api/v1/deliveryRequest/syncState/${drID}`)
@@ -211,7 +216,11 @@ export const UaaUserInfo = (userId: string) => {
 }
 
 export const CheckTrExistence = (op: ArtifactTenantOperation, deliveryRequestID: number) => {
-  return http.post(`/api/v1/deliveryRequest/checkTr`, {op: op, deliveryRequestID: deliveryRequestID}) as Promise<{[key: string]: boolean}>
+  return http.post(`/api/v1/deliveryRequest/checkTr`, {
+    opID: op.ID,
+    transportRequestNumber: op.TransportRequestNumber,
+    deliveryRequestID: deliveryRequestID,
+  }) as Promise<{[key: string]: boolean}>
 }
 // approve delivery request
 export const RequestApprove = (drID: number, approvers: string[], comment: string|'') => {
@@ -352,6 +361,15 @@ export const UpdateIntegration = (type: string, payload: { destinationName: stri
 
 export const CheckConnectivity = () => {
   return http.get('/api/v1/system/connectivity') as Promise<ConnectivityReport>
+}
+
+export const BackfillTechIDs = (dryRun = false, tenant?: number) => {
+  return http.post('/api/v1/system/backfill-tech-id', null, {
+    params: {
+      ...(dryRun && { dryRun: 'true' }),
+      ...(tenant ? { tenant } : {}),
+    }
+  }) as Promise<BackfillTechIDResult>
 }
 
 // Cpi tenant operations mapping
