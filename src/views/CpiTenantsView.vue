@@ -21,6 +21,14 @@
                         <ui5-suggestion-item v-for="tag in tagOptions" :key="tag.value" :text="tag.value" />
                     </ui5-input>
 
+                    <template v-if="selectedCpiTenant.PirApiUrl">
+                        <div class="section-divider" />
+                        <ui5-text class="field-label">PIR API URL</ui5-text>
+                        <ui5-link :href="selectedCpiTenant.PirApiUrl" target="_blank" style="font-size: 0.85rem; word-break: break-all;">
+                            {{ selectedCpiTenant.PirApiUrl }}
+                        </ui5-link>
+                    </template>
+
                     <div style="padding-top: 1rem;">
                         <ui5-button design="Emphasized" @click="onSave" :disabled="saving">Save</ui5-button>
                     </div>
@@ -31,7 +39,7 @@
             <ui5-tab text="Bootstrap">
                 <div class="tab-content">
 
-                    <!-- Status row -->
+                    <!-- Lifecycle + BlockingReason -->
                     <div class="status-header">
                         <ui5-text style="font-weight: bold; font-size: 1rem;">Lifecycle</ui5-text>
                         <ui5-tag :design="lifecycleDesign" style="margin-left: 0.5rem;">
@@ -43,249 +51,397 @@
                         </ui5-text>
                     </div>
 
-                    <!-- Prerequisite grid -->
-                    <div class="prereq-grid" style="margin-bottom: 1rem;">
-                        <div v-for="p in prerequisiteStatuses" :key="p.key" class="prereq-item">
-                            <ui5-tag :design="prereqDesign(p.value)" style="font-size: 0.7rem; min-width: 64px;">
-                                {{ p.value || 'missing' }}
-                            </ui5-tag>
-                            <ui5-text style="font-size: 0.8rem; margin-left: 0.5rem;">{{ p.label }}</ui5-text>
-                        </div>
-                    </div>
+                    <!-- ── Prerequisite grid — 3 groups ── -->
+                    <div style="margin-bottom: 1rem;">
 
-                    <!-- Step indicator bar -->
-                    <div class="step-bar">
-                        <div v-for="(s, i) in [{label:'CF Connection'},{label:'Inspect'},{label:'Apply'}]" :key="i"
-                            style="display: flex; align-items: center;">
-                            <div class="step-pill"
-                                :class="bootstrapStep === i+1 ? 'step-active' : bootstrapStep > i+1 ? 'step-done' : 'step-pending'"
-                                @click="bootstrapStep = (i+1) as 1|2|3"
-                                style="cursor: pointer;">
-                                <span class="step-num">{{ i + 1 }}</span>
-                                <span>{{ s.label }}</span>
-                            </div>
-                            <div v-if="i < 2" class="step-connector" />
-                        </div>
-                    </div>
-
-                    <!-- Step 1: CF Connection -->
-                    <template v-if="bootstrapStep === 1">
-                        <ui5-text style="font-size: 0.85rem; color: var(--sapContent_LabelColor); display: block; margin: 0.75rem 0;">
-                            Save CF connection details and verify access using a short-lived bearer token. The token is never stored.
-                        </ui5-text>
-
-                        <template v-if="!selectedCpiTenant.ID">
-                            <ui5-text class="field-label">Name *</ui5-text>
-                            <ui5-input :value="selectedCpiTenant.Name || ''"
-                                @input="selectedCpiTenant.Name = $event.target.value"
-                                placeholder="cpi-mmt-dev" style="width: 100%;" />
-
-                            <ui5-text class="field-label">Tag</ui5-text>
-                            <ui5-input :value="selectedCpiTenant.Group || ''" @input="onSelectTag"
-                                placeholder="e.g. Dev, Test, Production" showSuggestions style="width: 100%;">
-                                <ui5-suggestion-item v-for="tag in tagOptions" :key="tag.value" :text="tag.value" />
-                            </ui5-input>
-
-                            <div class="section-divider" />
-                        </template>
-
-                        <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
-                            <ui5-text class="field-label" style="margin-bottom: 0;">CF API Endpoint *</ui5-text>
-                            <ui5-button v-if="cfIdentity.cfApiEndpoint" design="Transparent" icon="locked" title="Open CF passcode login page"
-                                @click="openCfLoginPage" style="height: 1.5rem;">
-                                Login
-                            </ui5-button>
-                        </div>
-                        <ui5-input :value="cfIdentity.cfApiEndpoint"
-                            @input="cfIdentity.cfApiEndpoint = $event.target.value"
-                            placeholder="https://api.cf.eu10.hana.ondemand.com" style="width: 100%;" />
-
-                        <!-- CF Passcode — exchanged for Bearer token on Load Orgs -->
-                        <ui5-text class="field-label">CF Passcode *</ui5-text>
-                        <ui5-input type="Password" :value="cfToken"
-                            @input="onCfTokenInput($event.target.value)"
-                            placeholder="One-time passcode from the Login page" style="width: 100%;" />
-
-                        <div style="margin: 0.5rem 0 0.75rem;">
-                            <ui5-button design="Default" icon="refresh"
-                                :disabled="!cfIdentity.cfApiEndpoint || !cfToken || loadOrgsLoading"
-                                @click="loadCfOrgs">
-                                Load Orgs
-                            </ui5-button>
-                            <ui5-busy-indicator v-if="loadOrgsLoading" size="Small" active style="margin-left: 0.5rem;" />
-                        </div>
-
-                        <!-- CF Org: select or manual fallback -->
-                        <ui5-text class="field-label">CF Org *</ui5-text>
-                        <ui5-select v-if="cfOrgMode === 'select' && cfOrgOptions.length"
-                            @change="onOrgSelect($event.detail.selectedOption.dataset.guid)"
-                            style="width: 100%;">
-                            <ui5-option value="" selected>— Select org —</ui5-option>
-                            <ui5-option v-for="o in cfOrgOptions" :key="o.guid"
-                                :data-guid="o.guid"
-                                :selected="cfIdentity.cfOrg === o.guid">
-                                {{ o.name }}
-                            </ui5-option>
-                        </ui5-select>
-                        <ui5-input v-else :value="cfIdentity.cfOrg"
-                            @input="cfIdentity.cfOrg = $event.target.value"
-                            placeholder="CF organisation GUID" style="width: 100%;" />
-
-                        <!-- CF Space: select (after org chosen) or manual fallback -->
-                        <ui5-text class="field-label">CF Space *</ui5-text>
-                        <ui5-busy-indicator v-if="loadSpacesLoading" size="Small" active />
-                        <template v-else>
-                            <ui5-select v-if="cfSpaceMode === 'select' && cfSpaceOptions.length"
-                                @change="cfIdentity.cfSpace = $event.detail.selectedOption.dataset.guid"
-                                style="width: 100%;">
-                                <ui5-option value="" selected>— Select space —</ui5-option>
-                                <ui5-option v-for="s in cfSpaceOptions" :key="s.guid"
-                                    :data-guid="s.guid"
-                                    :selected="cfIdentity.cfSpace === s.guid">
-                                    {{ s.name }}
-                                </ui5-option>
-                            </ui5-select>
-                            <ui5-input v-else :value="cfIdentity.cfSpace"
-                                @input="cfIdentity.cfSpace = $event.target.value"
-                                placeholder="CF space GUID for service instances" style="width: 100%;" />
-                        </template>
-
-                        <div style="display: flex; gap: 0.5rem; margin-top: 1rem; align-items: center;">
-                            <ui5-button design="Emphasized"
-                                :disabled="(!selectedCpiTenant.ID && !selectedCpiTenant.Name) || !cfIdentity.cfApiEndpoint || !cfIdentity.cfOrg || !cfIdentity.cfSpace || !cfToken || step1Loading"
-                                @click="onSaveCfIdentity">
-                                Save &amp; Verify
-                            </ui5-button>
-                            <ui5-busy-indicator v-if="step1Loading" size="Small" active />
-                        </div>
-                    </template>
-
-                    <!-- Step 2: Inspect -->
-                    <template v-else-if="bootstrapStep === 2">
-                        <ui5-text style="font-size: 0.85rem; color: var(--sapContent_LabelColor); display: block; margin: 0.75rem 0;">
-                            Use the same CF bearer token from Step 1 to inspect prerequisites. Steps 2 and 3 must complete in the same token session.
-                        </ui5-text>
-
-                        <ui5-message-strip v-if="selectedCpiTenant.LifecycleState === 'draft'"
-                            design="Warning" hide-close-button style="margin-bottom: 0.75rem;">
-                            Complete Step 1 first.
-                        </ui5-message-strip>
-
-                        <template v-else>
-                            <ui5-text class="field-label">CF Bearer Token *</ui5-text>
-                            <ui5-input type="Password" :value="cfToken"
-                                @input="cfToken = $event.target.value"
-                                placeholder="Same token as Step 1" style="width: 100%;" />
-
-                            <div style="display: flex; gap: 0.5rem; margin-top: 1rem; align-items: center;">
-                                <ui5-button design="Default" :disabled="!cfToken || bootstrapLoading" @click="onPreview">
-                                    Run Inspect
-                                </ui5-button>
-                                <ui5-busy-indicator v-if="bootstrapLoading && !bootstrapPreview" size="Small" active />
-                            </div>
-
-                            <template v-if="bootstrapPreview">
-                                <div class="section-divider" />
-                                <template v-if="bootstrapPreview.inspection.missingItems?.length">
-                                    <ui5-text style="color: var(--sapInformativeTextColor); font-size: 0.85rem; display: block;">Would create:</ui5-text>
-                                    <div v-for="item in bootstrapPreview.inspection.missingItems" :key="item" class="list-item">
-                                        <ui5-text style="font-size: 0.8rem;">{{ item }}</ui5-text>
-                                    </div>
-                                </template>
-                                <template v-if="bootstrapPreview.inspection.permissionIssues?.length">
-                                    <ui5-text style="color: var(--sapNegativeTextColor); font-size: 0.85rem; display: block; margin-top: 0.5rem;">Permission issues:</ui5-text>
-                                    <div v-for="item in bootstrapPreview.inspection.permissionIssues" :key="item" class="list-item">
-                                        <ui5-text style="font-size: 0.8rem;">{{ item }}</ui5-text>
-                                    </div>
-                                </template>
-                                <template v-if="bootstrapPreview.inspection.waitingUserAction?.length">
-                                    <ui5-text style="color: var(--sapCriticalTextColor); font-size: 0.85rem; display: block; margin-top: 0.5rem;">Waiting for user action:</ui5-text>
-                                    <div v-for="item in bootstrapPreview.inspection.waitingUserAction" :key="item" class="list-item">
-                                        <ui5-text style="font-size: 0.8rem;">{{ item }}</ui5-text>
-                                    </div>
-                                </template>
-                                <ui5-text v-if="!bootstrapPreview.inspection.missingItems?.length
-                                    && !bootstrapPreview.inspection.permissionIssues?.length
-                                    && !bootstrapPreview.inspection.waitingUserAction?.length"
-                                    style="color: var(--sapPositiveTextColor); font-size: 0.85rem; display: block;">
-                                    All prerequisites present — ready to apply.
+                        <!-- Group 1: Provider-side Destinations (in cpi-delivery subaccount) -->
+                        <div class="prereq-group-header">Provider Destinations <span class="prereq-group-note">(cpi-delivery subaccount)</span></div>
+                        <div class="prereq-grid" style="margin-bottom: 0.5rem;">
+                            <div class="prereq-item">
+                                <ui5-tag :design="selectedCpiTenant.PirApiDestinationName ? 'Positive' : 'Neutral'" style="font-size: 0.7rem; min-width: 64px;">
+                                    {{ selectedCpiTenant.PirApiDestinationName ? 'ready' : 'missing' }}
+                                </ui5-tag>
+                                <ui5-text style="font-size: 0.8rem; margin-left: 0.5rem;">
+                                    {{ selectedCpiTenant.PirApiDestinationName || 'CPIDELIVERY_PIR_{id}' }}
                                 </ui5-text>
-                            </template>
-                        </template>
-                    </template>
-
-                    <!-- Step 3: Apply -->
-                    <template v-else>
-                        <ui5-text style="font-size: 0.85rem; color: var(--sapContent_LabelColor); display: block; margin: 0.75rem 0;">
-                            Apply creates all missing CF-side prerequisites. Must use the same token session as Step 2.
-                        </ui5-text>
-
-                        <ui5-message-strip v-if="selectedCpiTenant.LifecycleState === 'draft'"
-                            design="Warning" hide-close-button style="margin-bottom: 0.75rem;">
-                            Complete Step 1 first.
-                        </ui5-message-strip>
-
-                        <template v-else>
-                            <ui5-text class="field-label">CF Bearer Token *</ui5-text>
-                            <ui5-input type="Password" :value="cfToken"
-                                @input="cfToken = $event.target.value"
-                                placeholder="Same token as Step 2" style="width: 100%;" />
-
-                            <div style="display: flex; gap: 0.5rem; margin-top: 1rem; align-items: center; flex-wrap: wrap;">
-                                <ui5-button design="Emphasized"
-                                    v-if="selectedCpiTenant.LifecycleState !== 'ready' && selectedCpiTenant.LifecycleState !== 'readying'"
-                                    :disabled="!cfToken || bootstrapLoading" @click="onApply">
-                                    Apply
-                                </ui5-button>
-                                <ui5-button design="Default"
-                                    v-if="bootstrapJob?.State === 'failed' || bootstrapJob?.State === 'waiting_user_action' || bootstrapJob?.State === 'partially_applied'"
-                                    :disabled="!cfToken || bootstrapLoading" @click="onRetry">
-                                    Retry
-                                </ui5-button>
-                                <ui5-button design="Negative"
-                                    v-if="selectedCpiTenant.LifecycleState === 'readying'"
-                                    :disabled="bootstrapLoading" @click="onReset">
-                                    Reset
-                                </ui5-button>
-                                <ui5-busy-indicator v-if="bootstrapLoading" size="Small" active />
                             </div>
+                            <div class="prereq-item">
+                                <ui5-tag :design="selectedCpiTenant.CasEngineDestinationName ? 'Positive' : 'Neutral'" style="font-size: 0.7rem; min-width: 64px;">
+                                    {{ selectedCpiTenant.CasEngineDestinationName ? 'ready' : 'missing' }}
+                                </ui5-tag>
+                                <ui5-text style="font-size: 0.8rem; margin-left: 0.5rem;">
+                                    {{ selectedCpiTenant.CasEngineDestinationName || 'CPIDELIVERY_CAS_{id}' }}
+                                </ui5-text>
+                            </div>
+                        </div>
 
-                            <template v-if="bootstrapJob">
-                                <div class="section-divider" />
-                                <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
-                                    <ui5-text style="font-weight: bold;">Last Job</ui5-text>
-                                    <ui5-tag :design="jobStateDesign">{{ bootstrapJob.State }}</ui5-tag>
-                                    <ui5-busy-indicator v-if="bootstrapJob.State === 'running'" size="Small" active />
+                        <!-- Group 2: Subscriber Service Instances -->
+                        <div class="prereq-group-header">Subscriber Service Instances <span class="prereq-group-note">(CPI tenant subaccount)</span></div>
+                        <div class="prereq-grid" style="margin-bottom: 0.5rem;">
+                            <div v-for="p in subscriberInstanceStatuses" :key="p.key" class="prereq-item">
+                                <ui5-tag :design="prereqDesign(p.value)" style="font-size: 0.7rem; min-width: 64px;">
+                                    {{ p.value || 'missing' }}
+                                </ui5-tag>
+                                <ui5-text style="font-size: 0.8rem; margin-left: 0.5rem;">{{ p.label }}</ui5-text>
+                            </div>
+                        </div>
+
+                        <!-- Group 3: Subscriber Destinations -->
+                        <div class="prereq-group-header">Subscriber Destinations <span class="prereq-group-note">(CPI tenant Destination Service)</span></div>
+                        <div class="prereq-grid">
+                            <div v-for="p in subscriberDestStatuses" :key="p.key" class="prereq-item">
+                                <ui5-tag :design="prereqDesign(p.value)" style="font-size: 0.7rem; min-width: 64px;">
+                                    {{ p.value || 'missing' }}
+                                </ui5-tag>
+                                <ui5-text style="font-size: 0.8rem; margin-left: 0.5rem;">{{ p.label }}</ui5-text>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="section-divider" />
+
+                    <!-- ── 4-step Wizard ── -->
+                    <ui5-wizard style="height: auto;">
+
+                        <!-- Step 1: CF Connection -->
+                        <ui5-wizard-step
+                            title-text="CF Connection"
+                            subtitle-text="Configure & Verify"
+                            icon="connected"
+                            :selected="wizardStep === 1"
+                            @click="wizardStep = 1">
+                            <div class="wizard-step-content">
+                                <ui5-text style="font-size: 0.85rem; color: var(--sapContent_LabelColor); display: block; margin-bottom: 0.75rem;">
+                                    Save CF connection details and verify access using a short-lived bearer token. The token is never stored.
+                                </ui5-text>
+
+                                <template v-if="!selectedCpiTenant.ID">
+                                    <ui5-text class="field-label">Name *</ui5-text>
+                                    <ui5-input :value="selectedCpiTenant.Name || ''"
+                                        @input="selectedCpiTenant.Name = $event.target.value"
+                                        placeholder="cpi-mmt-dev" style="width: 100%;" />
+
+                                    <ui5-text class="field-label">Tag</ui5-text>
+                                    <ui5-input :value="selectedCpiTenant.Group || ''" @input="onSelectTag"
+                                        placeholder="e.g. Dev, Test, Production" showSuggestions style="width: 100%;">
+                                        <ui5-suggestion-item v-for="tag in tagOptions" :key="tag.value" :text="tag.value" />
+                                    </ui5-input>
+
+                                    <div class="section-divider" />
+                                </template>
+
+                                <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+                                    <ui5-text class="field-label" style="margin-bottom: 0;">CF API Endpoint *</ui5-text>
+                                    <ui5-button v-if="cfIdentity.cfApiEndpoint" design="Transparent" icon="locked" title="Open CF passcode login page"
+                                        @click="openCfLoginPage" style="height: 1.5rem;">
+                                        Login
+                                    </ui5-button>
                                 </div>
-                                <div style="display: flex; flex-direction: column; gap: 0.25rem;">
-                                    <div>
-                                        <ui5-text style="font-size: 0.8rem; font-weight: bold;">Type: </ui5-text>
-                                        <ui5-text style="font-size: 0.8rem;">{{ bootstrapJob.JobType }}</ui5-text>
-                                    </div>
-                                    <div v-if="bootstrapJob.CurrentStep">
-                                        <ui5-text style="font-size: 0.8rem; font-weight: bold;">Step: </ui5-text>
-                                        <ui5-text style="font-size: 0.8rem;">{{ bootstrapJob.CurrentStep }}</ui5-text>
-                                    </div>
-                                    <div v-if="bootstrapJob.ErrorDetail">
-                                        <ui5-text style="font-size: 0.8rem; color: var(--sapNegativeTextColor);">
-                                            Error: {{ bootstrapJob.ErrorDetail }}
+                                <ui5-input :value="cfIdentity.cfApiEndpoint"
+                                    @input="cfIdentity.cfApiEndpoint = $event.target.value"
+                                    placeholder="https://api.cf.eu10.hana.ondemand.com" style="width: 100%;" />
+
+                                <ui5-text class="field-label">CF Passcode *</ui5-text>
+                                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                    <ui5-input type="Password" :value="cfToken"
+                                        @input="onCfTokenInput($event.target.value)"
+                                        placeholder="One-time passcode from the Login page" style="flex: 1;" />
+                                    <ui5-busy-indicator v-if="loadOrgsLoading" size="Small" active />
+                                </div>
+
+                                <ui5-text class="field-label">CF Org *</ui5-text>
+                                <ui5-select v-if="cfOrgMode === 'select' && cfOrgOptions.length"
+                                    @change="onOrgSelect($event.detail.selectedOption.dataset.guid)"
+                                    style="width: 100%;">
+                                    <ui5-option value="" selected>— Select org —</ui5-option>
+                                    <ui5-option v-for="o in cfOrgOptions" :key="o.guid"
+                                        :data-guid="o.guid"
+                                        :selected="cfIdentity.cfOrg === o.guid">
+                                        {{ o.name }}
+                                    </ui5-option>
+                                </ui5-select>
+                                <ui5-input v-else :value="cfIdentity.cfOrg"
+                                    @input="cfIdentity.cfOrg = $event.target.value"
+                                    placeholder="CF organisation GUID" style="width: 100%;" />
+
+                                <ui5-text class="field-label">CF Space *</ui5-text>
+                                <ui5-busy-indicator v-if="loadSpacesLoading" size="Small" active />
+                                <template v-else>
+                                    <ui5-select v-if="cfSpaceMode === 'select' && cfSpaceOptions.length"
+                                        @change="cfIdentity.cfSpace = $event.detail.selectedOption.dataset.guid"
+                                        style="width: 100%;">
+                                        <ui5-option value="" selected>— Select space —</ui5-option>
+                                        <ui5-option v-for="s in cfSpaceOptions" :key="s.guid"
+                                            :data-guid="s.guid"
+                                            :selected="cfIdentity.cfSpace === s.guid">
+                                            {{ s.name }}
+                                        </ui5-option>
+                                    </ui5-select>
+                                    <ui5-input v-else :value="cfIdentity.cfSpace"
+                                        @input="cfIdentity.cfSpace = $event.target.value"
+                                        placeholder="CF space GUID for service instances" style="width: 100%;" />
+                                </template>
+
+                                <div style="display: flex; gap: 0.5rem; margin-top: 1rem; align-items: center;">
+                                    <ui5-button design="Emphasized"
+                                        :disabled="(!selectedCpiTenant.ID && !selectedCpiTenant.Name) || !cfIdentity.cfApiEndpoint || !cfIdentity.cfOrg || !cfIdentity.cfSpace || !cfToken || step1Loading"
+                                        @click="onSaveCfIdentity">
+                                        Start Bootstrap
+                                    </ui5-button>
+                                    <ui5-busy-indicator v-if="step1Loading" size="Small" active />
+                                </div>
+                            </div>
+                        </ui5-wizard-step>
+
+                        <!-- Step 2: TMS Node Selection -->
+                        <ui5-wizard-step
+                            title-text="TMS Node"
+                            subtitle-text="Register Source Node"
+                            icon="org-chart"
+                            :selected="wizardStep === 2"
+                            :disabled="selectedCpiTenant.LifecycleState === 'draft' || !selectedCpiTenant.ID"
+                            @click="wizardStep = 2">
+                            <div class="wizard-step-content">
+                                <ui5-message-strip v-if="selectedCpiTenant.LifecycleState === 'draft'"
+                                    design="Warning" hide-close-button style="margin-bottom: 0.75rem;">
+                                    Complete Step 1 (CF Connection) first.
+                                </ui5-message-strip>
+
+                                <template v-else>
+                                    <ui5-text style="font-size: 0.85rem; color: var(--sapContent_LabelColor); display: block; margin-bottom: 0.75rem;">
+                                        Select and register a TMS source node. This is required before Apply — the node name is written into the
+                                        <strong>TransportManagementService</strong> destination as <code>sourceSystemId</code>.
+                                    </ui5-text>
+
+                                    <div class="status-header" style="margin-bottom: 0.5rem;">
+                                        <ui5-text style="font-size: 0.85rem; font-weight: bold;">Registration Status</ui5-text>
+                                        <ui5-tag :design="tmsStatusDesign" style="margin-left: 0.5rem; font-size: 0.7rem;">
+                                            {{ selectedCpiTenant.TmsNodeRegistrationStatus || 'missing' }}
+                                        </ui5-tag>
+                                        <ui5-text v-if="selectedCpiTenant.TmsSourceNodeName"
+                                            style="color: var(--sapNeutralTextColor); margin-left: 0.75rem; font-size: 0.85rem;">
+                                            Node: <strong>{{ selectedCpiTenant.TmsSourceNodeName }}</strong>
                                         </ui5-text>
                                     </div>
-                                    <div v-if="bootstrapJob.CredentialActions?.length">
-                                        <ui5-text style="font-size: 0.8rem; font-weight: bold;">Credential Actions: </ui5-text>
-                                        <div v-for="ca in bootstrapJob.CredentialActions" :key="ca.destinationName" class="list-item">
-                                            <ui5-text style="font-size: 0.75rem;">{{ ca.destinationName }} — {{ ca.actionType }}</ui5-text>
+
+                                    <!-- Node selection — shown when not yet registered (missing/failed) -->
+                                    <template v-if="!selectedCpiTenant.TmsNodeRegistrationStatus
+                                        || selectedCpiTenant.TmsNodeRegistrationStatus === 'missing'
+                                        || selectedCpiTenant.TmsNodeRegistrationStatus === 'failed'">
+                                        <ui5-text class="field-label">TMS Source Node *</ui5-text>
+                                        <ui5-select style="width: 100%;" :disabled="tmsLoading"
+                                            @change="selectedTmsNode = tmsNodes.find(n => n.id === Number($event.detail.selectedOption.value)) ?? null">
+                                            <ui5-option value="">— select a node —</ui5-option>
+                                            <ui5-option v-for="node in tmsNodes" :key="node.id" :value="String(node.id)">
+                                                {{ node.name }}{{ node.description ? ' — ' + node.description : '' }}
+                                            </ui5-option>
+                                        </ui5-select>
+                                        <div style="display: flex; gap: 0.5rem; margin-top: 0.75rem; align-items: center;">
+                                            <ui5-button design="Emphasized" :disabled="!selectedTmsNode || tmsLoading" @click="onRegisterTmsNode">
+                                                Verify &amp; Register
+                                            </ui5-button>
+                                            <ui5-busy-indicator v-if="tmsLoading" size="Small" active />
                                         </div>
+                                    </template>
+
+                                    <!-- Route confirmation — shown after registering -->
+                                    <template v-if="selectedCpiTenant.TmsNodeRegistrationStatus === 'registering'">
+                                        <div class="section-divider" />
+                                        <ui5-text style="font-size: 0.85rem; color: var(--sapContent_LabelColor);">
+                                            Node <strong>{{ selectedCpiTenant.TmsSourceNodeName }}</strong> registered.
+                                            Configure Routes in the TMS UI, then confirm below.
+                                        </ui5-text>
+                                        <div style="display: flex; gap: 0.5rem; margin-top: 0.75rem; flex-wrap: wrap; align-items: center;">
+                                            <ui5-button design="Default" :disabled="tmsLoading" @click="onRefreshRoutes">
+                                                I have configured Routes — Refresh
+                                            </ui5-button>
+                                            <ui5-busy-indicator v-if="tmsLoading" size="Small" active />
+                                        </div>
+                                        <template v-if="tmsRoutes.length > 0">
+                                            <div class="section-divider" />
+                                            <ui5-text style="font-weight: bold; margin-bottom: 0.5rem;">Routes ({{ tmsRoutes.length }})</ui5-text>
+                                            <div v-for="route in tmsRoutes" :key="route.id" class="route-item">
+                                                <ui5-text style="font-size: 0.85rem;">{{ route.name }} — Node {{ route.sourceNode.id }} → {{ route.targetNode.id }}</ui5-text>
+                                            </div>
+                                            <div style="margin-top: 0.75rem;">
+                                                <ui5-button design="Positive" :disabled="tmsLoading" @click="onConfirmRoutes">
+                                                    Confirm Routes — Mark Ready
+                                                </ui5-button>
+                                            </div>
+                                        </template>
+                                        <ui5-text v-else-if="!tmsLoading"
+                                            style="color: var(--sapNeutralTextColor); font-size: 0.85rem; margin-top: 0.75rem; display: block;">
+                                            No routes found yet. Configure routes in TMS UI, then click Refresh.
+                                        </ui5-text>
+                                    </template>
+
+                                    <!-- Ready state -->
+                                    <template v-if="selectedCpiTenant.TmsNodeRegistrationStatus === 'ready'">
+                                        <ui5-message-strip design="Positive" hide-close-button style="margin-top: 0.5rem;">
+                                            TMS Node registered and routes confirmed — proceed to Inspect.
+                                        </ui5-message-strip>
+                                        <div style="margin-top: 0.5rem; display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center;">
+                                            <ui5-button design="Transparent" :disabled="tmsLoading" @click="onRefreshRoutes">
+                                                Refresh Routes
+                                            </ui5-button>
+                                            <ui5-busy-indicator v-if="tmsLoading" size="Small" active />
+                                        </div>
+                                        <template v-if="tmsRoutes.length > 0">
+                                            <div class="section-divider" />
+                                            <ui5-text style="font-weight: bold; margin-bottom: 0.5rem;">Routes ({{ tmsRoutes.length }})</ui5-text>
+                                            <div v-for="route in tmsRoutes" :key="route.id" class="route-item">
+                                                <ui5-text style="font-size: 0.85rem;">{{ route.name }} — Node {{ route.sourceNode.id }} → {{ route.targetNode.id }}</ui5-text>
+                                            </div>
+                                        </template>
+                                    </template>
+                                </template>
+                            </div>
+                        </ui5-wizard-step>
+
+                        <!-- Step 3: Inspect -->
+                        <ui5-wizard-step
+                            title-text="Inspect"
+                            subtitle-text="Check Prerequisites"
+                            icon="search"
+                            :selected="wizardStep === 3"
+                            :disabled="selectedCpiTenant.TmsNodeRegistrationStatus !== 'ready'"
+                            @click="wizardStep = 3">
+                            <div class="wizard-step-content">
+                                <ui5-text style="font-size: 0.85rem; color: var(--sapContent_LabelColor); display: block; margin-bottom: 0.75rem;">
+                                    Use the same CF bearer token from Step 1 to inspect prerequisites. Steps 3 and 4 must complete in the same token session.
+                                </ui5-text>
+
+                                <ui5-message-strip v-if="selectedCpiTenant.TmsNodeRegistrationStatus !== 'ready'"
+                                    design="Warning" hide-close-button style="margin-bottom: 0.75rem;">
+                                    Complete Step 2 (TMS Node) first.
+                                </ui5-message-strip>
+
+                                <template v-else>
+                                    <ui5-text class="field-label">CF Bearer Token *</ui5-text>
+                                    <ui5-input type="Password" :value="cfToken"
+                                        @input="cfToken = $event.target.value"
+                                        placeholder="Same token as Step 1" style="width: 100%;" />
+
+                                    <div style="display: flex; gap: 0.5rem; margin-top: 1rem; align-items: center;">
+                                        <ui5-button design="Default" :disabled="!cfToken || bootstrapLoading" @click="onPreview">
+                                            Run Inspect
+                                        </ui5-button>
+                                        <ui5-busy-indicator v-if="bootstrapLoading && !bootstrapPreview" size="Small" active />
                                     </div>
-                                </div>
-                            </template>
-                        </template>
-                    </template>
+
+                                    <template v-if="bootstrapPreview">
+                                        <div class="section-divider" />
+                                        <template v-if="bootstrapPreview.inspection.missingItems?.length">
+                                            <ui5-text style="color: var(--sapInformativeTextColor); font-size: 0.85rem; display: block;">Would create:</ui5-text>
+                                            <div v-for="item in bootstrapPreview.inspection.missingItems" :key="item" class="list-item">
+                                                <ui5-text style="font-size: 0.8rem;">{{ item }}</ui5-text>
+                                            </div>
+                                        </template>
+                                        <template v-if="bootstrapPreview.inspection.permissionIssues?.length">
+                                            <ui5-text style="color: var(--sapNegativeTextColor); font-size: 0.85rem; display: block; margin-top: 0.5rem;">Permission issues:</ui5-text>
+                                            <div v-for="item in bootstrapPreview.inspection.permissionIssues" :key="item" class="list-item">
+                                                <ui5-text style="font-size: 0.8rem;">{{ item }}</ui5-text>
+                                            </div>
+                                        </template>
+                                        <template v-if="bootstrapPreview.inspection.waitingUserAction?.length">
+                                            <ui5-text style="color: var(--sapCriticalTextColor); font-size: 0.85rem; display: block; margin-top: 0.5rem;">Waiting for user action:</ui5-text>
+                                            <div v-for="item in bootstrapPreview.inspection.waitingUserAction" :key="item" class="list-item">
+                                                <ui5-text style="font-size: 0.8rem;">{{ item }}</ui5-text>
+                                            </div>
+                                        </template>
+                                        <ui5-text v-if="!bootstrapPreview.inspection.missingItems?.length
+                                            && !bootstrapPreview.inspection.permissionIssues?.length
+                                            && !bootstrapPreview.inspection.waitingUserAction?.length"
+                                            style="color: var(--sapPositiveTextColor); font-size: 0.85rem; display: block;">
+                                            All prerequisites present — ready to apply.
+                                        </ui5-text>
+                                    </template>
+                                </template>
+                            </div>
+                        </ui5-wizard-step>
+
+                        <!-- Step 4: Apply -->
+                        <ui5-wizard-step
+                            title-text="Apply"
+                            subtitle-text="Bootstrap"
+                            icon="play"
+                            :selected="wizardStep === 4"
+                            :disabled="selectedCpiTenant.TmsNodeRegistrationStatus !== 'ready' || selectedCpiTenant.LifecycleState === 'draft'"
+                            @click="wizardStep = 4">
+                            <div class="wizard-step-content">
+                                <ui5-text style="font-size: 0.85rem; color: var(--sapContent_LabelColor); display: block; margin-bottom: 0.75rem;">
+                                    Apply creates all missing CF-side prerequisites. Must use the same token session as Step 3.
+                                </ui5-text>
+
+                                <ui5-message-strip v-if="selectedCpiTenant.LifecycleState === 'draft'"
+                                    design="Warning" hide-close-button style="margin-bottom: 0.75rem;">
+                                    Complete Steps 1 and 2 first.
+                                </ui5-message-strip>
+
+                                <template v-else>
+                                    <ui5-text class="field-label">CF Bearer Token *</ui5-text>
+                                    <ui5-input type="Password" :value="cfToken"
+                                        @input="cfToken = $event.target.value"
+                                        placeholder="Same token as Step 3" style="width: 100%;" />
+
+                                    <div style="display: flex; gap: 0.5rem; margin-top: 1rem; align-items: center; flex-wrap: wrap;">
+                                        <ui5-button design="Emphasized"
+                                            v-if="selectedCpiTenant.LifecycleState !== 'ready' && selectedCpiTenant.LifecycleState !== 'readying'"
+                                            :disabled="!cfToken || bootstrapLoading" @click="onApply">
+                                            Apply
+                                        </ui5-button>
+                                        <ui5-button design="Default"
+                                            v-if="bootstrapJob?.State === 'failed' || bootstrapJob?.State === 'waiting_user_action' || bootstrapJob?.State === 'partially_applied'"
+                                            :disabled="!cfToken || bootstrapLoading" @click="onRetry">
+                                            Retry
+                                        </ui5-button>
+                                        <ui5-button design="Negative"
+                                            v-if="selectedCpiTenant.LifecycleState === 'readying'"
+                                            :disabled="bootstrapLoading" @click="onReset">
+                                            Reset
+                                        </ui5-button>
+                                        <ui5-busy-indicator v-if="bootstrapLoading" size="Small" active />
+                                    </div>
+
+                                    <template v-if="bootstrapJob">
+                                        <div class="section-divider" />
+                                        <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+                                            <ui5-text style="font-weight: bold;">Last Job</ui5-text>
+                                            <ui5-tag :design="jobStateDesign">{{ bootstrapJob.State }}</ui5-tag>
+                                            <ui5-busy-indicator v-if="bootstrapJob.State === 'running'" size="Small" active />
+                                        </div>
+                                        <div style="display: flex; flex-direction: column; gap: 0.25rem;">
+                                            <div>
+                                                <ui5-text style="font-size: 0.8rem; font-weight: bold;">Type: </ui5-text>
+                                                <ui5-text style="font-size: 0.8rem;">{{ bootstrapJob.JobType }}</ui5-text>
+                                            </div>
+                                            <div v-if="bootstrapJob.CurrentStep">
+                                                <ui5-text style="font-size: 0.8rem; font-weight: bold;">Step: </ui5-text>
+                                                <ui5-text style="font-size: 0.8rem;">{{ bootstrapJob.CurrentStep }}</ui5-text>
+                                            </div>
+                                            <div v-if="bootstrapJob.ErrorDetail">
+                                                <ui5-text style="font-size: 0.8rem; color: var(--sapNegativeTextColor);">
+                                                    Error: {{ bootstrapJob.ErrorDetail }}
+                                                </ui5-text>
+                                            </div>
+                                            <div v-if="bootstrapJob.CredentialActions?.length">
+                                                <ui5-text style="font-size: 0.8rem; font-weight: bold;">Credential Actions: </ui5-text>
+                                                <div v-for="ca in bootstrapJob.CredentialActions" :key="ca.destinationName" class="list-item">
+                                                    <ui5-text style="font-size: 0.75rem;">{{ ca.destinationName }} — {{ ca.actionType }}</ui5-text>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </template>
+                                </template>
+                            </div>
+                        </ui5-wizard-step>
+
+                    </ui5-wizard>
 
                 </div>
             </ui5-tab>
 
-            <!-- ── Tab: TMS Node ── -->
+            <!-- ── Tab: TMS Node (read-only status + Re-register) ── -->
             <ui5-tab text="TMS Node">
                 <div class="tab-content">
 
@@ -296,89 +452,47 @@
                         </ui5-tag>
                         <ui5-text v-if="selectedCpiTenant.TmsSourceNodeName"
                             style="color: var(--sapNeutralTextColor); margin-left: 0.75rem; font-size: 0.85rem;">
-                            Node: {{ selectedCpiTenant.TmsSourceNodeName }}
+                            Node: <strong>{{ selectedCpiTenant.TmsSourceNodeName }}</strong>
+                            (ID: {{ selectedCpiTenant.TmsSourceNodeID }})
                         </ui5-text>
                     </div>
 
-                    <ui5-message-strip v-if="selectedCpiTenant.LifecycleState !== 'ready'"
-                        design="Warning" hide-close-button style="margin-top: 0.75rem;">
-                        Bootstrap must complete (LifecycleState = ready) before registering a TMS Node.
+                    <ui5-message-strip design="Information" hide-close-button style="margin-top: 0.75rem; margin-bottom: 0.75rem;">
+                        TMS Node registration is managed in the Bootstrap wizard (Step 2). Use Re-register here to correct a wrong node.
                     </ui5-message-strip>
 
-                    <template v-else>
-
-                        <template v-if="selectedCpiTenant.TmsNodeRegistrationStatus === 'missing'
-                            || selectedCpiTenant.TmsNodeRegistrationStatus === 'failed'">
-                            <ui5-text style="font-size: 0.85rem; color: var(--sapContent_LabelColor); margin: 0.75rem 0 0.5rem; display: block;">
-                                Select an existing TMS Node to register.
-                            </ui5-text>
-                            <ui5-text class="field-label">TMS Source Node *</ui5-text>
-                            <ui5-select style="width: 100%;" :disabled="tmsLoading"
-                                @change="selectedTmsNode = tmsNodes.find(n => n.id === Number($event.detail.selectedOption.value) ) ?? null">
-                                <ui5-option value="">— select a node —</ui5-option>
-                                <ui5-option v-for="node in tmsNodes" :key="node.id" :value="String(node.id)">
-                                    {{ node.name }}{{ node.description ? ' — ' + node.description : '' }}
-                                </ui5-option>
-                            </ui5-select>
-                            <div style="display: flex; gap: 0.5rem; margin-top: 0.75rem; align-items: center;">
-                                <ui5-button design="Emphasized" :disabled="!selectedTmsNode || tmsLoading" @click="onRegisterTmsNode">
-                                    Verify &amp; Register
-                                </ui5-button>
-                                <ui5-busy-indicator v-if="tmsLoading" size="Small" active />
-                            </div>
-                        </template>
-
-                        <template v-else-if="selectedCpiTenant.TmsNodeRegistrationStatus === 'registering'">
-                            <div class="section-divider" />
-                            <ui5-title level="H6" style="margin-bottom: 0.5rem;">Route Configuration</ui5-title>
-                            <ui5-text style="font-size: 0.85rem; color: var(--sapContent_LabelColor);">
-                                Node <strong>{{ selectedCpiTenant.TmsSourceNodeName }}</strong> has been registered.
-                                Configure Routes in the TMS UI, then confirm below.
-                            </ui5-text>
-                            <div style="display: flex; gap: 0.5rem; margin-top: 0.75rem; flex-wrap: wrap; align-items: center;">
-                                <ui5-button design="Default" :disabled="tmsLoading" @click="onRefreshRoutes">
-                                    I have configured Routes — Refresh
-                                </ui5-button>
-                                <ui5-busy-indicator v-if="tmsLoading" size="Small" active />
-                            </div>
-                            <template v-if="tmsRoutes.length > 0">
-                                <div class="section-divider" />
-                                <ui5-text style="font-weight: bold; margin-bottom: 0.5rem;">Routes ({{ tmsRoutes.length }})</ui5-text>
-                                <div v-for="route in tmsRoutes" :key="route.id" class="route-item">
-                                    <ui5-text style="font-size: 0.85rem;">{{ route.name }} — Node {{ route.sourceNode.id }} → {{ route.targetNode.id }}</ui5-text>
-                                </div>
-                                <div style="margin-top: 0.75rem;">
-                                    <ui5-button design="Positive" :disabled="tmsLoading" @click="onConfirmRoutes">
-                                        Confirm Routes — Mark Ready
-                                    </ui5-button>
-                                </div>
-                            </template>
-                            <ui5-text v-else-if="!tmsLoading"
-                                style="color: var(--sapNeutralTextColor); font-size: 0.85rem; margin-top: 0.75rem; display: block;">
-                                No routes found yet. Configure routes in TMS UI, then click Refresh.
-                            </ui5-text>
-                        </template>
-
-                        <template v-else-if="selectedCpiTenant.TmsNodeRegistrationStatus === 'ready'">
-                            <ui5-message-strip design="Positive" hide-close-button style="margin-top: 0.75rem;">
-                                TMS Node is registered and routes are confirmed. This tenant is fully operational.
-                            </ui5-message-strip>
-                            <div style="margin-top: 0.75rem; display: flex; gap: 0.5rem; align-items: center;">
-                                <ui5-button design="Transparent" :disabled="tmsLoading" @click="onRefreshRoutes">
-                                    Refresh Routes
-                                </ui5-button>
-                                <ui5-busy-indicator v-if="tmsLoading" size="Small" active />
-                            </div>
-                            <template v-if="tmsRoutes.length > 0">
-                                <div class="section-divider" />
-                                <ui5-text style="font-weight: bold; margin-bottom: 0.5rem;">Routes ({{ tmsRoutes.length }})</ui5-text>
-                                <div v-for="route in tmsRoutes" :key="route.id" class="route-item">
-                                    <ui5-text style="font-size: 0.85rem;">{{ route.name }} — Node {{ route.sourceNode.id }} → {{ route.targetNode.id }}</ui5-text>
-                                </div>
-                            </template>
-                        </template>
-
+                    <!-- Routes display -->
+                    <template v-if="tmsRoutes.length > 0">
+                        <ui5-text style="font-weight: bold; margin-bottom: 0.5rem;">Routes ({{ tmsRoutes.length }})</ui5-text>
+                        <div v-for="route in tmsRoutes" :key="route.id" class="route-item">
+                            <ui5-text style="font-size: 0.85rem;">{{ route.name }} — Node {{ route.sourceNode.id }} → {{ route.targetNode.id }}</ui5-text>
+                        </div>
                     </template>
+                    <ui5-text v-else style="font-size: 0.85rem; color: var(--sapNeutralTextColor);">No routes configured.</ui5-text>
+
+                    <!-- Re-register section -->
+                    <div class="section-divider" />
+                    <ui5-text style="font-size: 0.85rem; color: var(--sapContent_LabelColor); display: block; margin-bottom: 0.5rem;">
+                        Re-register to correct the TMS source node. The new node name will be written into the
+                        <code>sourceSystemId</code> of the TransportManagementService destination only when you
+                        run <strong>Apply</strong> again in the Bootstrap tab.
+                    </ui5-text>
+                    <ui5-select style="width: 100%;" :disabled="tmsLoading"
+                        @change="selectedTmsNode = tmsNodes.find(n => n.id === Number($event.detail.selectedOption.value)) ?? null">
+                        <ui5-option value="">— select a node —</ui5-option>
+                        <ui5-option v-for="node in tmsNodes" :key="node.id" :value="String(node.id)">
+                            {{ node.name }}{{ node.description ? ' — ' + node.description : '' }}
+                        </ui5-option>
+                    </ui5-select>
+                    <div style="display: flex; gap: 0.5rem; margin-top: 0.75rem; align-items: center;">
+                        <ui5-button design="Default" :disabled="!selectedTmsNode || tmsLoading" @click="onRegisterTmsNode">
+                            Re-register
+                        </ui5-button>
+                        <ui5-button design="Transparent" :disabled="tmsLoading" @click="onRefreshRoutes">
+                            Refresh Routes
+                        </ui5-button>
+                        <ui5-busy-indicator v-if="tmsLoading" size="Small" active />
+                    </div>
 
                 </div>
             </ui5-tab>
@@ -437,6 +551,8 @@ import "@ui5/webcomponents/dist/TabContainer.js"
 import "@ui5/webcomponents/dist/Tab.js"
 import "@ui5/webcomponents/dist/Select.js"
 import "@ui5/webcomponents/dist/Option.js"
+import "@ui5/webcomponents-fiori/dist/Wizard.js"
+import "@ui5/webcomponents-fiori/dist/WizardStep.js"
 import { useAuth } from '@/composables/useAuth'
 
 export default defineComponent({
@@ -465,8 +581,8 @@ export default defineComponent({
             centralTmsContext: null as CentralTmsContext | null,
             loading: false,
             saving: false,
-            // Bootstrap step tracking: 1 = CF Identity, 2 = Inspect, 3 = Apply
-            bootstrapStep: 1 as 1 | 2 | 3,
+            // Bootstrap wizard step: 1=CF Connection, 2=TMS Node, 3=Inspect, 4=Apply
+            wizardStep: 1 as 1 | 2 | 3 | 4,
             // Step 1 state
             cfIdentity: { cfApiEndpoint: '', cfOrg: '', cfSpace: '' },
             cfToken: '',
@@ -476,6 +592,7 @@ export default defineComponent({
             cfSpaceOptions: [] as { guid: string; name: string }[],
             loadOrgsLoading: false,
             loadSpacesLoading: false,
+            _loadOrgsDebounce: null as ReturnType<typeof setTimeout> | null,
             cfOrgMode: 'select' as 'select' | 'manual',
             cfSpaceMode: 'select' as 'select' | 'manual',
             // Step 2+3 state
@@ -514,15 +631,20 @@ export default defineComponent({
             }
             return map[this.bootstrapJob?.State ?? ''] ?? 'Neutral'
         },
-        prerequisiteStatuses() {
+        subscriberInstanceStatuses() {
             const t = this.selectedCpiTenant
             return [
-                { key: 'PirApiStatus', label: 'PIR API', value: t.PirApiStatus },
-                { key: 'CasApplicationStatus', label: 'CAS Application', value: t.CasApplicationStatus },
-                { key: 'CasStandardStatus', label: 'CAS Standard', value: t.CasStandardStatus },
-                { key: 'CloudIntegrationDestStatus', label: 'CloudIntegration Dest', value: t.CloudIntegrationDestStatus },
-                { key: 'ContentAssemblyDestStatus', label: 'ContentAssembly Dest', value: t.ContentAssemblyDestStatus },
-                { key: 'TransportManagementDestStatus', label: 'TMS Dest', value: t.TransportManagementDestStatus },
+                { key: 'PirApiStatus', label: 'pir-api (it-rt / api)', value: t.PirApiStatus },
+                { key: 'CasApplicationStatus', label: 'content-agent-engine (CAS / application)', value: t.CasApplicationStatus },
+                { key: 'CasStandardStatus', label: 'content-agent-assembly (CAS / standard)', value: t.CasStandardStatus },
+            ]
+        },
+        subscriberDestStatuses() {
+            const t = this.selectedCpiTenant
+            return [
+                { key: 'CloudIntegrationDestStatus', label: 'CloudIntegration', value: t.CloudIntegrationDestStatus },
+                { key: 'ContentAssemblyDestStatus', label: 'ContentAssemblyService', value: t.ContentAssemblyDestStatus },
+                { key: 'TransportManagementDestStatus', label: 'TransportManagementService', value: t.TransportManagementDestStatus },
             ]
         },
         tagOptions(): { label: string; value: string }[] {
@@ -550,7 +672,7 @@ export default defineComponent({
             this.cfSpaceOptions = []
             this.cfOrgMode = 'select'
             this.cfSpaceMode = 'select'
-            this.bootstrapStep = 1
+            this.wizardStep = 1
             this.showManageModal = true
         },
         async handleManage(row: CpiTenant) {
@@ -567,8 +689,9 @@ export default defineComponent({
             this.cfSpaceOptions = []
             this.cfOrgMode = 'select'
             this.cfSpaceMode = 'select'
-            this.bootstrapStep = row.LifecycleState === 'draft' ? 1
-                : (row.LifecycleState === 'configured' ? 2 : 3)
+            this.wizardStep = row.LifecycleState === 'draft' ? 1
+                : (row.TmsNodeRegistrationStatus !== 'ready' ? 2
+                : (row.LifecycleState === 'configured' ? 3 : 4))
             this.showManageModal = true
             await this.refreshSelectedTenant()
             await this.loadBootstrapJob()
@@ -640,6 +763,12 @@ export default defineComponent({
                 this.cfIdentity.cfOrg = ''
                 this.cfIdentity.cfSpace = ''
             }
+            // Auto-load orgs once passcode looks complete (non-empty + endpoint set).
+            // Debounced so rapid typing doesn't fire multiple requests.
+            clearTimeout(this._loadOrgsDebounce ?? undefined)
+            if (value && this.cfIdentity.cfApiEndpoint) {
+                this._loadOrgsDebounce = setTimeout(() => this.loadCfOrgs(), 600)
+            }
         },
 
         async loadCfOrgs() {
@@ -684,9 +813,10 @@ export default defineComponent({
         async onSaveCfIdentity() {
             this.step1Loading = true
             try {
-                // For new tenants, create the DB record first to obtain an ID
+                // For new tenants, create the placeholder record (Name + Group only) to obtain an ID.
+                // CF identity fields must not flow through UpsertCpiTenant.
                 if (!this.selectedCpiTenant.ID) {
-                    const created = await UpsertCpiTenant(this.selectedCpiTenant)
+                    const created = await UpsertCpiTenant({ Name: this.selectedCpiTenant.Name, Group: this.selectedCpiTenant.Group } as CpiTenant)
                     this.selectedCpiTenant = { ...this.selectedCpiTenant, ID: created.ID }
                 }
                 await SaveCfIdentity(this.selectedCpiTenant.ID, {
@@ -695,11 +825,11 @@ export default defineComponent({
                     cfSpace: this.cfIdentity.cfSpace,
                     cfToken: this.cfToken,
                 })
-                window.$toast.success('CF identity saved and verified — proceed to Inspect (Step 2)')
+                window.$toast.success('CF identity saved and verified — proceed to TMS Node (Step 2)')
                 await this.refresh()
                 const updated = this.cpiTenants.find(t => t.ID === this.selectedCpiTenant.ID)
                 if (updated) this.selectedCpiTenant = { ...updated }
-                this.bootstrapStep = 2
+                this.wizardStep = 2
             } catch (e: any) {
                 window.$toast.error(e?.response?.data?.message ?? 'CF identity verification failed')
             } finally {
@@ -749,7 +879,12 @@ export default defineComponent({
             this.bootstrapPreview = null
             try {
                 this.bootstrapPreview = await PreviewBootstrap(this.selectedCpiTenant.ID, this.cfToken)
-                this.bootstrapStep = 3
+                const { inspection } = this.bootstrapPreview
+                const isClean = !inspection.waitingUserAction?.length
+                    && !inspection.permissionIssues?.length
+                if (isClean) {
+                    this.wizardStep = 4
+                }
             } catch (e: any) {
                 window.$toast.error(e?.response?.data?.message ?? 'Inspect failed')
             } finally {
@@ -896,67 +1031,32 @@ export default defineComponent({
     padding: 0.5rem 0;
 }
 
-.step-bar {
-    display: flex;
-    align-items: center;
-    margin-bottom: 1.25rem;
-}
-
-.step-pill {
-    display: flex;
-    align-items: center;
-    gap: 0.4rem;
-    padding: 0.3rem 0.75rem;
-    border-radius: 1rem;
-    font-size: 0.82rem;
-    font-weight: 600;
-    border: 1.5px solid transparent;
-    transition: background 0.15s;
-}
-
-.step-active {
-    background: var(--sapButton_Emphasized_Background, #0a6ed1);
-    color: var(--sapButton_Emphasized_TextColor, #fff);
-    border-color: var(--sapButton_Emphasized_BorderColor, #0a6ed1);
-}
-
-.step-done {
-    background: var(--sapSuccessBackground, #f1fdf6);
-    color: var(--sapPositiveTextColor, #107e3e);
-    border-color: var(--sapPositiveColor, #107e3e);
-}
-
-.step-pending {
-    background: var(--sapNeutralBackground, #f2f2f2);
-    color: var(--sapNeutralTextColor, #6a6d70);
-    border-color: var(--sapNeutralBorderColor, #bfbfbf);
-}
-
-.step-num {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 1.2rem;
-    height: 1.2rem;
-    border-radius: 50%;
-    background: rgba(255,255,255,0.25);
-    font-size: 0.78rem;
-    font-weight: bold;
-}
-
-.step-connector {
-    flex: 1;
-    height: 2px;
-    min-width: 1.5rem;
-    background: var(--sapList_BorderColor, #d9d9d9);
-    margin: 0 0.25rem;
-}
-
 .status-header {
     display: flex;
     align-items: center;
     flex-wrap: wrap;
     margin-bottom: 0.75rem;
+}
+
+.prereq-group-header {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--sapContent_LabelColor);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin: 0.75rem 0 0.3rem;
+}
+
+.prereq-group-header:first-child {
+    margin-top: 0;
+}
+
+.prereq-group-note {
+    font-weight: 400;
+    text-transform: none;
+    letter-spacing: 0;
+    color: var(--sapNeutralTextColor);
+    margin-left: 0.35rem;
 }
 
 .prereq-grid {

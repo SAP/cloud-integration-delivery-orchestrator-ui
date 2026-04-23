@@ -114,6 +114,7 @@ export interface CpiTenant {
   // RFC-013: Destination references
   CasEngineDestinationName: string
   PirApiDestinationName: string
+  PirApiUrl: string
 
   CreatedAt: string
   UpdatedAt: string
