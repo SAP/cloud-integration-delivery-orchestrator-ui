@@ -161,22 +161,15 @@ export interface TmsNodeStatus {
   tmsSourceNodeName: string
 }
 
-export interface TmsNodeRoute {
-  id: number
-  name: string
-  sourceNode: { id: number }
-  targetNode: { id: number }
-}
-
 export interface TmsRoutesResponse {
   nodeName: string
-  routes: TmsNodeRoute[]
+  routes: TransportRoute[]
 }
 
 export interface TmsNodeConfirmResponse {
   tenantId: number
   tmsNodeRegistrationStatus: PrerequisiteStatus
-  routes: TmsNodeRoute[]
+  routes: TransportRoute[]
 }
 
 // --- Central TMS Context ---
