@@ -221,38 +221,6 @@
             <!-- packages & artifacts section -->
             <ui5-title size="H6"> Packages ({{ selectedPackages.length }}) </ui5-title>
 
-            <!-- Global artifact search — searches across all loaded packages -->
-            <div style="display: flex; flex-direction: column; gap: 6px;">
-              <ui5-input
-                :value="globalArtifactSearch"
-                @input="globalArtifactSearch = ($event.target as HTMLInputElement).value"
-                placeholder="Search artifacts by name / version across all packages"
-                show-clear-icon
-                :disabled="packagesLoading"
-                style="width: 40%;"
-              />
-              <div v-if="globalArtifactSearch && globalArtifactResults.length" style="display: flex; flex-wrap: wrap; gap: 6px; max-height: 200px; overflow-y: auto; padding: 4px 0;">
-                <ui5-segmented-button
-                  v-for="item in globalArtifactResults"
-                  :key="item.pkg.Id + '-' + item.artifact.TechID + '@' + item.artifact.Version"
-                  items-fit-content selection-mode="Multiple">
-                  <ui5-segmented-button-item
-                    :selected="isArtifactSelected(item.pkg.Id, item.artifact)"
-                    @click="toggleArtifact(item.pkg.Id, item.artifact)">
-                    {{ item.artifact.TechID }}@{{ item.artifact.Version }}
-                    <ui5-tag design="Information" style="margin-left: 4px; font-size: 0.7rem;">{{ item.pkg.Name }}</ui5-tag>
-                  </ui5-segmented-button-item>
-                  <ui5-segmented-button-item icon="italic-text" @click="openArtifactDetails(item.artifact)" tooltip="Show Details" />
-                </ui5-segmented-button>
-              </div>
-              <ui5-illustrated-message
-                v-else-if="globalArtifactSearch && !globalArtifactResults.length && !packagesLoading"
-                name="NoData" design="Dot"
-                title-text="No artifacts found"
-                :subtitle-text="`No artifacts match '${globalArtifactSearch}'`"
-                style="height: 80px;" />
-            </div>
-
             <div>
               <!-- Loading Skeleton -->
               <ui5-busy-indicator v-if="packagesLoading" active :delay="0"
@@ -291,7 +259,7 @@
                         placeholder="Filter artifacts (id/version/type)"
                         show-clear-icon
                         style="width: 20%;"/>
-                      
+
                       <ui5-button design="Transparent" @click="selectAllFiltered(pkg.Id)"
                         :disabled="!filteredArtifacts(pkg.Id).length">Select All Filtered
                       </ui5-button>
@@ -302,7 +270,7 @@
 
                     <!-- Artifact list section -->
                     <div style="max-height:240px; overflow:auto; padding:6px; display:flex; flex-wrap:wrap; gap:6px;">
-                      <ui5-segmented-button v-for="a in filteredArtifacts(pkg.Id)" 
+                      <ui5-segmented-button v-for="a in filteredArtifacts(pkg.Id)"
                         :key="pkg.Id + '-' + a.TechID + '@' + a.Version" items-fit-content selection-mode="Multiple">
                         <ui5-segmented-button-item :selected="isArtifactSelected(pkg.Id, a)" @click="toggleArtifact(pkg.Id, a)">
                           {{ a.TechID }}@{{ a.Version }}
@@ -314,6 +282,39 @@
                 </div>
               </ui5-panel>
             </div>
+
+            <!-- Global artifact search — independent section, searches across all loaded packages -->
+            <ui5-title size="H6">Search All Artifacts</ui5-title>
+            <div style="display: flex; flex-direction: column; gap: 6px;">
+              <ui5-input
+                :value="globalArtifactSearch"
+                @input="globalArtifactSearch = ($event.target as HTMLInputElement).value"
+                placeholder="Search artifacts by name / version across all packages"
+                show-clear-icon
+                :disabled="packagesLoading"
+                style="width: 40%;"
+              />
+              <div v-if="globalArtifactSearch && globalArtifactResults.length" style="display: flex; flex-wrap: wrap; gap: 6px; max-height: 200px; overflow-y: auto; padding: 4px 0;">
+                <ui5-segmented-button
+                  v-for="item in globalArtifactResults"
+                  :key="item.pkg.Id + '-' + item.artifact.TechID + '@' + item.artifact.Version"
+                  items-fit-content selection-mode="Multiple">
+                  <ui5-segmented-button-item
+                    :selected="isArtifactSelected(item.pkg.Id, item.artifact)"
+                    @click="toggleArtifact(item.pkg.Id, item.artifact)">
+                    {{ item.artifact.TechID }}@{{ item.artifact.Version }}
+                  </ui5-segmented-button-item>
+                  <ui5-segmented-button-item icon="italic-text" @click="openArtifactDetails(item.artifact)" tooltip="Show Details" />
+                </ui5-segmented-button>
+              </div>
+              <ui5-illustrated-message
+                v-else-if="globalArtifactSearch && !globalArtifactResults.length && !packagesLoading"
+                name="NoData" design="Dot"
+                title-text="No artifacts found"
+                :subtitle-text="`No artifacts match '${globalArtifactSearch}'`"
+                style="height: 80px;" />
+            </div>
+
               <!-- Selected Artifacts list -->
             <div v-if="selArtifactOps.length || deleteOps.length" style="margin-top:18px; display: flex; flex-direction: column; gap:10px">
               <ui5-title size="H6">
@@ -654,6 +655,8 @@ export default {
       sseRefreshTimer: null as ReturnType<typeof setTimeout> | null,
       activeConditionFilter: 'All' as 'All' | ConditionType,
       globalArtifactSearch: '',
+      globalArtifactResults: [] as { pkg: Package; artifact: Artifact }[],
+      globalSearchTimer: null as ReturnType<typeof setTimeout> | null,
     }
   },
   methods: {
@@ -999,9 +1002,32 @@ export default {
       if (input) this.artifactSearch[pkgId] = input.value;
     },
     conditionTypeToDesign,
-
+    async runGlobalArtifactSearch(kw: string) {
+      const results: { pkg: Package; artifact: Artifact }[] = []
+      for (const pkg of this.tenantPkgs) {
+        await new Promise(r => setTimeout(r, 0))
+        if (kw !== this.globalArtifactSearch.trim().toLowerCase()) return // stale, abort
+        const arts = this.packageArtifacts[pkg.Id] || []
+        for (const a of arts) {
+          if (
+            a.TechID.toLowerCase().includes(kw) ||
+            a.Version.toLowerCase().includes(kw) ||
+            (a.Type && a.Type.toLowerCase().includes(kw))
+          ) {
+            results.push({ pkg, artifact: a })
+          }
+        }
+      }
+      this.globalArtifactResults = results
+    },
   },
   watch: {
+    globalArtifactSearch(val: string) {
+      if (this.globalSearchTimer) clearTimeout(this.globalSearchTimer)
+      const kw = val.trim().toLowerCase()
+      if (!kw) { this.globalArtifactResults = []; return }
+      this.globalSearchTimer = setTimeout(() => this.runGlobalArtifactSearch(kw), 200)
+    },
     selectedPackages(newPkgs: Package[], oldPkgs: Package[]) {
       const removed = (oldPkgs || []).filter(p => !newPkgs.includes(p))
       removed.forEach(p => {
@@ -1115,14 +1141,10 @@ export default {
     },
     cpiTenantLink() {
       const tenant = this.deliveryRequest.SourceTenant
-      if (!tenant?.CfApiEndpoint) return ''
-      // Derive the Integration Suite design URL from the CF API endpoint.
-      // CF API: https://api.cf.<region>.hana.ondemand.com
-      // IT Spaces: https://<tenant-subdomain>.integrationsuite.<region>.hana.ondemand.com/itspaces/shell/design
-      // Fallback: use the CF API host base for linking to the subaccount.
+      if (!tenant?.PirApiUrl) return ''
       try {
-        const cfUrl = new URL(tenant.CfApiEndpoint)
-        return `${cfUrl.protocol}//${cfUrl.host}`
+        const u = new URL(tenant.PirApiUrl)
+        return `${u.protocol}//${u.host}/itspaces`
       } catch {
         return ''
       }
@@ -1146,24 +1168,6 @@ export default {
       const list = (this.deliveryRequest.Conditions || []) as Condition[]
       if (this.activeConditionFilter === 'All') return list
       return list.filter(c => c.State === this.activeConditionFilter)
-    },
-    globalArtifactResults(): { pkg: Package; artifact: Artifact }[] {
-      const kw = this.globalArtifactSearch.trim().toLowerCase()
-      if (!kw) return []
-      const results: { pkg: Package; artifact: Artifact }[] = []
-      for (const pkg of this.tenantPkgs) {
-        const arts = this.packageArtifacts[pkg.Id] || []
-        for (const a of arts) {
-          if (
-            a.TechID.toLowerCase().includes(kw) ||
-            a.Version.toLowerCase().includes(kw) ||
-            (a.Type && a.Type.toLowerCase().includes(kw))
-          ) {
-            results.push({ pkg, artifact: a })
-          }
-        }
-      }
-      return results
     },
   },
   async created() {

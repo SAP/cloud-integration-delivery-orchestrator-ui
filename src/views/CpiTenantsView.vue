@@ -192,7 +192,7 @@
                                         :design="['readying','ready'].includes(selectedCpiTenant.LifecycleState) ? 'Negative' : 'Emphasized'"
                                         :disabled="(!selectedCpiTenant.ID && !selectedCpiTenant.Name) || !cfIdentity.cfApiEndpoint || !cfIdentity.cfOrg || !cfIdentity.cfSpace || !cfToken || step1Loading"
                                         @click="onSaveCfIdentity">
-                                        {{ ['readying','ready'].includes(selectedCpiTenant.LifecycleState) ? 'Re-bootstrap' : 'Start Bootstrap' }}
+                                        {{ ['readying','ready'].includes(selectedCpiTenant.LifecycleState) ? 'Re-enter CF Connection' : 'Save CF Connection' }}
                                     </ui5-button>
                                     <ui5-busy-indicator v-if="step1Loading" size="Small" active />
                                 </div>
@@ -226,7 +226,7 @@
                                         </ui5-tag>
                                         <ui5-text v-if="selectedCpiTenant.TmsSourceNodeName"
                                             style="color: var(--sapNeutralTextColor); margin-left: 0.75rem; font-size: 0.85rem;">
-                                            Node: <strong>{{ selectedCpiTenant.TmsSourceNodeName }}</strong>
+                                            Node: <strong>{{ selectedCpiTenant.TmsSourceNodeName }}(#{{ selectedCpiTenant.TmsSourceNodeID }})</strong>
                                         </ui5-text>
                                     </div>
 
@@ -247,6 +247,10 @@
                                             </ui5-button>
                                             <ui5-busy-indicator v-if="tmsLoading" size="Small" active />
                                         </div>
+                                        <ui5-message-strip v-if="step2Message"
+                                            :design="step2Message.type" hide-close-button style="margin-top: 0.5rem;">
+                                            {{ step2Message.text }}
+                                        </ui5-message-strip>
                                     </template>
 
                                     <!-- Route confirmation — shown after registering -->
@@ -269,10 +273,10 @@
                                                 <ui5-text style="font-size: 0.85rem;">
                                                     {{ route.name }} —
                                                     <template v-if="route.sourceNodeId === selectedCpiTenant.TmsSourceNodeID">
-                                                        outbound: Node {{ route.sourceNodeId }} → {{ route.targetNodeId }}
+                                                        outbound: {{ tmsNodes.find(n => n.id === route.sourceNodeId)?.name ?? '?' }}(#{{ route.sourceNodeId }}) → {{ tmsNodes.find(n => n.id === route.targetNodeId)?.name ?? '?' }}(#{{ route.targetNodeId }})
                                                     </template>
                                                     <template v-else>
-                                                        inbound: Node {{ route.sourceNodeId }} → {{ route.targetNodeId }}
+                                                        inbound: {{ tmsNodes.find(n => n.id === route.sourceNodeId)?.name ?? '?' }}(#{{ route.sourceNodeId }}) → {{ tmsNodes.find(n => n.id === route.targetNodeId)?.name ?? '?' }}(#{{ route.targetNodeId }})
                                                     </template>
                                                 </ui5-text>
                                             </div>
@@ -286,6 +290,10 @@
                                             style="color: var(--sapNeutralTextColor); font-size: 0.85rem; margin-top: 0.75rem; display: block;">
                                             No routes found yet. Configure routes in TMS UI, then click Refresh.
                                         </ui5-text>
+                                        <ui5-message-strip v-if="step2Message"
+                                            :design="step2Message.type" hide-close-button style="margin-top: 0.5rem;">
+                                            {{ step2Message.text }}
+                                        </ui5-message-strip>
                                     </template>
 
                                     <!-- Ready state -->
@@ -303,7 +311,7 @@
                                             <div class="section-divider" />
                                             <ui5-text style="font-weight: bold; margin-bottom: 0.5rem;">Routes ({{ tmsRoutes.length }})</ui5-text>
                                             <div v-for="route in tmsRoutes" :key="route.id" class="route-item">
-                                                <ui5-text style="font-size: 0.85rem;">{{ route.name }} — Node {{ route.sourceNodeId }} → {{ route.targetNodeId }}</ui5-text>
+                                                <ui5-text style="font-size: 0.85rem;">{{ route.name }} — {{ tmsNodes.find(n => n.id === route.sourceNodeId)?.name ?? '?' }}(#{{ route.sourceNodeId }}) → {{ tmsNodes.find(n => n.id === route.targetNodeId)?.name ?? '?' }}(#{{ route.targetNodeId }})</ui5-text>
                                             </div>
                                         </template>
                                     </template>
@@ -336,11 +344,15 @@
 
                                 <template v-else>
                                     <div style="display: flex; gap: 0.5rem; margin-top: 1rem; align-items: center;">
-                                        <ui5-button design="Default" :disabled="bootstrapLoading" @click="onPreview">
+                                        <ui5-button design="Default" :disabled="inspectLoading" @click="onPreview">
                                             Run Inspect
                                         </ui5-button>
-                                        <ui5-busy-indicator v-if="bootstrapLoading && !bootstrapPreview" size="Small" active />
+                                        <ui5-busy-indicator v-if="inspectLoading" size="Small" active />
                                     </div>
+                                    <ui5-message-strip v-if="step3Message && !bootstrapPreview"
+                                        :design="step3Message.type" hide-close-button style="margin-top: 0.5rem;">
+                                        {{ step3Message.text }}
+                                    </ui5-message-strip>
 
                                     <template v-if="bootstrapPreview">
                                         <div class="section-divider" />
@@ -368,22 +380,33 @@
                                             style="color: var(--sapPositiveTextColor); font-size: 0.85rem; display: block;">
                                             All prerequisites present — ready to apply.
                                         </ui5-text>
+                                        <div v-if="!bootstrapPreview.inspection.missingItems?.length
+                                            && !bootstrapPreview.inspection.permissionIssues?.length
+                                            && !bootstrapPreview.inspection.waitingUserAction?.length"
+                                            style="margin-top: 0.75rem; display: flex; gap: 0.5rem; align-items: center;">
+                                            <ui5-button design="Emphasized"
+                                                v-if="selectedCpiTenant.LifecycleState !== 'ready' && selectedCpiTenant.LifecycleState !== 'readying'"
+                                                :disabled="bootstrapLoading" @click="onApply">
+                                                Apply
+                                            </ui5-button>
+                                            <ui5-busy-indicator v-if="bootstrapLoading" size="Small" active />
+                                        </div>
                                     </template>
                                 </template>
                             </div>
                         </ui5-wizard-step>
 
-                        <!-- Step 4: Apply -->
+                        <!-- Step 4: Job Status -->
                         <ui5-wizard-step
                             title-text="Apply"
-                            subtitle-text="Bootstrap"
+                            subtitle-text="Job Status"
                             icon="play"
                             :selected="wizardStep === 4"
                             :disabled="selectedCpiTenant.TmsNodeRegistrationStatus !== 'ready' || selectedCpiTenant.LifecycleState === 'draft'"
                             @click="wizardStep = 4">
                             <div class="wizard-step-content">
                                 <ui5-text style="font-size: 0.85rem; color: var(--sapContent_LabelColor); display: block; margin-bottom: 0.75rem;">
-                                    Apply creates all missing CF-side prerequisites. Uses the CF token from Step 1.
+                                    Monitor the bootstrap job progress. Use Retry or Reset if the job failed.
                                 </ui5-text>
 
                                 <ui5-message-strip v-if="selectedCpiTenant.LifecycleState === 'draft'"
@@ -399,11 +422,6 @@
 
                                 <template v-else>
                                     <div style="display: flex; gap: 0.5rem; margin-top: 1rem; align-items: center; flex-wrap: wrap;">
-                                        <ui5-button design="Emphasized"
-                                            v-if="selectedCpiTenant.LifecycleState !== 'ready' && selectedCpiTenant.LifecycleState !== 'readying'"
-                                            :disabled="bootstrapLoading" @click="onApply">
-                                            Apply
-                                        </ui5-button>
                                         <ui5-button design="Default"
                                             v-if="bootstrapJob?.State === 'failed' || bootstrapJob?.State === 'waiting_user_action' || bootstrapJob?.State === 'partially_applied'"
                                             :disabled="bootstrapLoading" @click="onRetry">
@@ -416,8 +434,18 @@
                                         </ui5-button>
                                         <ui5-busy-indicator v-if="bootstrapLoading" size="Small" active />
                                     </div>
+                                    <ui5-message-strip v-if="step4Message"
+                                        :design="step4Message.type" hide-close-button style="margin-top: 0.5rem;">
+                                        {{ step4Message.text }}
+                                    </ui5-message-strip>
 
-                                    <template v-if="bootstrapJob">
+                                    <template v-if="bootstrapLoading">
+                                        <div style="display: flex; align-items: center; gap: 0.5rem; margin-top: 1rem;">
+                                            <ui5-busy-indicator size="Small" active />
+                                            <ui5-text style="font-size: 0.85rem; color: var(--sapContent_LabelColor);">Starting bootstrap job…</ui5-text>
+                                        </div>
+                                    </template>
+                                    <template v-else-if="bootstrapJob">
                                         <div class="section-divider" />
                                         <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
                                             <ui5-text style="font-weight: bold;">Last Job</ui5-text>
@@ -557,8 +585,13 @@ export default defineComponent({
             _loadOrgsDebounce: null as ReturnType<typeof setTimeout> | null,
             cfOrgMode: 'select' as 'select' | 'manual',
             cfSpaceMode: 'select' as 'select' | 'manual',
+            // Per-step inline message (replaces toast for modal operations)
+            step2Message: null as { type: 'Positive' | 'Negative'; text: string } | null,
+            step3Message: null as { type: 'Positive' | 'Negative'; text: string } | null,
+            step4Message: null as { type: 'Positive' | 'Negative'; text: string } | null,
             // Step 2+3 state
             bootstrapLoading: false,
+            inspectLoading: false,
             bootstrapPreview: null as BootstrapPreview | null,
             bootstrapJob: null as BootstrapJob | null,
             pollTimer: null as ReturnType<typeof setInterval> | null,
@@ -668,6 +701,9 @@ export default defineComponent({
             this.cfIdentity = { cfApiEndpoint: '', cfOrg: '', cfSpace: '' }
             this.bootstrapPreview = null
             this.bootstrapJob = null
+            this.step2Message = null
+            this.step3Message = null
+            this.step4Message = null
             this.selectedTmsNode = null
             this.tmsRoutes = []
         },
@@ -700,7 +736,7 @@ export default defineComponent({
                 if (updated) this.selectedCpiTenant = { ...updated }
                 window.$toast.success('Tenant saved')
             } catch (e: any) {
-                window.$toast.error(e?.response?.data?.message ?? 'Save failed')
+                window.$toast.error(e?.message ?? 'Save failed')
             } finally {
                 this.saving = false
             }
@@ -748,7 +784,7 @@ export default defineComponent({
                 this.cfToken = accessToken
                 this.cfOrgOptions = await ListCfOrgs(this.cfIdentity.cfApiEndpoint, this.cfToken)
             } catch (e: any) {
-                window.$toast.error(e?.response?.data?.message ?? 'Failed to load CF orgs — check passcode and endpoint')
+                window.$toast.error(e?.message ?? 'Failed to load CF orgs — check passcode and endpoint')
                 this.cfOrgMode = 'manual'
             } finally {
                 this.loadOrgsLoading = false
@@ -765,7 +801,7 @@ export default defineComponent({
             try {
                 this.cfSpaceOptions = await ListCfSpaces(this.cfIdentity.cfApiEndpoint, this.cfToken, guid)
             } catch (e: any) {
-                window.$toast.error(e?.response?.data?.message ?? 'Failed to load CF spaces')
+                window.$toast.error(e?.message ?? 'Failed to load CF spaces')
                 this.cfSpaceMode = 'manual'
             } finally {
                 this.loadSpacesLoading = false
@@ -787,14 +823,13 @@ export default defineComponent({
                     cfSpace: this.cfIdentity.cfSpace,
                     cfToken: this.cfToken,
                 })
-                window.$toast.success('CF identity saved and verified — proceed to TMS Node (Step 2)')
                 await this.refresh()
                 const updated = this.cpiTenants.find(t => t.ID === this.selectedCpiTenant.ID)
                 if (updated) this.selectedCpiTenant = { ...updated }
                 this.step1Error = ''
                 this.wizardStep = 2
             } catch (e: any) {
-                this.step1Error = e?.response?.data?.message ?? 'CF identity verification failed'
+                this.step1Error = e?.message ?? 'CF identity verification failed'
             } finally {
                 this.step1Loading = false
             }
@@ -838,61 +873,72 @@ export default defineComponent({
             if (this.pollTimer) { clearInterval(this.pollTimer); this.pollTimer = null }
         },
         async onPreview() {
-            this.bootstrapLoading = true
+            this.inspectLoading = true
             this.bootstrapPreview = null
+            this.step3Message = null
             try {
                 this.bootstrapPreview = await PreviewBootstrap(this.selectedCpiTenant.ID, this.cfToken)
-                const { inspection } = this.bootstrapPreview
-                const isClean = !inspection.waitingUserAction?.length
-                    && !inspection.permissionIssues?.length
-                if (isClean) {
-                    this.wizardStep = 4
-                }
+                window.$toast.success('[DEBUG] step3: Inspect ok')
             } catch (e: any) {
-                if (e?.response?.status === 401) this.cfToken = ''
-                window.$toast.error(e?.response?.data?.message ?? 'Inspect failed')
+                if (e?.status === 401) this.cfToken = ''
+                const msg = e?.message ?? 'Inspect failed'
+                this.step3Message = { type: 'Negative', text: msg }
+                window.$toast.error('[DEBUG] step3: ' + msg)
             } finally {
-                this.bootstrapLoading = false
+                this.inspectLoading = false
             }
         },
         async onApply() {
             this.bootstrapLoading = true
             this.bootstrapPreview = null
+            this.step3Message = null
             try {
                 const { jobId } = await ApplyBootstrap(this.selectedCpiTenant.ID, this.cfToken)
-                window.$toast.success(`Bootstrap job #${jobId} started`)
+                this.bootstrapJob = { ID: jobId, State: 'running', JobType: 'apply' } as any
+                this.wizardStep = 4
                 this.stopPoll()
                 this.startPoll()
+                window.$toast.success('[DEBUG] step3: Apply ok job#' + jobId)
             } catch (e: any) {
-                if (e?.response?.status === 401) this.cfToken = ''
-                window.$toast.error(e?.response?.data?.message ?? 'Apply failed')
+                if (e?.status === 401) this.cfToken = ''
+                const msg = e?.message ?? 'Apply failed'
+                this.step3Message = { type: 'Negative', text: msg }
+                window.$toast.error('[DEBUG] step3: ' + msg)
             } finally {
                 this.bootstrapLoading = false
             }
         },
         async onRetry() {
             this.bootstrapLoading = true
+            this.step4Message = null
             try {
                 const { jobId } = await RetryBootstrap(this.selectedCpiTenant.ID, this.cfToken)
-                window.$toast.success(`Retry job #${jobId} started`)
+                this.bootstrapJob = { ID: jobId, State: 'running', JobType: 'retry' } as any
                 this.stopPoll()
                 this.startPoll()
+                window.$toast.success('[DEBUG] step4: Retry ok job#' + jobId)
             } catch (e: any) {
-                if (e?.response?.status === 401) this.cfToken = ''
-                window.$toast.error(e?.response?.data?.message ?? 'Retry failed')
+                if (e?.status === 401) this.cfToken = ''
+                const msg = e?.message ?? 'Retry failed'
+                this.step4Message = { type: 'Negative', text: msg }
+                window.$toast.error('[DEBUG] step4: ' + msg)
             } finally {
                 this.bootstrapLoading = false
             }
         },
         async onReset() {
             this.bootstrapLoading = true
+            this.step4Message = null
             try {
                 await ResetBootstrap(this.selectedCpiTenant.ID)
-                window.$toast.success('Bootstrap reset')
                 await this.refreshSelectedTenant()
                 await this.loadBootstrapJob()
+                this.step4Message = { type: 'Positive', text: 'Bootstrap reset — tenant returned to configured state.' }
+                window.$toast.success('[DEBUG] step4: Reset ok')
             } catch (e: any) {
-                window.$toast.error(e?.response?.data?.message ?? 'Reset failed')
+                const msg = e?.message ?? 'Reset failed'
+                this.step4Message = { type: 'Negative', text: msg }
+                window.$toast.error('[DEBUG] step4: ' + msg)
             } finally {
                 this.bootstrapLoading = false
             }
@@ -918,36 +964,46 @@ export default defineComponent({
                 const nodes = await GetTransportNodes()
                 this.tmsNodes = nodes
             } catch (e: any) {
-                window.$toast.error(e?.response?.data?.message ?? 'Failed to load TMS nodes')
+                const msg = e?.message ?? 'Failed to load TMS nodes'
+                this.step2Message = { type: 'Negative', text: msg }
+                window.$toast.error('[DEBUG] step2: ' + msg)
             }
         },
         async onRegisterTmsNode() {
             if (!this.selectedTmsNode) return
             this.tmsLoading = true
+            this.step2Message = null
             try {
                 await RegisterTmsNode(this.selectedCpiTenant.ID, { nodeId: this.selectedTmsNode.id, nodeName: this.selectedTmsNode.name })
-                window.$toast.success(`Node "${this.selectedTmsNode.name}" verified — configure Routes in TMS UI`)
                 await this.refresh()
                 const updated = this.cpiTenants.find(t => t.ID === this.selectedCpiTenant.ID)
                 if (updated) this.selectedCpiTenant = { ...updated }
+                this.step2Message = { type: 'Positive', text: `Node "${this.selectedTmsNode.name}" verified — configure Routes in TMS UI.` }
+                window.$toast.success('[DEBUG] step2: Register ok')
             } catch (e: any) {
-                window.$toast.error(e?.response?.data?.message ?? 'Registration failed')
+                const msg = e?.message ?? 'Registration failed'
+                this.step2Message = { type: 'Negative', text: msg }
+                window.$toast.error('[DEBUG] step2: ' + msg)
             } finally {
                 this.tmsLoading = false
             }
         },
         async onConfirmRoutes() {
             this.tmsLoading = true
+            this.step2Message = null
             try {
                 const res = await ConfirmTmsRoutes(this.selectedCpiTenant.ID)
                 this.tmsRoutes = res.routes || []
                 await this.refresh()
                 const updated = this.cpiTenants.find(t => t.ID === this.selectedCpiTenant.ID)
                 if (updated) this.selectedCpiTenant = { ...updated }
-                window.$toast.success('Routes confirmed — TMS Node registration complete')
+                this.step2Message = { type: 'Positive', text: 'Routes confirmed — TMS Node registration complete.' }
+                window.$toast.success('[DEBUG] step2: Confirm ok')
                 this.wizardStep = 3
             } catch (e: any) {
-                window.$toast.error(e?.response?.data?.message ?? 'Confirm failed')
+                const msg = e?.message ?? 'Confirm failed'
+                this.step2Message = { type: 'Negative', text: msg }
+                window.$toast.error('[DEBUG] step2: ' + msg)
             } finally {
                 this.tmsLoading = false
             }
