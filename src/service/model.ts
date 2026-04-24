@@ -156,11 +156,6 @@ export interface BootstrapJob {
 
 // --- TMS Node registration types ---
 
-export interface TmsNodeStatus {
-  tmsNodeRegistrationStatus: PrerequisiteStatus
-  tmsSourceNodeName: string
-}
-
 export interface TmsRoutesResponse {
   nodeName: string
   routes: TransportRoute[]

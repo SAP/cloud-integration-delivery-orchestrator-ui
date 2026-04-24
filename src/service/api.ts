@@ -1,6 +1,6 @@
 import axios from 'axios'
 import http from './http'
-import type { ApiEndpoint, Artifact, ArtifactTenantOperation, AppCount, BackfillTechIDResult, BootstrapJob, BootstrapPreview, CasPackage, CentralTmsContext, ConnectivityReport, CpiTenant, CreateDRFromMismatchRequest, CreateDRFromMismatchResponse, DeliverOpRequest, DeliveryRequest, DeliveryRule, GenerateTRResponse, IntegrationConfig, NodeTransportRequest, Package, PreviewDRResponse, RuntimeArtifact, TmsNodeConfirmResponse, TmsNodeStatus, TmsRoutesResponse, TransportNode, TransportRoute, TriggerResult, UserInfo, VersionCompareIncludedPackage, VersionCompareResponse, VersionCompareSummaryItem } from './model'
+import type { ApiEndpoint, Artifact, ArtifactTenantOperation, AppCount, BackfillTechIDResult, BootstrapJob, BootstrapPreview, CasPackage, CentralTmsContext, ConnectivityReport, CpiTenant, CreateDRFromMismatchRequest, CreateDRFromMismatchResponse, DeliverOpRequest, DeliveryRequest, DeliveryRule, GenerateTRResponse, IntegrationConfig, NodeTransportRequest, Package, PreviewDRResponse, RuntimeArtifact, TmsNodeConfirmResponse, TmsRoutesResponse, TransportNode, TransportRoute, TriggerResult, UserInfo, VersionCompareIncludedPackage, VersionCompareResponse, VersionCompareSummaryItem } from './model'
 import type { AggregateStatus, DeployState, ImportState, RequestState } from './statuses'
 
 export const GetDrCounts = () => {
@@ -324,11 +324,7 @@ export const ResetBootstrap = (tenantId: number) => {
 // --- TMS Node Registration ---
 
 export const RegisterTmsNode = (tenantId: number, payload: { nodeId: number; nodeName: string }) => {
-  return http.post(`/api/v1/cpiTenant/${tenantId}/tms-node/register`, payload) as Promise<TmsNodeStatus>
-}
-
-export const GetTmsNodeStatus = (tenantId: number) => {
-  return http.get(`/api/v1/cpiTenant/${tenantId}/tms-node/status`) as Promise<TmsNodeStatus>
+  return http.post(`/api/v1/cpiTenant/${tenantId}/tms-node/register`, payload) as Promise<void>
 }
 
 export const GetTmsNodeRoutes = (tenantId: number) => {
