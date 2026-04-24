@@ -149,23 +149,6 @@ export const CheckArtifactNodeStatus = (artifacts: Artifact[]) => {
   return http.post('/api/v1/tms/artifactStatus', { artifacts }) as Promise<Artifact[]>;
 }
 
-export const CheckTenantStatus = async (cpi_tenant: string) => {
-  const resp = await axios.get('/api/v1/cookie-service/check_tenant_status', {
-    params: { cpi_tenant },
-    timeout: 8 * 1000,
-  })
-  return resp.data as { message: string }
-}
-
-export const InitCpiTenant = async (cpi_tenant: string) => {
-  const resp = await axios.post(
-    '/api/v1/cookie-service/init_tenant',
-    { cpi_tenant },
-    { timeout: 60 * 1000 },
-  )
-  return resp.data as { message: string }
-}
-
 export const ImportOps = (opIDs: number[], tenant: number, drID: number) => {
   const req: DeliverOpRequest ={
     opIDs: opIDs,

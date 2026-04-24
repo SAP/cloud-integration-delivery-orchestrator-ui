@@ -16,11 +16,6 @@
       "forwardAuthToken": true
     },
     {
-      "name": "cpi-cookie-service",
-      "url": "http://localhost:8000",
-      "timeout": 90000
-    },
-    {
         "name": "vite-dev-server",
         "url": "http://localhost:5173",
         "forwardAuthToken": true

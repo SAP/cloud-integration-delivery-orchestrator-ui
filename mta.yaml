@@ -26,10 +26,6 @@ modules:
         - name: backendservice
           url: https://com-sap-maco-mmt-srv-devops-cpi-delivery.cfapps.sap.hana.ondemand.com/api/v1
           forwardAuthToken: true
-        - name: cpi-cookie-service
-          url: https://mmt-devops-cpi-cookie-service.cfapps.sap.hana.ondemand.com
-          forwardAuthToken: true
-          timeout: 90000
     requires:
       - name: mmt_devops_uaa
 
