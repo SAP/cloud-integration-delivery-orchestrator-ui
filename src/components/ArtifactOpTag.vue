@@ -15,6 +15,9 @@
         <template v-else-if="artOp.RequestState === 'TR_FAILED'">
             <span style="color: var(--sapNegativeColor); font-weight: bold;">TR Failed</span>
         </template>
+        <template v-else-if="stageType === '4'">
+            <span style="color: var(--sapNeutralColor); font-style: italic;">pending confirm</span>
+        </template>
         <template v-else>
             TR: <template v-if="artOp.TransportRequestNumber">{{ artOp.TransportRequestNumber }}</template><span v-else style="color: var(--sapWarningColor); font-weight: bold;">Required</span>
         </template>

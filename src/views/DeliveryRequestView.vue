@@ -218,101 +218,114 @@
               </ui5-link>
             </div>
 
-            <!-- packages & artifacts section -->
-            <ui5-title size="H6"> Packages ({{ selectedPackages.length }}) </ui5-title>
+            <!-- separator between tenant info and artifact selection -->
+            <div style="border-top: 1px solid var(--sapList_BorderColor); margin: 4px 0;"></div>
 
-            <div>
-              <!-- Loading Skeleton -->
-              <ui5-busy-indicator v-if="packagesLoading" active :delay="0"
-                style="display:flex; justify-content:center; align-items:center; width:100%; height: 70px;">
-              </ui5-busy-indicator>
-              <!-- Packages Select -->
-              <div v-else>
-                <div v-if="!packageOptions || !packageOptions.length" style="margin-top:6px">
-                  <ui5-illustrated-message name="NoData" design="Dot"
-                    :title-text="`No Packages found in Tenant(${deliveryRequest.SourceTenant.Name})`"
-                    :subtitle-text="`Please Retry...`" />
-                </div>
-
-                <ui5-multi-combobox v-else show-clear-icon show-select-all @selection-change="handleSelectPackage"
-                  style="width: 40%;">
-                  <ui5-mcb-item v-for="pkg in packageOptions" :id="pkg.value.Id" :key="pkg.value.Id"
-                    :text="pkg.value.Name" :additional-text="`${pkg.value.Version}`"
-                    :selected="selectedPackages.some(p => p.Id === pkg.value.Id)" />
-                </ui5-multi-combobox>
-              </div>
+            <!-- artifact selection — two parallel methods -->
+            <div style="margin-top: 2px;">
+              <ui5-label style="display: block; margin-top: 4px;">Choose artifacts using either method below. Selections are shared between both methods.</ui5-label>
             </div>
-            <!-- Package & Artifacts Section -->
-            <div v-if="selectedPackages.length">
-              <ui5-panel v-for="pkg in selectedPackages" :key="pkg.Id" :header-text="`${pkg.Name} - ${pkg.Version}`"
-                collapsed style="margin-bottom: 10px;">
+
+            <div style="display: flex; flex-direction: row; gap: 24px; align-items: flex-start; margin-top: 4px;">
+
+              <!-- Left column: Search All Artifacts -->
+              <div style="flex: 0 0 50%; min-width: 0; display: flex; flex-direction: column; gap: 8px;">
+                <ui5-title size="H5">Search All Artifacts</ui5-title>
+                <ui5-input
+                  :value="globalArtifactSearch"
+                  @input="globalArtifactSearch = ($event.target as HTMLInputElement).value"
+                  placeholder="Search by name / version across all packages"
+                  show-clear-icon
+                  :disabled="packagesLoading"
+                  style="width: 60%;"
+                />
+                <div v-if="globalArtifactSearch && globalArtifactResults.length" style="display: flex; flex-wrap: wrap; gap: 6px; max-height: 300px; overflow-y: auto; padding: 4px 0;">
+                  <ui5-segmented-button
+                    v-for="item in globalArtifactResults"
+                    :key="item.pkg.Id + '-' + item.artifact.TechID + '@' + item.artifact.Version"
+                    items-fit-content selection-mode="Multiple">
+                    <ui5-segmented-button-item
+                      :selected="isArtifactSelected(item.pkg.Id, item.artifact)"
+                      @click="toggleArtifact(item.pkg.Id, item.artifact)">
+                      {{ item.artifact.TechID }}@{{ item.artifact.Version }}
+                    </ui5-segmented-button-item>
+                    <ui5-segmented-button-item icon="italic-text" @click="openArtifactDetails(item.artifact)" tooltip="Show Details" />
+                  </ui5-segmented-button>
+                </div>
+                <ui5-illustrated-message
+                  v-else-if="globalArtifactSearch && !globalArtifactResults.length && !packagesLoading"
+                  name="NoData" design="Dot"
+                  title-text="No artifacts found"
+                  :subtitle-text="`No artifacts match '${globalArtifactSearch}'`"
+                  style="height: 80px;" />
+              </div>
+
+              <!-- Right column: Browse by Package -->
+              <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 8px;">
+                <ui5-title size="H5">Browse by Package ({{ selectedPackages.length }})</ui5-title>
+
+                <!-- Loading Skeleton -->
                 <ui5-busy-indicator v-if="packagesLoading" active :delay="0"
-                  style="display:flex; justify-content:center; align-items:center; width:100%; height: 80px;">
+                  style="display:flex; justify-content:center; align-items:center; width:100%; height: 70px;">
                 </ui5-busy-indicator>
+                <!-- Packages Select -->
                 <div v-else>
-                  <div v-if="(packageArtifacts[pkg.Id] || []).length === 0">
-                    <ui5-illustrated-message name="NoData" design="Dot" />
+                  <div v-if="!packageOptions || !packageOptions.length" style="margin-top:6px">
+                    <ui5-illustrated-message name="NoData" design="Dot"
+                      :title-text="`No Packages found in Tenant(${deliveryRequest.SourceTenant.Name})`"
+                      :subtitle-text="`Please Retry...`" />
                   </div>
-                  <div v-else>
-                    <div style="display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0;">
-                      <ui5-input :id="`input-filter-artifacts-${pkg.Id}`" @input="handleFilterArtifacts(pkg.Id, $event)"
-                        placeholder="Filter artifacts (id/version/type)"
-                        show-clear-icon
-                        style="width: 20%;"/>
 
-                      <ui5-button design="Transparent" @click="selectAllFiltered(pkg.Id)"
-                        :disabled="!filteredArtifacts(pkg.Id).length">Select All Filtered
-                      </ui5-button>
-                      <ui5-button design="Transparent" @click="clearSelections(pkg.Id)"
-                        :disabled="!(selPkgArtifacts[pkg.Id] || []).length">Clear Selected
-                      </ui5-button>
-                    </div>
-
-                    <!-- Artifact list section -->
-                    <div style="max-height:240px; overflow:auto; padding:6px; display:flex; flex-wrap:wrap; gap:6px;">
-                      <ui5-segmented-button v-for="a in filteredArtifacts(pkg.Id)"
-                        :key="pkg.Id + '-' + a.TechID + '@' + a.Version" items-fit-content selection-mode="Multiple">
-                        <ui5-segmented-button-item :selected="isArtifactSelected(pkg.Id, a)" @click="toggleArtifact(pkg.Id, a)">
-                          {{ a.TechID }}@{{ a.Version }}
-                        </ui5-segmented-button-item>
-                        <ui5-segmented-button-item icon="italic-text" @click="openArtifactDetails(a)" tooltip="Show Details" />
-                      </ui5-segmented-button>
-                    </div>
-                  </div>
+                  <ui5-multi-combobox v-else show-clear-icon show-select-all @selection-change="handleSelectPackage"
+                    style="width: 100%;">
+                    <ui5-mcb-item v-for="pkg in packageOptions" :id="pkg.value.Id" :key="pkg.value.Id"
+                      :text="pkg.value.Name" :additional-text="`${pkg.value.Version}`"
+                      :selected="selectedPackages.some(p => p.Id === pkg.value.Id)" />
+                  </ui5-multi-combobox>
                 </div>
-              </ui5-panel>
-            </div>
 
-            <!-- Global artifact search — independent section, searches across all loaded packages -->
-            <ui5-title size="H6">Search All Artifacts</ui5-title>
-            <div style="display: flex; flex-direction: column; gap: 6px;">
-              <ui5-input
-                :value="globalArtifactSearch"
-                @input="globalArtifactSearch = ($event.target as HTMLInputElement).value"
-                placeholder="Search artifacts by name / version across all packages"
-                show-clear-icon
-                :disabled="packagesLoading"
-                style="width: 40%;"
-              />
-              <div v-if="globalArtifactSearch && globalArtifactResults.length" style="display: flex; flex-wrap: wrap; gap: 6px; max-height: 200px; overflow-y: auto; padding: 4px 0;">
-                <ui5-segmented-button
-                  v-for="item in globalArtifactResults"
-                  :key="item.pkg.Id + '-' + item.artifact.TechID + '@' + item.artifact.Version"
-                  items-fit-content selection-mode="Multiple">
-                  <ui5-segmented-button-item
-                    :selected="isArtifactSelected(item.pkg.Id, item.artifact)"
-                    @click="toggleArtifact(item.pkg.Id, item.artifact)">
-                    {{ item.artifact.TechID }}@{{ item.artifact.Version }}
-                  </ui5-segmented-button-item>
-                  <ui5-segmented-button-item icon="italic-text" @click="openArtifactDetails(item.artifact)" tooltip="Show Details" />
-                </ui5-segmented-button>
+                <!-- Package & Artifacts panels -->
+                <div v-if="selectedPackages.length">
+                  <ui5-panel v-for="pkg in selectedPackages" :key="pkg.Id" :header-text="`${pkg.Name} - ${pkg.Version}`"
+                    collapsed style="margin-bottom: 10px;">
+                    <ui5-busy-indicator v-if="packagesLoading" active :delay="0"
+                      style="display:flex; justify-content:center; align-items:center; width:100%; height: 80px;">
+                    </ui5-busy-indicator>
+                    <div v-else>
+                      <div v-if="(packageArtifacts[pkg.Id] || []).length === 0">
+                        <ui5-illustrated-message name="NoData" design="Dot" />
+                      </div>
+                      <div v-else>
+                        <div style="display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0;">
+                          <ui5-input :id="`input-filter-artifacts-${pkg.Id}`" @input="handleFilterArtifacts(pkg.Id, $event)"
+                            placeholder="Filter artifacts (id/version/type)"
+                            show-clear-icon
+                            style="width: 40%;"/>
+
+                          <ui5-button design="Transparent" @click="selectAllFiltered(pkg.Id)"
+                            :disabled="!filteredArtifacts(pkg.Id).length">Select All Filtered
+                          </ui5-button>
+                          <ui5-button design="Transparent" @click="clearSelections(pkg.Id)"
+                            :disabled="!(selPkgArtifacts[pkg.Id] || []).length">Clear Selected
+                          </ui5-button>
+                        </div>
+
+                        <!-- Artifact list section -->
+                        <div style="max-height:240px; overflow:auto; padding:6px; display:flex; flex-wrap:wrap; gap:6px;">
+                          <ui5-segmented-button v-for="a in filteredArtifacts(pkg.Id)"
+                            :key="pkg.Id + '-' + a.TechID + '@' + a.Version" items-fit-content selection-mode="Multiple">
+                            <ui5-segmented-button-item :selected="isArtifactSelected(pkg.Id, a)" @click="toggleArtifact(pkg.Id, a)">
+                              {{ a.TechID }}@{{ a.Version }}
+                            </ui5-segmented-button-item>
+                            <ui5-segmented-button-item icon="italic-text" @click="openArtifactDetails(a)" tooltip="Show Details" />
+                          </ui5-segmented-button>
+                        </div>
+                      </div>
+                    </div>
+                  </ui5-panel>
+                </div>
               </div>
-              <ui5-illustrated-message
-                v-else-if="globalArtifactSearch && !globalArtifactResults.length && !packagesLoading"
-                name="NoData" design="Dot"
-                title-text="No artifacts found"
-                :subtitle-text="`No artifacts match '${globalArtifactSearch}'`"
-                style="height: 80px;" />
+
             </div>
 
               <!-- Selected Artifacts list -->
@@ -333,9 +346,6 @@
                   <ui5-title size="H6">
                     <span style="color: var(--sapPositiveColor);">New ({{ addOps.length }})</span>
                   </ui5-title>
-                  <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
-                    <ui5-message-strip design="Critical" :hide-close-button="true" style="width: fit-content;">TRs required before requesting approval</ui5-message-strip>
-                  </div>
                   <div style="display: flex; flex-direction: row; gap: 8px; flex-wrap: wrap;">
                     <ArtifactOpTag v-for="(op, i) in addOps" :key="`add-${op.ArtifactTechID}@${op.ArtifactVersion}`"
                       :i="i" :art-op="op" :stage-type="stateType(op)"
@@ -353,7 +363,17 @@
                   </div>
                 </div>
               </div>
-              <ui5-button design="Emphasized" @click="updateDr" style="width:10%; margin-top: 10px;" :loading="updatingOps" :loading-delay="0"> Update </ui5-button>
+              <ui5-button
+                v-if="addOps.length > 0 || deleteOps.length > 0 || draftSourceOps.length > 0"
+                design="Emphasized" @click="updateDr" style="width:10%; margin-top: 10px;" :loading="updatingOps" :loading-delay="0"> Confirm </ui5-button>
+              <ui5-message-strip
+                v-if="step1Message"
+                :design="step1Message.type"
+                :hide-close-button="false"
+                style="margin-top: 8px; white-space: pre-line;"
+                @close="step1Message = null">
+                {{ step1Message.text }}
+              </ui5-message-strip>
             </div>
           </div>
         </div>
@@ -657,6 +677,7 @@ export default {
       globalArtifactSearch: '',
       globalArtifactResults: [] as { pkg: Package; artifact: Artifact }[],
       globalSearchTimer: null as ReturnType<typeof setTimeout> | null,
+      step1Message: null as { type: 'Negative' | 'Positive'; text: string } | null,
     }
   },
   methods: {
@@ -790,16 +811,22 @@ export default {
         window.$toast?.warning?.('Please select a source CPI tenant')
         return
       }
-      // No TR validation at save time — backend allows empty TRs (Phase 1).
-      // Missing TRs are enforced at approve/request-approval stage via missingTrOps check.
+      this.step1Message = null
       try {
         this.updatingOps = true
-        // await nextTick()
         await UpdateDeliveryRequest(this.deliveryRequest)
         const draftOps = UpdateOps(this.deliveryRequest.ID, this.draftSourceOps.map(d => d.op))
         const delOps = DeleteOps(this.deliveryRequest.ID, this.deleteOps.map(op => op.ID))
         const insertOps = InsertOps(this.deliveryRequest.ID, this.addOps)
-        await Promise.all([delOps, insertOps, draftOps])
+        const [, insertedOps] = await Promise.all([draftOps, insertOps, delOps])
+        // TR generation is now synchronous — check for any TR_FAILED results
+        const failedTrOps = (insertedOps || []).filter((op: ArtifactTenantOperation) => op.RequestState === 'TR_FAILED')
+        if (failedTrOps.length > 0) {
+          const details = failedTrOps.map((op: ArtifactTenantOperation) => `${op.ArtifactTechID}: ${op.TrError || 'unknown error'}`).join('\n')
+          this.step1Message = { type: 'Negative', text: `TR generation failed for ${failedTrOps.length} artifact(s):\n${details}` }
+        }
+      } catch (e: any) {
+        this.step1Message = { type: 'Negative', text: e?.message || 'Failed to save changes' }
       } finally {
         this.updatingOps = false
         await this.refresh()
@@ -1009,11 +1036,7 @@ export default {
         if (kw !== this.globalArtifactSearch.trim().toLowerCase()) return // stale, abort
         const arts = this.packageArtifacts[pkg.Id] || []
         for (const a of arts) {
-          if (
-            a.TechID.toLowerCase().includes(kw) ||
-            a.Version.toLowerCase().includes(kw) ||
-            (a.Type && a.Type.toLowerCase().includes(kw))
-          ) {
+          if (a.Name.toLowerCase().includes(kw)) {
             results.push({ pkg, artifact: a })
           }
         }
