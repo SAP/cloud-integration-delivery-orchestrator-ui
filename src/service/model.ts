@@ -252,12 +252,6 @@ export interface Artifact {
   CreatedAt: string
   ModifiedBy: string
   ModifiedAt: string
-  TaskId: string
-  Status: string
-  // CAS cache fields — populated when artifact originates from CAS content resources
-  CasArtifactGUID?: string
-  CasPackageResourceID?: string
-  CasArtifactExportable?: boolean
 }
 
 export interface RuntimeArtifact {
@@ -267,7 +261,6 @@ export interface RuntimeArtifact {
   Type: string
   DeployedBy: string
   DeployedOn: string
-  Status: string
 }
 
 
@@ -473,24 +466,6 @@ export interface CreateDRFromMismatchSummary {
 export interface CreateDRFromMismatchResponse {
   deliveryRequest: DeliveryRequest
   summary: CreateDRFromMismatchSummary
-}
-
-// --- CAS (Content Archive Service) ---
-
-export interface CasArtifact {
-  guid: string
-  name: string
-  type: string
-  version: string
-  exportable: boolean
-}
-
-export interface CasPackage {
-  id: string
-  resourceID: string
-  name: string
-  version: string
-  artifacts: CasArtifact[]
 }
 
 export interface GenerateTRResult {

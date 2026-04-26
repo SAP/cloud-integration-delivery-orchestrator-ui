@@ -252,8 +252,13 @@
                     <ui5-segmented-button-item icon="italic-text" @click="openArtifactDetails(item.artifact)" tooltip="Show Details" />
                   </ui5-segmented-button>
                 </div>
+                <ui5-busy-indicator
+                  v-if="globalArtifactSearch && globalArtifactSearching"
+                  active :delay="0"
+                  style="display:flex; justify-content:center; align-items:center; width:100%; height: 40px;">
+                </ui5-busy-indicator>
                 <ui5-illustrated-message
-                  v-else-if="globalArtifactSearch && !globalArtifactResults.length && !packagesLoading"
+                  v-else-if="globalArtifactSearch && !globalArtifactResults.length && !globalArtifactSearching"
                   name="NoData" design="Dot"
                   title-text="No artifacts found"
                   :subtitle-text="`No artifacts match '${globalArtifactSearch}'`"
@@ -536,7 +541,7 @@ import {
   GetDeliveryRequest,
   UpdateDeliveryRequest,
   GetPackages,
-  GetCasContentResources,
+  GetPackageArtifacts,
   GenerateTR,
   DeleteDeliveryRequest,
   TenantOps,
@@ -556,7 +561,7 @@ import { CANCELLABLE_STATUSES, type ConditionType } from '@/service/statuses'
 import { toLocalTime } from '@/service/consts'
 import { VueFlow } from '@vue-flow/core'
 import CpiTransportNode from '@/components/CpiTransportNode.vue'
-import type { CasPackage, DeliveryRequest, CpiTenant, Package, Artifact, ArtifactTenantOperation, UserInfo, Condition } from '@/service/model'
+import type { DeliveryRequest, CpiTenant, Package, Artifact, ArtifactTenantOperation, UserInfo, Condition } from '@/service/model'
 import DeliveryFlowView from './DeliveryFlowView.vue'
 import CpiTransportFlowView from './CpiTransportFlowView.vue'
 import ArtifactOpTag from '@/components/ArtifactOpTag.vue'
@@ -638,7 +643,7 @@ export default {
       cpiTenants: [] as CpiTenant[],
       tenantPkgs: [] as Package[],
       selectedPackages: [] as Package[],
-      packageArtifacts: {} as { [key: string]: Artifact[] }, // packages to their artifacts, loaded from CAS
+      packageArtifacts: {} as { [key: string]: Artifact[] }, // lazy-loaded per package via PIR API
       selPkgArtifacts: {} as { [key: string]: Artifact[] },  // selected artifacts within each package, [package id, array of artifact]
       packagesLoading: false,
       artifactSearch: {} as { [key: string]: string },
@@ -676,6 +681,8 @@ export default {
       activeConditionFilter: 'All' as 'All' | ConditionType,
       globalArtifactSearch: '',
       globalArtifactResults: [] as { pkg: Package; artifact: Artifact }[],
+      globalArtifactSearching: false,
+      globalArtifactSearchVersion: 0,
       globalSearchTimer: null as ReturnType<typeof setTimeout> | null,
       step1Message: null as { type: 'Negative' | 'Positive'; text: string } | null,
     }
@@ -747,26 +754,17 @@ export default {
     async refresh() {
       this.deliveryRequest = await GetDeliveryRequest(this.planId)
 
-      // load packages + artifacts from CAS in one call
+      // load packages from PIR; artifacts are loaded lazily per package on selection
       this.packagesLoading = true
       try {
-        const casData = await GetCasContentResources(this.deliveryRequest.SourceTenant.ID)
-        this.tenantPkgs = casData.map(cp => ({
-          Id: cp.id, Name: cp.name, Version: cp.version,
-          Description: '', Mode: '', ModifiedBy: '', ModifiedAt: '',
-        } as Package))
-        casData.forEach(cp => {
-          this.packageArtifacts[cp.id] = cp.artifacts.map(a => ({
-            TechID: a.name, Version: a.version, PackageID: cp.id,
-            PackageName: cp.name, PackageVersion: cp.version,
-            Name: a.name, Type: a.type,
-            Description: '', CreatedBy: '', CreatedAt: '',
-            ModifiedBy: '', ModifiedAt: '', TaskId: '', Status: '',
-            CasArtifactGUID: a.guid,
-            CasPackageResourceID: cp.resourceID,
-            CasArtifactExportable: a.exportable,
-          } as Artifact))
-        })
+        const pkgs = await GetPackages(this.deliveryRequest.SourceTenant.ID)
+        this.tenantPkgs = pkgs ?? []
+        // pre-load artifacts for packages that already have saved ops
+        const savedPackageIDs = [...new Set(this.sourceOps.map(op => op.PackageID))]
+        await Promise.all(savedPackageIDs.map(async pkgId => {
+          const arts = await GetPackageArtifacts(String(this.deliveryRequest.SourceTenant.ID), pkgId)
+          this.packageArtifacts[pkgId] = arts ?? []
+        }))
       } finally {
         this.packagesLoading = false
       }
@@ -1014,7 +1012,7 @@ export default {
       if (op.RequestState === 'NOT_REQUESTED') return '5'
       return '10'
     },
-    handleSelectPackage(event: CustomEvent) {
+    async handleSelectPackage(event: CustomEvent) {
       const selectedItems = event.detail.items as Array<{ id: string; text: string; additionalText: string }>
       const selectedPkgs = selectedItems
         .map(item => {
@@ -1023,6 +1021,13 @@ export default {
         })
         .filter((pkg): pkg is Package => pkg !== null)
       this.selectedPackages = selectedPkgs
+      // lazy-load artifacts for newly selected packages not yet in cache
+      await Promise.all(selectedPkgs.map(async pkg => {
+        if (!this.packageArtifacts[pkg.Id]) {
+          const arts = await GetPackageArtifacts(String(this.deliveryRequest.SourceTenant.ID), pkg.Id)
+          this.packageArtifacts[pkg.Id] = arts ?? []
+        }
+      }))
     },
     handleFilterArtifacts(pkgId: string, event: Event) {
       const input = event.target as HTMLInputElement;
@@ -1030,25 +1035,34 @@ export default {
     },
     conditionTypeToDesign,
     async runGlobalArtifactSearch(kw: string) {
-      const results: { pkg: Package; artifact: Artifact }[] = []
-      for (const pkg of this.tenantPkgs) {
-        await new Promise(r => setTimeout(r, 0))
-        if (kw !== this.globalArtifactSearch.trim().toLowerCase()) return // stale, abort
-        const arts = this.packageArtifacts[pkg.Id] || []
-        for (const a of arts) {
-          if (a.Name.toLowerCase().includes(kw)) {
-            results.push({ pkg, artifact: a })
+      const version = ++this.globalArtifactSearchVersion
+      this.globalArtifactResults = []
+      this.globalArtifactSearching = true
+      try {
+        await Promise.all(this.tenantPkgs.map(async pkg => {
+          if (!this.packageArtifacts[pkg.Id]) {
+            const arts = await GetPackageArtifacts(String(this.deliveryRequest.SourceTenant.ID), pkg.Id)
+            this.packageArtifacts[pkg.Id] = arts ?? []
           }
+          if (version !== this.globalArtifactSearchVersion) return // stale
+          for (const a of (this.packageArtifacts[pkg.Id] ?? [])) {
+            if (a.TechID.toLowerCase().includes(kw) || a.Version.toLowerCase().includes(kw)) {
+              this.globalArtifactResults.push({ pkg, artifact: a })
+            }
+          }
+        }))
+      } finally {
+        if (version === this.globalArtifactSearchVersion) {
+          this.globalArtifactSearching = false
         }
       }
-      this.globalArtifactResults = results
     },
   },
   watch: {
     globalArtifactSearch(val: string) {
       if (this.globalSearchTimer) clearTimeout(this.globalSearchTimer)
       const kw = val.trim().toLowerCase()
-      if (!kw) { this.globalArtifactResults = []; return }
+      if (!kw) { this.globalArtifactResults = []; this.globalArtifactSearching = false; this.globalArtifactSearchVersion++; return }
       this.globalSearchTimer = setTimeout(() => this.runGlobalArtifactSearch(kw), 200)
     },
     selectedPackages(newPkgs: Package[], oldPkgs: Package[]) {
@@ -1097,9 +1111,6 @@ export default {
               ImportState: 'NOT_STARTED',
               DeployState: 'NOT_STARTED',
               SkipDeploy: false,
-              CasArtifactGUID: a.CasArtifactGUID,
-              CasPackageResourceID: a.CasPackageResourceID,
-              CasArtifactExportable: a.CasArtifactExportable,
             } as ArtifactTenantOperation
           })
       },
