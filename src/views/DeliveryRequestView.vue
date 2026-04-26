@@ -79,7 +79,7 @@
             </ui5-text>
             <div v-if="!isEditingTr" style="width: 1px; height: 20px; background-color: #ccc; margin: 0 10px;"></div>
             <ui5-input v-show="isEditingTr" v-model="editingTrNumber" style="width:20%"
-              placeholder="TR number" @keyup.enter="checkTr(artifactOpDetial)" />
+              placeholder="TR number" @keyup.enter="saveTr(artifactOpDetial)" />
             <ui5-button v-show="!isEditingTr" @click="isEditingTr = true"
               design="Transparent">Edit</ui5-button>
             <ui5-button
@@ -87,11 +87,11 @@
               @click="revertTr" design="Transparent">
               Revert
             </ui5-button>
-            <ui5-button :loading="checkingTrLoading" v-show="isEditingTr && !generatingTrLoading"
-              @click="checkTr(artifactOpDetial)" design="Transparent">
-              Check
+            <ui5-button v-show="isEditingTr"
+              @click="saveTr(artifactOpDetial)" design="Transparent">
+              Save
             </ui5-button>
-            <ui5-button :loading="generatingTrLoading"
+            <ui5-button :loading="generatingTrLoading" v-show="!isEditingTr"
               :disabled="artifactOpDetial.RequestState === 'TR_GENERATING'"
               :tooltip="artifactOpDetial.RequestState === 'TR_GENERATING' ? 'TR generation in progress…' : ''"
               @click="handleGenTr" design="Transparent">Auto Generate</ui5-button>
@@ -553,7 +553,6 @@ import {
   RequestApprove,
   Approve,
   UaaUserInfo,
-  CheckTrExistence,
   CurrentUser,
   CancelDeliveryRequest,
 } from '@/service/api'
@@ -652,7 +651,6 @@ export default {
       artifactDetail: {} as Artifact,
       artifactOpDetial: {} as ArtifactTenantOperation,
       editingTrNumber: '' as string, // tr number being edited, will assign to artifactOpDetial when saved
-      checkingTrLoading: false,
       generatingTrLoading: false,
       trInfo: '' as string, // displays tr URL after generation
       draftSourceOps: [] as { op: ArtifactTenantOperation, newTr: string, oldTr: string }[], // operations being drafted (source ops only)
@@ -866,27 +864,20 @@ export default {
     clearSelections(pkgId: string) {
       this.selPkgArtifacts[pkgId] = []
     },
-    // check TR number existence
-    async checkTr(op: ArtifactTenantOperation) {
-      this.checkingTrLoading = true
+    saveTr(op: ArtifactTenantOperation) {
       const originalTrNumber = op?.TransportRequestNumber || ''
       const newTrNumber = this.editingTrNumber?.trim() || ''
       op.TransportRequestNumber = newTrNumber
-      try {
-        await CheckTrExistence(op, this.deliveryRequest.ID)
-        const draftOp = this.sourceOps.find(op => op.ID === this.artifactOpDetial.ID) // only ops in source(saved once) can be drafted
-        if (!draftOp || originalTrNumber === newTrNumber) return
+      const draftOp = this.sourceOps.find(o => o.ID === this.artifactOpDetial.ID)
+      if (draftOp && originalTrNumber !== newTrNumber) {
         const indraft = this.draftSourceOps.map(d => d.op).find(draft => draft.ID === draftOp.ID)
         if (!indraft) {
           this.draftSourceOps.push({ op: draftOp, newTr: newTrNumber, oldTr: originalTrNumber })
         } else {
           indraft.TransportRequestNumber = newTrNumber
         }
-      } catch (_) {
-        op.TransportRequestNumber = originalTrNumber // revert
-      } finally {
-        this.checkingTrLoading = false
       }
+      this.isEditingTr = false
     },
     async handleGenTr() {
       if (!this.artifactOpDetial.ID) {

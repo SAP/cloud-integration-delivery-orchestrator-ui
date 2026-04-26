@@ -194,13 +194,6 @@ export const UaaUserInfo = (userId: string) => {
   return http.get(`/api/v1/uaa/id/${userId}`) as Promise<UserInfo>
 }
 
-export const CheckTrExistence = (op: ArtifactTenantOperation, deliveryRequestID: number) => {
-  return http.post(`/api/v1/deliveryRequest/checkTr`, {
-    opID: op.ID,
-    transportRequestNumber: op.TransportRequestNumber,
-    deliveryRequestID: deliveryRequestID,
-  }) as Promise<{[key: string]: boolean}>
-}
 // approve delivery request
 export const RequestApprove = (drID: number, approvers: string[], comment: string|'') => {
   return http.post(`/api/v1/deliveryRequest/requestApproval`, 
