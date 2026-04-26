@@ -89,7 +89,7 @@
             </ui5-button>
             <ui5-button v-show="isEditingTr"
               @click="saveTr(artifactOpDetial)" design="Transparent">
-              Save
+              Apply
             </ui5-button>
             <ui5-button :loading="generatingTrLoading" v-show="!isEditingTr"
               :disabled="artifactOpDetial.RequestState === 'TR_GENERATING'"
@@ -111,7 +111,12 @@
             design="Negative" :hide-close-button="true" style="width: fit-content; font-size: var(--sapFontSize);">
             TR generation failed: {{ artifactOpDetial.TrError }}
           </ui5-message-strip>
-          <ui5-text v-else-if="trInfo" style="color: var(--sapPositiveColor); font-size: var(--sapFontSize);">{{ trInfo }}</ui5-text>
+          <ui5-message-strip
+            v-else-if="trInfo"
+            design="Positive" :hide-close-button="true" style="width: fit-content; font-size: var(--sapFontSize);">
+            TR generated: <strong>{{ artifactOpDetial.TransportRequestNumber }}</strong> -
+            <ui5-link :href="trInfo" target="_blank">Open in TMS</ui5-link>
+          </ui5-message-strip>
         </div>
 
       </div>
@@ -335,9 +340,10 @@
 
               <!-- Selected Artifacts list -->
             <div v-if="selArtifactOps.length || deleteOps.length" style="margin-top:18px; display: flex; flex-direction: column; gap:10px">
-              <ui5-title size="H6">
-                Selected Artifacts ({{ selArtifactOps.length }})
-              </ui5-title>
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <ui5-title size="H6">Selected Artifacts ({{ selArtifactOps.length }})</ui5-title>
+                <ui5-button icon="refresh" design="Transparent" tooltip="Refresh TR status" :disabled="refreshingOps" @click="refreshOps" />
+              </div>
               <div style="display: flex; flex-direction: column; gap:10px">
                 <!-- old(source) artifacts + draft source artifacts -->
                 <div style="display: flex; flex-direction: row; gap: 8px; flex-wrap: wrap;">
@@ -370,12 +376,18 @@
               </div>
               <ui5-button
                 v-if="addOps.length > 0 || deleteOps.length > 0 || draftSourceOps.length > 0"
-                design="Emphasized" @click="updateDr" style="width:10%; margin-top: 10px;" :loading="updatingOps" :loading-delay="0"> Confirm </ui5-button>
+                design="Emphasized" 
+                @click="updateDr" 
+                style="width:10%; margin-top: 10px;" 
+                :loading="updatingOps" 
+                :loading-delay="0"> 
+                Confirm 
+              </ui5-button>
               <ui5-message-strip
                 v-if="step1Message"
                 :design="step1Message.type"
                 :hide-close-button="false"
-                style="margin-top: 8px; white-space: pre-line;"
+                style="margin-top: 8px; white-space: pre-line; width: fit-content;"
                 @close="step1Message = null">
                 {{ step1Message.text }}
               </ui5-message-strip>
@@ -667,6 +679,7 @@ export default {
       currentUser: {} as UserInfo,
       loadingCpiTenants: true,
       updatingOps: false,
+      refreshingOps: false,
       syncingStatus: false,
       generatingTrsLoading: false,
       approveStepLoading: false,
@@ -682,7 +695,7 @@ export default {
       globalArtifactSearching: false,
       globalArtifactSearchVersion: 0,
       globalSearchTimer: null as ReturnType<typeof setTimeout> | null,
-      step1Message: null as { type: 'Negative' | 'Positive'; text: string } | null,
+      step1Message: null as { type: 'Negative' | 'Positive' | 'Information'; text: string } | null,
     }
   },
   methods: {
@@ -749,6 +762,14 @@ export default {
       this.draftSourceOps = this.draftSourceOps.filter(d => d.op.ID !== draft!.op.ID)
       this.isEditingTr = false
     },
+    async refreshOps() {
+      this.refreshingOps = true
+      try {
+        this.deliveryRequest = await GetDeliveryRequest(this.planId)
+      } finally {
+        this.refreshingOps = false
+      }
+    },
     async refresh() {
       this.deliveryRequest = await GetDeliveryRequest(this.planId)
 
@@ -808,24 +829,29 @@ export default {
         return
       }
       this.step1Message = null
+      const trGeneratingCount = this.addOps.filter(
+        op => op.TenantID === this.deliveryRequest.SourceTenant?.ID && !op.TransportRequestNumber
+      ).length
       try {
         this.updatingOps = true
         await UpdateDeliveryRequest(this.deliveryRequest)
         const draftOps = UpdateOps(this.deliveryRequest.ID, this.draftSourceOps.map(d => d.op))
         const delOps = DeleteOps(this.deliveryRequest.ID, this.deleteOps.map(op => op.ID))
         const insertOps = InsertOps(this.deliveryRequest.ID, this.addOps)
-        const [, insertedOps] = await Promise.all([draftOps, insertOps, delOps])
-        // TR generation is now synchronous — check for any TR_FAILED results
-        const failedTrOps = (insertedOps || []).filter((op: ArtifactTenantOperation) => op.RequestState === 'TR_FAILED')
-        if (failedTrOps.length > 0) {
-          const details = failedTrOps.map((op: ArtifactTenantOperation) => `${op.ArtifactTechID}: ${op.TrError || 'unknown error'}`).join('\n')
-          this.step1Message = { type: 'Negative', text: `TR generation failed for ${failedTrOps.length} artifact(s):\n${details}` }
+        await Promise.all([draftOps, insertOps, delOps])
+        await this.refresh()
+        if (trGeneratingCount > 0) {
+          this.step1Message = {
+            type: 'Information',
+            text: `${trGeneratingCount} artifact(s) queued for automatic TR generation. Use the refresh button to check status.`,
+          }
+        } else {
+          this.step1Message = { type: 'Positive', text: 'Changes saved successfully.' }
         }
       } catch (e: any) {
         this.step1Message = { type: 'Negative', text: e?.message || 'Failed to save changes' }
       } finally {
         this.updatingOps = false
-        await this.refresh()
       }
     },
     filteredArtifacts(pkgId: string): Artifact[] {
@@ -870,11 +896,18 @@ export default {
       op.TransportRequestNumber = newTrNumber
       const draftOp = this.sourceOps.find(o => o.ID === this.artifactOpDetial.ID)
       if (draftOp && originalTrNumber !== newTrNumber) {
-        const indraft = this.draftSourceOps.map(d => d.op).find(draft => draft.ID === draftOp.ID)
-        if (!indraft) {
+        const draftIndex = this.draftSourceOps.findIndex(d => d.op.ID === draftOp.ID)
+        if (draftIndex < 0) {
           this.draftSourceOps.push({ op: draftOp, newTr: newTrNumber, oldTr: originalTrNumber })
         } else {
-          indraft.TransportRequestNumber = newTrNumber
+          const draft = this.draftSourceOps[draftIndex]
+          if (newTrNumber === draft.oldTr) {
+            // Edited back to the original DB value — remove draft entirely
+            this.draftSourceOps.splice(draftIndex, 1)
+          } else {
+            draft.op.TransportRequestNumber = newTrNumber
+            draft.newTr = newTrNumber
+          }
         }
       }
       this.isEditingTr = false
@@ -886,7 +919,6 @@ export default {
       }
       try {
         this.generatingTrLoading = true
-        this.isEditingTr = true
         const { succeeded, failed } = await GenerateTR(
           this.deliveryRequest.SourceTenant.ID,
           this.deliveryRequest.ID,
@@ -895,12 +927,14 @@ export default {
         const opIDKey = String(this.artifactOpDetial.ID)
         const tr = succeeded[opIDKey]
         if (tr) {
-          this.editingTrNumber = tr.transportRequestID
-          this.artifactOpDetial.TransportRequestNumber = tr.transportRequestID
           this.trInfo = tr.transportRequestURL
-          // Update in-memory sourceOp — TR is already persisted by backend
-          const sourceOp = this.sourceOps.find(op => op.ID === this.artifactOpDetial.ID)
-          if (sourceOp) sourceOp.TransportRequestNumber = tr.transportRequestID
+          await this.refreshOps()
+          // Sync detail panel with refreshed op state
+          const refreshed = this.sourceOps.find(op => op.ID === this.artifactOpDetial.ID)
+          if (refreshed) {
+            this.artifactOpDetial = refreshed
+            this.editingTrNumber = refreshed.TransportRequestNumber
+          }
           window.$toast?.success(`Generated transport request: ${tr.transportRequestID}`)
         } else {
           window.$toast?.error(`Failed to generate transport request: ${failed[opIDKey] ?? 'Unknown error'}`)
@@ -1074,9 +1108,10 @@ export default {
         const removeIdx = removed
           .filter(a => {
             const op = this.sourceOps.find(op => op.ArtifactTechID === a.TechID && op.ArtifactVersion === a.Version) || {} as ArtifactTenantOperation
-            if (op.RequestState !== 'NOT_REQUESTED')
+            const removable = op.RequestState === 'NOT_REQUESTED' || op.RequestState === 'TR_FAILED'
+            if (!removable)
               window.$toast?.warning?.(`Cannot remove artifact ${a.TechID}@${a.Version} as its request state is ${op.RequestState}`)
-            return op.RequestState === 'NOT_REQUESTED' // can only remove not requested artifacts. Other states are in delivery process
+            return removable
           })
           .map(a => this.allOps.findIndex(op => op.ArtifactTechID === a.TechID && op.ArtifactVersion === a.Version)) // NOTE: if remove, should also remove all target tenant ops meanwhile
           .filter(i => i > -1)  // removed operations IDs of all tenants
