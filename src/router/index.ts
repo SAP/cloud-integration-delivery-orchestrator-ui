@@ -44,7 +44,7 @@ const router = createRouter({
   routes: [
     {
       path: '/',
-      name: 'MMT Devops',
+      name: 'CPI Delivery',
       component: () => import('@/views/HomeView.vue'),
       meta: { description: 'Home' }
     },

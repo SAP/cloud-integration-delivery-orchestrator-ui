@@ -271,12 +271,12 @@
                                             <ui5-text style="font-weight: bold; margin-bottom: 0.5rem;">Routes ({{ tmsRoutes.length }})</ui5-text>
                                             <div v-for="route in tmsRoutes" :key="route.id" class="route-item">
                                                 <ui5-text style="font-size: 0.85rem;">
-                                                    {{ route.name }} —
+                                                    {{ route.name }} -
                                                     <template v-if="route.sourceNodeId === selectedCpiTenant.TmsSourceNodeID">
-                                                        outbound: {{ tmsNodes.find(n => n.id === route.sourceNodeId)?.name ?? '?' }}(#{{ route.sourceNodeId }}) → {{ tmsNodes.find(n => n.id === route.targetNodeId)?.name ?? '?' }}(#{{ route.targetNodeId }})
+                                                        Outbound: {{ tmsNodes.find(n => n.id === route.sourceNodeId)?.name ?? '?' }}(#{{ route.sourceNodeId }}) → {{ tmsNodes.find(n => n.id === route.targetNodeId)?.name ?? '?' }}(#{{ route.targetNodeId }})
                                                     </template>
                                                     <template v-else>
-                                                        inbound: {{ tmsNodes.find(n => n.id === route.sourceNodeId)?.name ?? '?' }}(#{{ route.sourceNodeId }}) → {{ tmsNodes.find(n => n.id === route.targetNodeId)?.name ?? '?' }}(#{{ route.targetNodeId }})
+                                                        Inbound: {{ tmsNodes.find(n => n.id === route.sourceNodeId)?.name ?? '?' }}(#{{ route.sourceNodeId }}) → {{ tmsNodes.find(n => n.id === route.targetNodeId)?.name ?? '?' }}(#{{ route.targetNodeId }})
                                                     </template>
                                                 </ui5-text>
                                             </div>
