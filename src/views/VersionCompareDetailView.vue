@@ -277,9 +277,10 @@ const selectedCount = computed(() => {
 
 const typeLabel = (type: string): string => {
   switch (type) {
-    case 'iflow': return 'IFlow'
-    case 'scriptcollection': return 'SC'
-    case 'valuemapping': return 'VM'
+    case 'Integration Flow': return 'IF'
+    case 'Script Collection': return 'SC'
+    case 'OData Service': return 'OD'
+    case 'Integration Adapter': return 'IA'
     default: return type
   }
 }
@@ -546,7 +547,7 @@ onUnmounted(() => {
               </ui5-table-cell>
               <ui5-table-cell>
                 <ui5-tag design="Set2" color-scheme="6" style="font-size: 0.7rem;">
-                  {{ art.type === 'iflow' ? 'IF' : art.type === 'scriptcollection' ? 'SC' : art.type }}
+                  {{ typeLabel(art.type) }}
                 </ui5-tag>
               </ui5-table-cell>
 

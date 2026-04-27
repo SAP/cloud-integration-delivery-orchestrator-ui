@@ -570,8 +570,6 @@ import {
 } from '@/service/api'
 import { CANCELLABLE_STATUSES, type ConditionType } from '@/service/statuses'
 import { toLocalTime } from '@/service/consts'
-import { VueFlow } from '@vue-flow/core'
-import CpiTransportNode from '@/components/CpiTransportNode.vue'
 import type { DeliveryRequest, CpiTenant, Package, Artifact, ArtifactTenantOperation, UserInfo, Condition } from '@/service/model'
 import DeliveryFlowView from './DeliveryFlowView.vue'
 import CpiTransportFlowView from './CpiTransportFlowView.vue'
@@ -587,7 +585,6 @@ import "@ui5/webcomponents-fiori/dist/DynamicPage.js";
 import "@ui5/webcomponents-fiori/dist/DynamicPageTitle.js";
 import "@ui5/webcomponents-fiori/dist/DynamicPageHeader.js";
 
-import "@ui5/webcomponents/dist/Bar.js";
 import "@ui5/webcomponents/dist/Label.js";
 import "@ui5/webcomponents/dist/Tag.js";
 import "@ui5/webcomponents/dist/Breadcrumbs.js";
@@ -595,7 +592,6 @@ import "@ui5/webcomponents/dist/BreadcrumbsItem.js";
 import "@ui5/webcomponents/dist/Title.js";
 import "@ui5/webcomponents/dist/Toolbar.js";
 import "@ui5/webcomponents/dist/ToolbarButton.js";
-import "@ui5/webcomponents/dist/Avatar.js";
 import "@ui5/webcomponents/dist/Button.js";
 import "@ui5/webcomponents/dist/List.js";
 import "@ui5/webcomponents/dist/ListItemStandard.js";
@@ -604,7 +600,6 @@ import "@ui5/webcomponents/dist/Input.js";
 import "@ui5/webcomponents-icons/dist/delete.js";
 import "@ui5/webcomponents-icons/dist/stop.js";
 import "@ui5/webcomponents-icons/dist/chain-link.js";
-import "@ui5/webcomponents-icons/dist/laptop.js";
 import "@ui5/webcomponents-icons/dist/refresh.js";
 import "@ui5/webcomponents-icons/dist/italic-text.js";
 import "@ui5/webcomponents-icons/dist/synchronize.js";
@@ -619,7 +614,6 @@ import "@ui5/webcomponents/dist/SegmentedButton.js";
 import "@ui5/webcomponents/dist/SegmentedButtonItem.js";
 import "@ui5/webcomponents/dist/MultiComboBox.js";
 import "@ui5/webcomponents/dist/MultiComboBoxItem.js";
-import "@ui5/webcomponents/dist/CheckBox.js";
 import "@ui5/webcomponents/dist/TextArea.js";
 import "@ui5/webcomponents/dist/Table.js";
 import "@ui5/webcomponents/dist/TableRow.js";
@@ -637,8 +631,6 @@ export default {
     return { hasScope }
   },
   components: {
-    VueFlow,
-    CpiTransportNode,
     DeliveryFlowView,
     CpiTransportFlowView,
     ConfirmDeleteDialog,
@@ -648,7 +640,6 @@ export default {
   data() {
     return {
       deliveryRequest: {} as DeliveryRequest,
-      current: 0,
       toLocalTime,
       isEditingTr: false,
       cpiTenants: [] as CpiTenant[],
@@ -673,8 +664,6 @@ export default {
       searchApproverLoading: false,
       approverOptions: [] as { label: string; value: UserInfo }[],
       searchTimer: null as ReturnType<typeof setTimeout> | null,
-      searchApprover: '',
-      skipNextSearch: false,
       uaaUsers: {} as { [key: string]: UserInfo }, // userId - userEmail
       currentUser: {} as UserInfo,
       loadingCpiTenants: true,
