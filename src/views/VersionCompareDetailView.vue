@@ -738,6 +738,7 @@ onUnmounted(() => {
                 <ui5-table-header-cell>Package</ui5-table-header-cell>
                 <ui5-table-header-cell>Type</ui5-table-header-cell>
                 <ui5-table-header-cell>Version</ui5-table-header-cell>
+                <ui5-table-header-cell>Modified By</ui5-table-header-cell>
                 <ui5-table-header-cell width="100px" title="Skip deploy phase — artifact only requires import">Skip Deploy</ui5-table-header-cell>
               </ui5-table-header-row>
               <ui5-table-row v-for="a in filteredIncludable" :key="artifactKey(a)">
@@ -751,6 +752,7 @@ onUnmounted(() => {
                 <ui5-table-cell><span class="dr-cell-secondary">{{ a.packageID }}</span></ui5-table-cell>
                 <ui5-table-cell><ui5-tag design="Set2" color-scheme="6" style="font-size: 0.65rem;">{{ typeLabel(a.type) }}</ui5-tag></ui5-table-cell>
                 <ui5-table-cell><span class="dr-cell-version">{{ a.sourceVersion }}</span></ui5-table-cell>
+                <ui5-table-cell><span class="dr-cell-secondary">{{ a.modifiedBy || '—' }}</span></ui5-table-cell>
                 <ui5-table-cell>
                   <ui5-checkbox
                     :checked="skipDeployArtifacts[artifactKey(a)] === true"
@@ -774,6 +776,7 @@ onUnmounted(() => {
                 <ui5-table-header-cell>Package</ui5-table-header-cell>
                 <ui5-table-header-cell>Type</ui5-table-header-cell>
                 <ui5-table-header-cell>Version</ui5-table-header-cell>
+                <ui5-table-header-cell>Modified By</ui5-table-header-cell>
                 <ui5-table-header-cell>Existing DR</ui5-table-header-cell>
                 <ui5-table-header-cell width="100px" title="Skip deploy phase — artifact only requires import">Skip Deploy</ui5-table-header-cell>
               </ui5-table-header-row>
@@ -788,6 +791,7 @@ onUnmounted(() => {
                 <ui5-table-cell><span class="dr-cell-secondary">{{ a.packageID }}</span></ui5-table-cell>
                 <ui5-table-cell><ui5-tag design="Set2" color-scheme="6" style="font-size: 0.65rem;">{{ typeLabel(a.type) }}</ui5-tag></ui5-table-cell>
                 <ui5-table-cell><span class="dr-cell-version">{{ a.sourceVersion }}</span></ui5-table-cell>
+                <ui5-table-cell><span class="dr-cell-secondary">{{ a.modifiedBy || '—' }}</span></ui5-table-cell>
                 <ui5-table-cell>
                   <ui5-tag v-if="a.existingDR" design="Critical" style="font-size: 0.65rem;">
                     DR #{{ a.existingDR.id }} {{ a.existingDR.name }}
@@ -815,12 +819,14 @@ onUnmounted(() => {
                 <ui5-table-header-cell>Artifact</ui5-table-header-cell>
                 <ui5-table-header-cell>Package</ui5-table-header-cell>
                 <ui5-table-header-cell>Type</ui5-table-header-cell>
+                <ui5-table-header-cell>Modified By</ui5-table-header-cell>
                 <ui5-table-header-cell>Status</ui5-table-header-cell>
               </ui5-table-header-row>
               <ui5-table-row v-for="a in filteredDraft" :key="artifactKey(a)">
                 <ui5-table-cell><span class="dr-cell-ellipsis">{{ a.artifactID }}</span></ui5-table-cell>
                 <ui5-table-cell><span class="dr-cell-secondary">{{ a.packageID }}</span></ui5-table-cell>
                 <ui5-table-cell><ui5-tag design="Set2" color-scheme="6" style="font-size: 0.65rem;">{{ typeLabel(a.type) }}</ui5-tag></ui5-table-cell>
+                <ui5-table-cell><span class="dr-cell-secondary">{{ a.modifiedBy || '—' }}</span></ui5-table-cell>
                 <ui5-table-cell><ui5-tag design="Critical" style="font-size: 0.65rem;">DRAFT</ui5-tag></ui5-table-cell>
               </ui5-table-row>
             </ui5-table>
@@ -839,6 +845,7 @@ onUnmounted(() => {
                 <ui5-table-header-cell>Package</ui5-table-header-cell>
                 <ui5-table-header-cell>Type</ui5-table-header-cell>
                 <ui5-table-header-cell>Version</ui5-table-header-cell>
+                <ui5-table-header-cell>Modified By</ui5-table-header-cell>
                 <ui5-table-header-cell>Reason</ui5-table-header-cell>
               </ui5-table-header-row>
               <ui5-table-row v-for="a in filteredVersionPattern" :key="artifactKey(a)">
@@ -846,6 +853,7 @@ onUnmounted(() => {
                 <ui5-table-cell><span class="dr-cell-secondary">{{ a.packageID }}</span></ui5-table-cell>
                 <ui5-table-cell><ui5-tag design="Set2" color-scheme="6" style="font-size: 0.65rem;">{{ typeLabel(a.type) }}</ui5-tag></ui5-table-cell>
                 <ui5-table-cell><span class="dr-cell-version">{{ a.sourceVersion }}</span></ui5-table-cell>
+                <ui5-table-cell><span class="dr-cell-secondary">{{ a.modifiedBy || '—' }}</span></ui5-table-cell>
                 <ui5-table-cell>
                   <ui5-tag v-if="a.reason" design="Negative" :title="a.reason" style="font-size: 0.65rem;">{{ a.reason }}</ui5-tag>
                 </ui5-table-cell>

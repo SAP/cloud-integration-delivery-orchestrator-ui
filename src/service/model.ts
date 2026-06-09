@@ -415,6 +415,8 @@ export interface PreviewDRArtifact {
   packageID: string
   type: string
   sourceVersion: string
+  modifiedBy?: string
+  modifiedAt?: string
   category: 'includable' | 'draft' | 'versionPattern' | 'duplicate'
   reason?: string
   existingDR?: ExistingDRInfo
