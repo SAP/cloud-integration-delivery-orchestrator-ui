@@ -93,8 +93,8 @@ export const DeleteDeliveryRule = (id: number) => {
 
 
 // DeliveryRequest CRUD
-export const GetDeliveryRequests = () => {
-  return http.get('/api/v1/deliveryRequest') as Promise<DeliveryRequest[]>
+export const GetDeliveryRequests = (page = 1, pageSize = 20) => {
+  return http.get('/api/v1/deliveryRequest', { params: { page, pageSize } }) as Promise<{ items: DeliveryRequest[], total: number, page: number, pageSize: number }>
 }
 
 export const GetDeliveryRequest = (id: Number) => {

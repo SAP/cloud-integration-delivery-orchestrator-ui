@@ -82,6 +82,10 @@
     :row-click="handleRowClick"
     :loading="loading"
   />
+  <div v-if="deliveryRequests.length < total" class="load-more">
+    <ui5-busy-indicator v-if="loadingMore" delay="0" active size="S"></ui5-busy-indicator>
+    <ui5-button v-else design="Transparent" @click="loadMoreDeliveryRequests()">More ({{ deliveryRequests.length }} / {{ total }})</ui5-button>
+  </div>
 </template>
 
 <script lang="ts">
@@ -107,6 +111,7 @@ import "@ui5/webcomponents/dist/Toolbar.js"
 import "@ui5/webcomponents/dist/ToolbarButton.js"
 import "@ui5/webcomponents/dist/SegmentedButton.js"
 import "@ui5/webcomponents/dist/SegmentedButtonItem.js"
+import "@ui5/webcomponents/dist/BusyIndicator.js"
 export default defineComponent({
   components: { DataTable, ConfirmDeleteDialog },
   setup() {
@@ -129,10 +134,14 @@ export default defineComponent({
       deliveryRuleOptions: [] as {label: string, value: DeliveryRule, disabled: boolean}[],
       uaaUsers: {} as { [key: string]: Promise<UserInfo> }, // userId - userEmail
       loading: false as boolean,
+      loadingMore: false as boolean,
       showDeleteDialog: false,
       pendingDeleteRows: [] as DeliveryRequest[],
       activeFilter: 'All' as StatusFilterKey,
       searchKeyword: '',
+      currentPage: 1,
+      pageSize: 20,
+      total: 0,
       sseUnsubscribers: [] as (() => void)[],
       sseRefreshTimer: null as ReturnType<typeof setTimeout> | null,
     }
@@ -190,16 +199,32 @@ export default defineComponent({
     },
     async loadDeliveryRequests() {
       this.loading = true
-      const deliveryRequests = await GetDeliveryRequests()
+      this.currentPage = 1
+      const resp = await GetDeliveryRequests(this.currentPage, this.pageSize)
       await Promise.all(
-        deliveryRequests.map(async (dr) => {
+        resp.items.map(async (dr) => {
           dr.CreatedBy = (await this.uaaUserInfo(dr.CreatedBy)).email
           dr.UpdatedBy = (await this.uaaUserInfo(dr.UpdatedBy)).email
         })
       )
-      deliveryRequests.sort((a, b) => new Date(b.UpdatedAt).getTime() - new Date(a.UpdatedAt).getTime())
-      this.deliveryRequests = deliveryRequests
+      this.deliveryRequests = resp.items
+      this.total = resp.total
       this.loading = false
+    },
+    async loadMoreDeliveryRequests() {
+      if (this.deliveryRequests.length >= this.total || this.loadingMore) return
+      this.loadingMore = true
+      this.currentPage++
+      const resp = await GetDeliveryRequests(this.currentPage, this.pageSize)
+      await Promise.all(
+        resp.items.map(async (dr) => {
+          dr.CreatedBy = (await this.uaaUserInfo(dr.CreatedBy)).email
+          dr.UpdatedBy = (await this.uaaUserInfo(dr.UpdatedBy)).email
+        })
+      )
+      this.deliveryRequests.push(...resp.items)
+      this.total = resp.total
+      this.loadingMore = false
     },
     async onCreate() {
       try {
@@ -272,4 +297,9 @@ export default defineComponent({
 })
 </script>
 <style scoped>
+.load-more {
+  display: flex;
+  justify-content: center;
+  padding: 0.5rem 0;
+}
 </style>
