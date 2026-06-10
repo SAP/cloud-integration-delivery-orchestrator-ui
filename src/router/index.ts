@@ -73,6 +73,16 @@ const router = createRouter({
               height: '11rem'
            }
         },
+        {
+          path: 'deploy-history',
+          name: 'Deploy History',
+          component: () => import('@/views/DeployHistoryView.vue'),
+          meta: { description: 'Audit Transport and Deploy Operations',
+              requiredScope: 'DeliveryRequest.Read',
+              width: '20rem',
+              height: '11rem'
+           }
+        },
       ]
     },
     {

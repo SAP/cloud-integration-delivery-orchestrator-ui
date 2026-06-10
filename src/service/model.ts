@@ -520,3 +520,47 @@ export interface BackfillTechIDResult {
   dryRun: boolean
   details: BackfillOpDetail[]
 }
+
+// --- Operations History ---
+
+export interface OperationsHistoryItem {
+  id: number
+  artifactTechID: string
+  artifactName: string
+  artifactVersion: string
+  artifactType: string
+  packageID: string
+  tenantID: number
+  tenantName: string
+  deliveryRequestID: number
+  deliveryRequestName: string
+  deliveryRuleName: string
+  transportRequestNumber: string
+  requestState: string
+  importState: string
+  deployState: string
+  skipDeploy: boolean
+  lastError: string
+  createdBy: string
+  createdAt: string
+  updatedAt: string
+}
+
+export interface OperationsHistoryResponse {
+  data: OperationsHistoryItem[]
+  total: number
+  page: number
+  pageSize: number
+}
+
+export interface HistoryFilterOption {
+  id: number
+  name: string
+}
+
+export interface OperationsHistoryFilters {
+  tenants: HistoryFilterOption[]
+  artifactTypes: string[]
+  deliveryRules: HistoryFilterOption[]
+  operators: string[]
+}

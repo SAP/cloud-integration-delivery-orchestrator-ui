@@ -26,7 +26,7 @@
   <ui5-table overflow-mode="Popin" :style="{ width: tableWidth }" @row-click="handleRowClick"
     :loading="loading" loading-delay="0"
     :row-action-count="rowActionCount">
-    <ui5-table-selection-single id="selection" slot="features" @change="handleCheck"></ui5-table-selection-single>
+    <ui5-table-selection-single v-if="selectable" id="selection" slot="features" @change="handleCheck"></ui5-table-selection-single>
     <ui5-illustrated-message slot="noData" name="NoData"></ui5-illustrated-message>
     <ui5-table-header-row slot="headerRow">
       <ui5-table-header-cell min-width="150px" v-for="(header, i) in displayColumns" :key="`header-key-${i}`"
@@ -95,7 +95,8 @@ export default defineComponent({
     loading: { type: Boolean },
     enableSearch: { type: Boolean, default: true },
     rowClick: { type: Function as PropType<(row: any) => void> },
-    rowActions: { type: Array as PropType<RowAction[]> }
+    rowActions: { type: Array as PropType<RowAction[]> },
+    selectable: { type: Boolean, default: true }
   },
   data() {
     const rowProps = (row: any) => {
