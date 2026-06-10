@@ -53,16 +53,18 @@ onUnmounted(() => {
     <ui5-card-header slot="header" :title-text="title" :subtitle-text="subtitle" interactive>
     </ui5-card-header>
     <div class="card-content">
-      <div class="metric-row total-row">
-        <span class="metric-value total-count">{{ appCount.Total || 0 }}</span>
-        <span class="metric-label">Total</span>
-      </div>
-      <div class="status-counts">
-        <div v-for="[key, value] in statusEntries" :key="key" class="metric-row status-item">
-          <span class="metric-value status-count">{{ value }}</span>
-          <span class="metric-label">{{ key }}</span>
+      <template v-if="props.meta?.statusCount">
+        <div class="metric-row total-row">
+          <span class="metric-value total-count">{{ appCount.Total || 0 }}</span>
+          <span class="metric-label">Total</span>
         </div>
-      </div>
+        <div class="status-counts">
+          <div v-for="[key, value] in statusEntries" :key="key" class="metric-row status-item">
+            <span class="metric-value status-count">{{ value }}</span>
+            <span class="metric-label">{{ key }}</span>
+          </div>
+        </div>
+      </template>
     </div>
   </ui5-card>
 
