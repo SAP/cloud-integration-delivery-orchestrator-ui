@@ -93,11 +93,12 @@ import { defineComponent } from 'vue'
 import DataTable from '@/components/DataTable.vue'
 import ConfirmDeleteDialog from '@/components/ConfirmDeleteDialog.vue'
 import { deliveryRequestColumns, type ToolBar } from '@/service/consts'
-import { DeleteDeliveryRequest, GetDeliveryRequests, CreateDeliveryRequest, GetDeliveryRules, UaaUserInfo, } from '@/service/api';
+import { DeleteDeliveryRequest, GetDeliveryRequests, CreateDeliveryRequest, GetDeliveryRules } from '@/service/api';
 import type { DeliveryRequest, DeliveryRule, UserInfo } from '@/service/model';
 import { STATUS_FILTER_GROUPS, type StatusFilterKey } from '@/service/statuses';
 import { sseClient } from '@/service/sse';
 import { useAuth } from '@/composables/useAuth'
+import { useUserCache } from '@/composables/useUserCache'
 
 import "@ui5/webcomponents/dist/Dialog.js";
 import "@ui5/webcomponents/dist/Button.js";
@@ -116,7 +117,8 @@ export default defineComponent({
   components: { DataTable, ConfirmDeleteDialog },
   setup() {
     const { hasScope } = useAuth()
-    return { hasScope }
+    const { fetchUserInfo } = useUserCache()
+    return { hasScope, fetchUserInfo }
   },
   data(){
     const toolBars: ToolBar[] = [
@@ -132,7 +134,6 @@ export default defineComponent({
       showModal: false,
       selectedDeliveryRequest: {} as DeliveryRequest,
       deliveryRuleOptions: [] as {label: string, value: DeliveryRule, disabled: boolean}[],
-      uaaUsers: {} as { [key: string]: Promise<UserInfo> }, // userId - userEmail
       loading: false as boolean,
       loadingMore: false as boolean,
       showDeleteDialog: false,
@@ -203,8 +204,8 @@ export default defineComponent({
       const resp = await GetDeliveryRequests(this.currentPage, this.pageSize)
       await Promise.all(
         resp.items.map(async (dr) => {
-          dr.CreatedBy = (await this.uaaUserInfo(dr.CreatedBy)).email
-          dr.UpdatedBy = (await this.uaaUserInfo(dr.UpdatedBy)).email
+          dr.CreatedBy = (await this.fetchUserInfo(dr.CreatedBy)).email
+          dr.UpdatedBy = (await this.fetchUserInfo(dr.UpdatedBy)).email
         })
       )
       this.deliveryRequests = resp.items
@@ -218,8 +219,8 @@ export default defineComponent({
       const resp = await GetDeliveryRequests(this.currentPage, this.pageSize)
       await Promise.all(
         resp.items.map(async (dr) => {
-          dr.CreatedBy = (await this.uaaUserInfo(dr.CreatedBy)).email
-          dr.UpdatedBy = (await this.uaaUserInfo(dr.UpdatedBy)).email
+          dr.CreatedBy = (await this.fetchUserInfo(dr.CreatedBy)).email
+          dr.UpdatedBy = (await this.fetchUserInfo(dr.UpdatedBy)).email
         })
       )
       this.deliveryRequests.push(...resp.items)
@@ -254,12 +255,6 @@ export default defineComponent({
       } catch (e) {
         // Error displayed by http interceptor
       }
-    },
-    async uaaUserInfo(userId: string) {
-      if(!this.uaaUsers[userId]) {
-        this.uaaUsers[userId] = UaaUserInfo(userId)
-      }
-      return this.uaaUsers[userId]
     },
     // Throttle (not debounce): SSE events arrive in bursts during background sync;
     // debounce would keep deferring the refresh, throttle caps it at once per 300ms.

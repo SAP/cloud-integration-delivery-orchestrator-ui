@@ -564,7 +564,6 @@ import {
   UaaEmailSearch,
   RequestApprove,
   Approve,
-  UaaUserInfo,
   CurrentUser,
   CancelDeliveryRequest,
 } from '@/service/api'
@@ -579,6 +578,7 @@ import { nextTick } from 'vue'
 import { aggregateStatusToUi5Design, conditionTypeToDesign } from '@/service/statuses'
 import { sseClient } from '@/service/sse'
 import { useAuth } from '@/composables/useAuth'
+import { useUserCache } from '@/composables/useUserCache'
 
 
 import "@ui5/webcomponents-fiori/dist/DynamicPage.js";
@@ -628,7 +628,8 @@ export default {
   name: 'TransportPlanView',
   setup() {
     const { hasScope } = useAuth()
-    return { hasScope }
+    const { resolved: uaaUsers, getUserEmail, fetchUserInfo } = useUserCache()
+    return { hasScope, uaaUsers, getUserEmail, fetchUserInfo }
   },
   components: {
     DeliveryFlowView,
@@ -664,7 +665,6 @@ export default {
       searchApproverLoading: false,
       approverOptions: [] as { label: string; value: UserInfo }[],
       searchTimer: null as ReturnType<typeof setTimeout> | null,
-      uaaUsers: {} as { [key: string]: UserInfo }, // userId - userEmail
       currentUser: {} as UserInfo,
       loadingCpiTenants: true,
       updatingOps: false,
@@ -694,8 +694,7 @@ export default {
       if (idx > -1) this.deliveryRequest.Approvers.splice(idx, 1)
     },
     async uaaUserInfo(userId: string) {
-      if (this.uaaUsers[userId]) return this.uaaUsers[userId]
-      return this.uaaUsers[userId] = await UaaUserInfo(userId)
+      return this.fetchUserInfo(userId)
     },
     handleSearchArrover(query: string) {
       this.approverOptions = []
