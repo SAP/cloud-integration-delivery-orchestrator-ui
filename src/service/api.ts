@@ -343,7 +343,20 @@ export const BackfillTechIDs = (dryRun = false, tenant?: number) => {
 // --- Operations History ---
 
 export const GetOperationsHistory = (params: Record<string, any>) => {
-  return http.get('/api/v1/operations/history', { params }) as Promise<OperationsHistoryResponse>
+  return http.get('/api/v1/operations/history', {
+    params,
+    paramsSerializer: (p: any) => {
+      const parts: string[] = []
+      for (const [key, val] of Object.entries(p)) {
+        if (Array.isArray(val)) {
+          val.forEach(v => parts.push(`${key}=${encodeURIComponent(v)}`))
+        } else if (val !== undefined && val !== null) {
+          parts.push(`${key}=${encodeURIComponent(String(val))}`)
+        }
+      }
+      return parts.join('&')
+    }
+  }) as Promise<OperationsHistoryResponse>
 }
 
 export const GetOperationsHistoryFilters = () => {
