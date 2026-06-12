@@ -30,6 +30,7 @@ const loading = ref(false)
 const filterOptions = ref<OperationsHistoryFilters>({ tenants: [], artifactTypes: [], deliveryRules: [], operators: [] })
 
 const hasMore = computed(() => items.value.length < total.value)
+const loadingMore = ref(false)
 
 async function fetchData() {
   loading.value = true
@@ -43,13 +44,11 @@ async function fetchData() {
   }
 }
 
-const loadingMore = ref(false)
-
 async function loadMore() {
   if (!hasMore.value || loadingMore.value) return
   loadingMore.value = true
+  filter.page++
   try {
-    filter.page++
     const resp = await GetOperationsHistory(apiParams.value)
     items.value.push(...(resp.data ?? []))
     total.value = resp.total
@@ -286,9 +285,11 @@ const columns: Column[] = [
       :columns="columns"
       :data="items"
       :row-key="(row: any) => row.id"
-      :loading="loading"
+      :loading="loading || loadingMore"
       :selectable="false"
       :row-click="handleRowClick"
+      :growing="true"
+      @load-more="loadMore"
     />
 
     <!-- Conditions Dialog -->
@@ -309,12 +310,6 @@ const columns: Column[] = [
         </div>
       </div>
     </ui5-dialog>
-
-    <!-- Load More -->
-    <div v-if="hasMore" class="load-more">
-      <ui5-busy-indicator v-if="loadingMore" :delay="0" active size="S"></ui5-busy-indicator>
-      <ui5-button v-else design="Transparent" @click="loadMore()">More ({{ items.length }} / {{ total }})</ui5-button>
-    </div>
   </div>
 </template>
 
@@ -345,11 +340,6 @@ const columns: Column[] = [
 .filter-artifact { width: 12rem; }
 .filter-rule { width: 10rem; }
 .filter-dr { width: 12rem; }
-
-.load-more {
-  display: flex;
-  justify-content: center;
-}
 
 .conditions-dialog-content {
   padding: 1rem;

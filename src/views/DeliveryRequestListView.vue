@@ -81,11 +81,9 @@
     :row-key="(row: DeliveryRequest) => row.ID"
     :row-click="handleRowClick"
     :loading="loading"
+    :growing="true"
+    @load-more="loadMoreDeliveryRequests"
   />
-  <div v-if="deliveryRequests.length < total" class="load-more">
-    <ui5-busy-indicator v-if="loadingMore" delay="0" active size="S"></ui5-busy-indicator>
-    <ui5-button v-else design="Transparent" @click="loadMoreDeliveryRequests()">More ({{ deliveryRequests.length }} / {{ total }})</ui5-button>
-  </div>
 </template>
 
 <script lang="ts">
@@ -112,7 +110,6 @@ import "@ui5/webcomponents/dist/Toolbar.js"
 import "@ui5/webcomponents/dist/ToolbarButton.js"
 import "@ui5/webcomponents/dist/SegmentedButton.js"
 import "@ui5/webcomponents/dist/SegmentedButtonItem.js"
-import "@ui5/webcomponents/dist/BusyIndicator.js"
 export default defineComponent({
   components: { DataTable, ConfirmDeleteDialog },
   setup() {
@@ -135,7 +132,6 @@ export default defineComponent({
       selectedDeliveryRequest: {} as DeliveryRequest,
       deliveryRuleOptions: [] as {label: string, value: DeliveryRule, disabled: boolean}[],
       loading: false as boolean,
-      loadingMore: false as boolean,
       showDeleteDialog: false,
       pendingDeleteRows: [] as DeliveryRequest[],
       activeFilter: 'All' as StatusFilterKey,
@@ -213,8 +209,7 @@ export default defineComponent({
       this.loading = false
     },
     async loadMoreDeliveryRequests() {
-      if (this.deliveryRequests.length >= this.total || this.loadingMore) return
-      this.loadingMore = true
+      if (this.deliveryRequests.length >= this.total) return
       this.currentPage++
       const resp = await GetDeliveryRequests(this.currentPage, this.pageSize)
       await Promise.all(
@@ -225,7 +220,6 @@ export default defineComponent({
       )
       this.deliveryRequests.push(...resp.items)
       this.total = resp.total
-      this.loadingMore = false
     },
     async onCreate() {
       try {
@@ -292,9 +286,4 @@ export default defineComponent({
 })
 </script>
 <style scoped>
-.load-more {
-  display: flex;
-  justify-content: center;
-  padding: 0.5rem 0;
-}
 </style>

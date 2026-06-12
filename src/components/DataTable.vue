@@ -23,10 +23,11 @@
 
     </div>
   </ui5-bar>
-  <ui5-table overflow-mode="Popin" :style="{ width: tableWidth }" @row-click="handleRowClick"
+  <ui5-table overflow-mode="Popin" :class="{ 'table-growing': growing }" :style="{ width: tableWidth }" @row-click="handleRowClick"
     :loading="loading" loading-delay="0"
     :row-action-count="rowActionCount">
     <ui5-table-selection-single v-if="selectable" id="selection" slot="features" @change="handleCheck"></ui5-table-selection-single>
+    <ui5-table-growing v-if="growing" slot="features" mode="Scroll" @load-more="handleLoadMore"></ui5-table-growing>
     <ui5-illustrated-message slot="noData" name="NoData"></ui5-illustrated-message>
     <ui5-table-header-row slot="headerRow">
       <ui5-table-header-cell min-width="150px" v-for="(header, i) in displayColumns" :key="`header-key-${i}`"
@@ -77,6 +78,7 @@ import "@ui5/webcomponents/dist/Bar.js";
 import "@ui5/webcomponents/dist/Input.js";
 import "@ui5/webcomponents/dist/Button.js";
 import "@ui5/webcomponents/dist/TableSelectionSingle.js";
+import "@ui5/webcomponents/dist/TableGrowing.js";
 import "@ui5/webcomponents-fiori/dist/IllustratedMessage.js";
 import "@ui5/webcomponents-fiori/dist/illustrations/NoData.js";
 import "@ui5/webcomponents/dist/TableRowAction.js";
@@ -96,7 +98,8 @@ export default defineComponent({
     enableSearch: { type: Boolean, default: true },
     rowClick: { type: Function as PropType<(row: any) => void> },
     rowActions: { type: Array as PropType<RowAction[]> },
-    selectable: { type: Boolean, default: true }
+    selectable: { type: Boolean, default: true },
+    growing: { type: Boolean, default: false }
   },
   data() {
     const rowProps = (row: any) => {
@@ -148,6 +151,9 @@ export default defineComponent({
     handleRowClick(event: any) {
       const rkey = event.detail.row.rowKey
       this.data[rkey] && this.rowClick && this.rowClick(this.data[rkey])
+    },
+    handleLoadMore() {
+      this.$emit('loadMore')
     },
     handleRowAction(action: RowAction, row: any) {
       action.func(row)
@@ -225,7 +231,7 @@ export default defineComponent({
         })
     }
   },
-  emits: ['update:checkRows', 'update:edit'],
+  emits: ['update:checkRows', 'update:edit', 'loadMore'],
   computed: {
     counts() {
       return this.data.length
@@ -268,5 +274,9 @@ h2 {
 .table-header {
   font-family: var(--sapFontBoldFamily);
   font-size: var(--sapFontLargeSize);
+}
+.table-growing {
+  max-height: 70vh;
+  overflow: auto;
 }
 </style>
