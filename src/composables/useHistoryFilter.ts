@@ -10,6 +10,7 @@ export interface HistoryFilterState {
   importStates: string[]
   deployStates: string[]
   deliveryRuleId: number | null
+  deliveryRequestName: string
   createdBy: string
   dateFrom: string
   dateTo: string
@@ -43,6 +44,7 @@ export function useHistoryFilter() {
     importStates: parseArray(route.query.importState),
     deployStates: parseArray(route.query.deployState),
     deliveryRuleId: route.query.deliveryRuleId ? Number(route.query.deliveryRuleId) : null,
+    deliveryRequestName: (route.query.deliveryRequestName as string) || '',
     createdBy: (route.query.createdBy as string) || '',
     dateFrom: (route.query.dateFrom as string) || '',
     dateTo: (route.query.dateTo as string) || '',
@@ -64,6 +66,7 @@ export function useHistoryFilter() {
     if (filter.importStates.length) params.importState = filter.importStates
     if (filter.deployStates.length) params.deployState = filter.deployStates
     if (filter.deliveryRuleId) params.deliveryRuleId = filter.deliveryRuleId
+    if (filter.deliveryRequestName) params.deliveryRequestName = filter.deliveryRequestName
     if (filter.createdBy) params.createdBy = filter.createdBy
     if (filter.dateFrom) params.dateFrom = filter.dateFrom
     if (filter.dateTo) params.dateTo = filter.dateTo
@@ -86,6 +89,7 @@ export function useHistoryFilter() {
     if (filter.importStates.length) params.importState = filter.importStates
     if (filter.deployStates.length) params.deployState = filter.deployStates
     if (filter.deliveryRuleId) params.deliveryRuleId = String(filter.deliveryRuleId)
+    if (filter.deliveryRequestName) params.deliveryRequestName = filter.deliveryRequestName
     if (filter.createdBy) params.createdBy = filter.createdBy
     if (filter.dateFrom) params.dateFrom = filter.dateFrom
     if (filter.dateTo) params.dateTo = filter.dateTo
@@ -110,6 +114,7 @@ export function useHistoryFilter() {
     filter.importStates = []
     filter.deployStates = []
     filter.deliveryRuleId = null
+    filter.deliveryRequestName = ''
     filter.createdBy = ''
     filter.dateFrom = ''
     filter.dateTo = ''

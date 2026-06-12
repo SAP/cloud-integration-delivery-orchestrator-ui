@@ -542,6 +542,7 @@ export interface OperationsHistoryItem {
   skipDeploy: boolean
   lastError: string
   createdBy: string
+  updatedBy: string
   createdAt: string
   updatedAt: string
 }
@@ -563,4 +564,13 @@ export interface OperationsHistoryFilters {
   artifactTypes: string[]
   deliveryRules: HistoryFilterOption[]
   operators: string[]
+}
+
+export interface OperationCondition {
+  ID: number
+  CreatedAt: string
+  DeliveryRequestID: number
+  ArtifactTenantOperationID: number
+  State: 'Error' | 'Warn' | 'Success'
+  Message: string
 }
