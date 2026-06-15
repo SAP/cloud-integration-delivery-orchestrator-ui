@@ -291,7 +291,7 @@ export interface DeliveryRule {
 
 
 
-// Version history (CPI cookie service) types & helpers
+// Artifact version history types
 export interface ArtifactVersionHistoryItem {
   comment: string
   semanticVersion: string

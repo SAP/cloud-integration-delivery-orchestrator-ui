@@ -327,8 +327,36 @@ export const UpdateIntegration = (type: string, payload: { destinationName: stri
   return http.put(`/api/v1/system/integrations/${type}`, payload) as Promise<IntegrationConfig>
 }
 
+export const TestIntegration = (type: string) => {
+  return http.get(`/api/v1/system/connectivity/integration/${type}`) as Promise<{ name: string; type: string; status: string; message?: string }>
+}
+
 export const CheckConnectivity = () => {
-  return http.get('/api/v1/system/connectivity') as Promise<ConnectivityReport>
+  return http.post('/api/v1/system/connectivity/all', {}) as Promise<ConnectivityReport>
+}
+
+export const GetLastConnectivity = () => {
+  return http.get('/api/v1/system/connectivity/last') as Promise<ConnectivityReport>
+}
+
+export const CheckConnectivityDatabase = () => {
+  return http.get('/api/v1/system/connectivity/database') as Promise<ConnectivityStatus>
+}
+
+export const CheckConnectivityTMS = () => {
+  return http.get('/api/v1/system/connectivity/tms') as Promise<ConnectivityStatus>
+}
+
+export const CheckConnectivityTenants = () => {
+  return http.get('/api/v1/system/connectivity/tenants') as Promise<ConnectivityStatus[]>
+}
+
+export const CheckConnectivityIntegrations = () => {
+  return http.get('/api/v1/system/connectivity/integrations') as Promise<ConnectivityStatus[]>
+}
+
+export const GetDatabaseInfo = () => {
+  return http.get('/api/v1/system/database/info') as Promise<{ host: string; port: string; dbName: string; status: string }>
 }
 
 export const BackfillTechIDs = (dryRun = false, tenant?: number) => {
