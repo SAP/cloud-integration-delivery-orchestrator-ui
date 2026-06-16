@@ -34,6 +34,7 @@
     "enabled": true
   },
   "errorPage": [
-    {"status": [404], "file": "dist/index.html"}
+    {"status": [404], "file": "dist/index.html"},
+    {"status": [502, 503, 504], "file": "dist/gateway-error.json"}
   ]
 }

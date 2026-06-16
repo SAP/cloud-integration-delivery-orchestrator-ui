@@ -735,8 +735,8 @@ export default defineComponent({
                 const updated = this.cpiTenants.find(t => t.ID === (result.ID || this.selectedCpiTenant.ID))
                 if (updated) this.selectedCpiTenant = { ...updated }
                 window.$toast.success('Tenant saved')
-            } catch (e: any) {
-                window.$toast.error(e?.message ?? 'Save failed')
+            } catch {
+                // Error displayed by http interceptor
             } finally {
                 this.saving = false
             }
@@ -783,8 +783,8 @@ export default defineComponent({
                 const { accessToken } = await ExchangeCfPasscode(this.cfIdentity.cfApiEndpoint, this.cfToken)
                 this.cfToken = accessToken
                 this.cfOrgOptions = await ListCfOrgs(this.cfIdentity.cfApiEndpoint, this.cfToken)
-            } catch (e: any) {
-                window.$toast.error(e?.message ?? 'Failed to load CF orgs — check passcode and endpoint')
+            } catch {
+                // Error displayed by http interceptor; fall back to manual input
                 this.cfOrgMode = 'manual'
             } finally {
                 this.loadOrgsLoading = false
@@ -800,8 +800,8 @@ export default defineComponent({
             this.loadSpacesLoading = true
             try {
                 this.cfSpaceOptions = await ListCfSpaces(this.cfIdentity.cfApiEndpoint, this.cfToken, guid)
-            } catch (e: any) {
-                window.$toast.error(e?.message ?? 'Failed to load CF spaces')
+            } catch {
+                // Error displayed by http interceptor; fall back to manual input
                 this.cfSpaceMode = 'manual'
             } finally {
                 this.loadSpacesLoading = false
@@ -878,12 +878,11 @@ export default defineComponent({
             this.step3Message = null
             try {
                 this.bootstrapPreview = await PreviewBootstrap(this.selectedCpiTenant.ID, this.cfToken)
-                window.$toast.success('[DEBUG] step3: Inspect ok')
+                window.$toast.success('Bootstrap inspection completed')
             } catch (e: any) {
                 if (e?.status === 401) this.cfToken = ''
                 const msg = e?.message ?? 'Inspect failed'
                 this.step3Message = { type: 'Negative', text: msg }
-                window.$toast.error('[DEBUG] step3: ' + msg)
             } finally {
                 this.inspectLoading = false
             }
@@ -898,12 +897,11 @@ export default defineComponent({
                 this.wizardStep = 4
                 this.stopPoll()
                 this.startPoll()
-                window.$toast.success('[DEBUG] step3: Apply ok job#' + jobId)
+                window.$toast.success('Bootstrap apply started')
             } catch (e: any) {
                 if (e?.status === 401) this.cfToken = ''
                 const msg = e?.message ?? 'Apply failed'
                 this.step3Message = { type: 'Negative', text: msg }
-                window.$toast.error('[DEBUG] step3: ' + msg)
             } finally {
                 this.bootstrapLoading = false
             }
@@ -916,12 +914,11 @@ export default defineComponent({
                 this.bootstrapJob = { ID: jobId, State: 'running', JobType: 'retry' } as any
                 this.stopPoll()
                 this.startPoll()
-                window.$toast.success('[DEBUG] step4: Retry ok job#' + jobId)
+                window.$toast.success('Bootstrap retry started')
             } catch (e: any) {
                 if (e?.status === 401) this.cfToken = ''
                 const msg = e?.message ?? 'Retry failed'
                 this.step4Message = { type: 'Negative', text: msg }
-                window.$toast.error('[DEBUG] step4: ' + msg)
             } finally {
                 this.bootstrapLoading = false
             }
@@ -934,11 +931,10 @@ export default defineComponent({
                 await this.refreshSelectedTenant()
                 await this.loadBootstrapJob()
                 this.step4Message = { type: 'Positive', text: 'Bootstrap reset — tenant returned to configured state.' }
-                window.$toast.success('[DEBUG] step4: Reset ok')
+                window.$toast.success('Bootstrap reset — tenant returned to configured state')
             } catch (e: any) {
                 const msg = e?.message ?? 'Reset failed'
                 this.step4Message = { type: 'Negative', text: msg }
-                window.$toast.error('[DEBUG] step4: ' + msg)
             } finally {
                 this.bootstrapLoading = false
             }
@@ -966,7 +962,6 @@ export default defineComponent({
             } catch (e: any) {
                 const msg = e?.message ?? 'Failed to load TMS nodes'
                 this.step2Message = { type: 'Negative', text: msg }
-                window.$toast.error('[DEBUG] step2: ' + msg)
             }
         },
         async onRegisterTmsNode() {
@@ -979,11 +974,10 @@ export default defineComponent({
                 const updated = this.cpiTenants.find(t => t.ID === this.selectedCpiTenant.ID)
                 if (updated) this.selectedCpiTenant = { ...updated }
                 this.step2Message = { type: 'Positive', text: `Node "${this.selectedTmsNode.name}" verified — configure Routes in TMS UI.` }
-                window.$toast.success('[DEBUG] step2: Register ok')
+                window.$toast.success('TMS node registered')
             } catch (e: any) {
                 const msg = e?.message ?? 'Registration failed'
                 this.step2Message = { type: 'Negative', text: msg }
-                window.$toast.error('[DEBUG] step2: ' + msg)
             } finally {
                 this.tmsLoading = false
             }
@@ -998,12 +992,11 @@ export default defineComponent({
                 const updated = this.cpiTenants.find(t => t.ID === this.selectedCpiTenant.ID)
                 if (updated) this.selectedCpiTenant = { ...updated }
                 this.step2Message = { type: 'Positive', text: 'Routes confirmed — TMS Node registration complete.' }
-                window.$toast.success('[DEBUG] step2: Confirm ok')
+                window.$toast.success('TMS routes confirmed')
                 this.wizardStep = 3
             } catch (e: any) {
                 const msg = e?.message ?? 'Confirm failed'
                 this.step2Message = { type: 'Negative', text: msg }
-                window.$toast.error('[DEBUG] step2: ' + msg)
             } finally {
                 this.tmsLoading = false
             }

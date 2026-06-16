@@ -47,8 +47,8 @@ const runConnectivityCheck = async () => {
     const report = await CheckConnectivity()
     connectivityResults.value = report.results || []
     checkedAt.value = new Date(report.checkedAt).toLocaleString()
-  } catch (e: any) {
-    window.$toast.error('Connectivity check failed: ' + (e?.message ?? ''))
+  } catch {
+    // Error displayed by http interceptor
   } finally {
     connectivityLoading.value = false
   }
@@ -97,8 +97,8 @@ const onSaveTmsContext = async () => {
     tmsContext.value = await UpsertCentralTmsContext({ TmsApiDestinationName: tmsEditDestName.value.trim() })
     window.$toast.success('Central TMS context saved')
     showTmsEditDialog.value = false
-  } catch (e: any) {
-    window.$toast.error('Failed to save: ' + (e?.message ?? ''))
+  } catch {
+    // Error displayed by http interceptor
   } finally {
     tmsSaving.value = false
   }
@@ -116,8 +116,8 @@ const loadIntegrations = async () => {
   integrationsLoading.value = true
   try {
     integrations.value = await GetIntegrations() || []
-  } catch (e: any) {
-    window.$toast.error('Failed to load integrations: ' + (e?.message ?? ''))
+  } catch {
+    // Error displayed by http interceptor
   } finally {
     integrationsLoading.value = false
   }
@@ -139,8 +139,8 @@ const onSaveIntegration = async () => {
     window.$toast.success(`Integration '${editingConfig.value.type}' updated`)
     showEditDialog.value = false
     await loadIntegrations()
-  } catch (e: any) {
-    window.$toast.error('Failed to update: ' + (e?.message ?? ''))
+  } catch {
+    // Error displayed by http interceptor
   }
 }
 
@@ -181,7 +181,7 @@ const loadDatabaseInfo = async () => {
 // ── Lifecycle ────────────────────────────────────────────────────────────────
 
 onMounted(async () => {
-  await Promise.all([loadTmsContext(), loadIntegrations(), loadTenants(), loadDatabaseInfo(), loadLastConnectivity()])
+  await Promise.allSettled([loadTmsContext(), loadIntegrations(), loadTenants(), loadDatabaseInfo(), loadLastConnectivity()])
 })
 </script>
 
