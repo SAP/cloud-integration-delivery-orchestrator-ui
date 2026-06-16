@@ -94,7 +94,6 @@ import { deliveryRequestColumns, type ToolBar } from '@/service/consts'
 import { DeleteDeliveryRequest, GetDeliveryRequests, CreateDeliveryRequest, GetDeliveryRules } from '@/service/api';
 import type { DeliveryRequest, DeliveryRule, UserInfo } from '@/service/model';
 import { STATUS_FILTER_GROUPS, type StatusFilterKey } from '@/service/statuses';
-import { sseClient } from '@/service/sse';
 import { useAuth } from '@/composables/useAuth'
 import { useUserCache } from '@/composables/useUserCache'
 
@@ -139,8 +138,6 @@ export default defineComponent({
       currentPage: 1,
       pageSize: 20,
       total: 0,
-      sseUnsubscribers: [] as (() => void)[],
-      sseRefreshTimer: null as ReturnType<typeof setTimeout> | null,
     }
   },
   computed: {
@@ -250,15 +247,6 @@ export default defineComponent({
         // Error displayed by http interceptor
       }
     },
-    // Throttle (not debounce): SSE events arrive in bursts during background sync;
-    // debounce would keep deferring the refresh, throttle caps it at once per 300ms.
-    scheduleSSERefresh() {
-      if (this.sseRefreshTimer) return
-      this.sseRefreshTimer = setTimeout(async () => {
-        this.sseRefreshTimer = null
-        await this.loadDeliveryRequests()
-      }, 300)
-    },
   },
   async created() {
     await this.loadDeliveryRequests()
@@ -266,22 +254,10 @@ export default defineComponent({
     this.deliveryRuleOptions = options.map(op => ({ label: op.Name, value: op, disabled: !op.Active }))
   },
   mounted() {
-    this.sseUnsubscribers.push(
-      sseClient.on('dr-status', () => {
-        this.scheduleSSERefresh()
-      }),
-      sseClient.on('counts', () => {
-        this.scheduleSSERefresh()
-      }),
-    )
+    // No real-time WS subscription — ListView uses pure HTTP (route enter / user action triggers reload)
   },
   beforeUnmount() {
-    this.sseUnsubscribers.forEach(unsub => unsub())
-    this.sseUnsubscribers = []
-    if (this.sseRefreshTimer) {
-      clearTimeout(this.sseRefreshTimer)
-      this.sseRefreshTimer = null
-    }
+    // nothing to clean up
   },
 })
 </script>

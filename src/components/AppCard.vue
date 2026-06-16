@@ -1,8 +1,7 @@
 <script setup lang="ts">
 import type { AppCount } from '@/service/model'
-import { ref, onMounted, onUnmounted, computed } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { sseClient } from '@/service/sse'
 import "@ui5/webcomponents/dist/Card.js"
 import "@ui5/webcomponents/dist/CardHeader.js"
 
@@ -25,26 +24,18 @@ const jumpTo = () => {
   if (props.path) router.push(props.path)
 }
 const loading = ref(false)
-let unsubscribeCounts: (() => void) | null = null
 onMounted(async () => {
   try {
     loading.value = true
     const fetchStatus = props.meta?.statusCount
     if (fetchStatus) {
       appCount.value = await fetchStatus()
-      unsubscribeCounts = sseClient.on('counts', async () => {
-        appCount.value = await fetchStatus()
-      })
     } else {
       appCount.value = {} as AppCount
     }
   } finally {
     loading.value = false
   }
-})
-
-onUnmounted(() => {
-  if (unsubscribeCounts) unsubscribeCounts()
 })
 </script>
 

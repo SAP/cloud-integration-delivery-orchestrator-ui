@@ -6,7 +6,7 @@ import ToastContainer from '@/components/toast/ToastContainer.vue'
 import { setToastRef, initGlobalToast } from '@/components/toast/useToast'
 import { CurrentUser } from './service/api'
 import { useAuth } from './composables/useAuth'
-import { sseClient } from './service/sse'
+import { wsClient } from './service/ws'
 import "@ui5/webcomponents-fiori/dist/ShellBar.js"
 import "@ui5/webcomponents-fiori/dist/ShellBarBranding.js"
 import "@ui5/webcomponents-fiori/dist/UserMenu.js"
@@ -39,11 +39,11 @@ onMounted(async () => {
   initGlobalToast()
   userInfo.value = await CurrentUser()
   loadScopes()
-  sseClient.connect('/api/v1/events')
+  wsClient.connect()
 })
 
 onUnmounted(() => {
-  sseClient.disconnect()
+  wsClient.disconnect()
 })
 
 function handleLogout(e: CustomEvent) {

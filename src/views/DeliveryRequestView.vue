@@ -576,7 +576,7 @@ import ArtifactOpTag from '@/components/ArtifactOpTag.vue'
 import ConfirmDeleteDialog from '@/components/ConfirmDeleteDialog.vue'
 import { nextTick } from 'vue'
 import { aggregateStatusToUi5Design, conditionTypeToDesign } from '@/service/statuses'
-import { sseClient } from '@/service/sse'
+import { wsClient } from '@/service/ws'
 import { useAuth } from '@/composables/useAuth'
 import { useUserCache } from '@/composables/useUserCache'
 
@@ -676,8 +676,9 @@ export default {
       cancelReason: '',
       cancelingDr: false,
       showDeleteDialog: false,
-      sseUnsubscribers: [] as (() => void)[],
-      sseRefreshTimer: null as ReturnType<typeof setTimeout> | null,
+      wsUnsubscribers: [] as (() => void)[],
+      wsRefreshTimer: null as ReturnType<typeof setTimeout> | null,
+      lastRefreshAt: 0,
       activeConditionFilter: 'All' as 'All' | ConditionType,
       globalArtifactSearch: '',
       globalArtifactResults: [] as { pkg: Package; artifact: Artifact }[],
@@ -759,6 +760,7 @@ export default {
       }
     },
     async refresh() {
+      this.lastRefreshAt = Date.now()
       this.deliveryRequest = await GetDeliveryRequest(this.planId)
 
       // load packages from PIR; artifacts are loaded lazily per package on selection
@@ -1003,12 +1005,13 @@ export default {
         this.syncingStatus = false
       }
     },
-    // Throttle (not debounce): SSE events arrive in bursts during background sync;
-    // debounce would keep deferring the refresh, throttle caps it at once per 300ms.
-    scheduleSSERefresh() {
-      if (this.sseRefreshTimer) return
-      this.sseRefreshTimer = setTimeout(async () => {
-        this.sseRefreshTimer = null
+    // Throttle WS-triggered refresh: skip if a refresh already happened recently
+    // (e.g. user just clicked Approve/Cancel/Sync which already called refresh).
+    scheduleWSRefresh() {
+      if (this.wsRefreshTimer) return
+      if (Date.now() - this.lastRefreshAt < 500) return
+      this.wsRefreshTimer = setTimeout(async () => {
+        this.wsRefreshTimer = null
         await this.refresh()
       }, 300)
     },
@@ -1227,21 +1230,21 @@ export default {
     this.currentUser = await CurrentUser()
   },
   mounted() {
-    this.sseUnsubscribers.push(
-      sseClient.on('dr-ops', (data: { drId?: number }) => {
-        if (data?.drId === this.planId) this.scheduleSSERefresh()
-      }),
-      sseClient.on('dr-status', (data: { drId?: number }) => {
-        if (data?.drId === this.planId) this.scheduleSSERefresh()
+    // Subscribe to this DR's real-time updates via WebSocket
+    wsClient.subscribe(this.planId)
+    this.wsUnsubscribers.push(
+      wsClient.on('dr-updated', (data: { drId?: number }) => {
+        if (data?.drId === this.planId) this.scheduleWSRefresh()
       }),
     )
   },
   beforeUnmount() {
-    this.sseUnsubscribers.forEach(unsub => unsub())
-    this.sseUnsubscribers = []
-    if (this.sseRefreshTimer) {
-      clearTimeout(this.sseRefreshTimer)
-      this.sseRefreshTimer = null
+    wsClient.unsubscribe(this.planId)
+    this.wsUnsubscribers.forEach(unsub => unsub())
+    this.wsUnsubscribers = []
+    if (this.wsRefreshTimer) {
+      clearTimeout(this.wsRefreshTimer)
+      this.wsRefreshTimer = null
     }
   },
 }
