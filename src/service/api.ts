@@ -1,6 +1,6 @@
 import axios from 'axios'
 import http from './http'
-import type { ApiEndpoint, Artifact, ArtifactTenantOperation, AppCount, BackfillTechIDResult, BootstrapJob, BootstrapPreview, CentralTmsContext, ConnectivityReport, CpiTenant, CreateDRFromMismatchRequest, CreateDRFromMismatchResponse, DeliverOpRequest, DeliveryRequest, DeliveryRule, GenerateTRResponse, IntegrationConfig, NodeTransportRequest, OperationCondition, OperationsHistoryFilters, OperationsHistoryResponse, Package, PreviewDRResponse, RuntimeArtifact, TmsNodeConfirmResponse, TmsRoutesResponse, TransportNode, TransportRoute, TriggerResult, UserInfo, VersionCompareIncludedPackage, VersionCompareResponse, VersionCompareSummaryItem } from './model'
+import type { ApiEndpoint, Artifact, ArtifactTenantOperation, AppCount, BackfillTechIDResult, BootstrapJob, BootstrapPreview, CentralTmsContext, ConnectivityReport, ConnectivityStatus, CpiTenant, CreateDRFromMismatchRequest, CreateDRFromMismatchResponse, DeliverOpRequest, DeliveryRequest, DeliveryRule, GenerateTRResponse, IntegrationConfig, NodeTransportRequest, OperationCondition, OperationsHistoryFilters, OperationsHistoryResponse, Package, PreviewDRResponse, RuntimeArtifact, TmsNodeConfirmResponse, TmsRoutesResponse, TransportNode, TransportRoute, TriggerResult, UserInfo, VersionCompareIncludedPackage, VersionCompareResponse, VersionCompareSummaryItem } from './model'
 import type { AggregateStatus, DeployState, ImportState, RequestState } from './statuses'
 
 export const GetDrCounts = () => {
