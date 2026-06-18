@@ -111,10 +111,10 @@ const router = createRouter({
       ]
     },
     {
-      path: '/delivery-request/:planId',
+      path: '/delivery-request/:id',
       name: 'Maintain Delivery Request',
       component: () => import('@/views/DeliveryRequestView.vue'),
-      props: route => ({ planId: Number(route.params.planId) })
+      props: route => ({ id: Number(route.params.id) })
     },
     {
       path: '/jobs/version-compare/:ruleId',

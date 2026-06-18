@@ -637,7 +637,7 @@ export default {
     ConfirmDeleteDialog,
     ArtifactOpTag,
   },
-  props: { planId: { required: true, type: Number } },
+  props: { id: { required: true, type: Number } },
   data() {
     return {
       deliveryRequest: {} as DeliveryRequest,
@@ -754,14 +754,14 @@ export default {
     async refreshOps() {
       this.refreshingOps = true
       try {
-        this.deliveryRequest = await GetDeliveryRequest(this.planId)
+        this.deliveryRequest = await GetDeliveryRequest(this.id)
       } finally {
         this.refreshingOps = false
       }
     },
     async refresh() {
       this.lastRefreshAt = Date.now()
-      this.deliveryRequest = await GetDeliveryRequest(this.planId)
+      this.deliveryRequest = await GetDeliveryRequest(this.id)
 
       // load packages from PIR; artifacts are loaded lazily per package on selection
       this.packagesLoading = true
@@ -796,7 +796,7 @@ export default {
       this.draftSourceOps = []
     },
     async confirmDeleteDr() {
-      await DeleteDeliveryRequest(this.planId)
+      await DeleteDeliveryRequest(this.id)
       this.showDeleteDialog = false
       this.$router.go(-1)
     },
@@ -1231,15 +1231,15 @@ export default {
   },
   mounted() {
     // Subscribe to this DR's real-time updates via WebSocket
-    wsClient.subscribe(this.planId)
+    wsClient.subscribe(this.id)
     this.wsUnsubscribers.push(
       wsClient.on('dr-updated', (data: { drId?: number }) => {
-        if (data?.drId === this.planId) this.scheduleWSRefresh()
+        if (data?.drId === this.id) this.scheduleWSRefresh()
       }),
     )
   },
   beforeUnmount() {
-    wsClient.unsubscribe(this.planId)
+    wsClient.unsubscribe(this.id)
     this.wsUnsubscribers.forEach(unsub => unsub())
     this.wsUnsubscribers = []
     if (this.wsRefreshTimer) {
