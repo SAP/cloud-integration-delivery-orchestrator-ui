@@ -181,7 +181,7 @@ const columns: Column[] = [
 </script>
 
 <template>
-  <div class="deploy-history-page">
+  <div class="operation-history-page">
     <!-- Filter Bar -->
     <div class="filter-bar">
       <div class="filter-field">
@@ -281,7 +281,7 @@ const columns: Column[] = [
 
     <!-- Table -->
     <DataTable
-      title="Deploy History"
+      title="Operation History"
       :columns="columns"
       :data="items"
       :row-key="(row: any) => row.id"
@@ -314,7 +314,7 @@ const columns: Column[] = [
 </template>
 
 <style scoped>
-.deploy-history-page {
+.operation-history-page {
   padding: 1rem;
   display: flex;
   flex-direction: column;

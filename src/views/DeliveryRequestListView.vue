@@ -207,6 +207,7 @@ export default defineComponent({
     },
     async loadMoreDeliveryRequests() {
       if (this.deliveryRequests.length >= this.total) return
+      this.loading = true
       this.currentPage++
       const resp = await GetDeliveryRequests(this.currentPage, this.pageSize)
       await Promise.all(
@@ -217,6 +218,7 @@ export default defineComponent({
       )
       this.deliveryRequests.push(...resp.items)
       this.total = resp.total
+      this.loading = false
     },
     async onCreate() {
       try {

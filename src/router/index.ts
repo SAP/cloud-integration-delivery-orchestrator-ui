@@ -74,9 +74,9 @@ const router = createRouter({
            }
         },
         {
-          path: 'deploy-history',
-          name: 'Deploy History',
-          component: () => import('@/views/DeployHistoryView.vue'),
+          path: 'operation-history',
+          name: 'Operation History',
+          component: () => import('@/views/OperationHistoryView.vue'),
           meta: { description: 'Audit Transport and Deploy Operations',
               requiredScope: 'DeliveryRequest.Read',
               width: '20rem',
