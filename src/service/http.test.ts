@@ -103,7 +103,7 @@ describe('pickMessage', () => {
     expect(pickMessage(error, 'BACKEND_ERROR')).toBe('failed to get configs: db timeout')
   })
 
-  it('returns fallback when response data is HTML string (approuter 5xx)', () => {
+  it('returns fallback when response data is HTML string (non-JSON 5xx)', () => {
     const error = { response: { data: '<html><body>Bad Gateway</body></html>' } }
     expect(pickMessage(error, 'GATEWAY_UNAVAILABLE')).toBe(HTTP_ERROR_FALLBACKS.GATEWAY_UNAVAILABLE)
   })
