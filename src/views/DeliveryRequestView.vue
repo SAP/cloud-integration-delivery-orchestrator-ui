@@ -771,8 +771,10 @@ export default {
         // pre-load artifacts for packages that already have saved ops
         const savedPackageIDs = [...new Set(this.sourceOps.map(op => op.PackageID))]
         if (savedPackageIDs.length === 0) return
-        const results = await GetPackageArtifacts(String(this.deliveryRequest.SourceTenant.ID), savedPackageIDs)
-        results.forEach(r => { this.packageArtifacts[r.packageId] = r.artifacts ?? [] })
+        await Promise.all(savedPackageIDs.map(async pkgId => {
+          const arts = await GetPackageArtifacts(String(this.deliveryRequest.SourceTenant.ID), pkgId)
+          this.packageArtifacts[pkgId] = arts ?? []
+        }))
       } finally {
         this.packagesLoading = false
       }
@@ -1037,10 +1039,12 @@ export default {
         .filter((pkg): pkg is Package => pkg !== null)
       this.selectedPackages = selectedPkgs
       // lazy-load artifacts for newly selected packages not yet in cache
-      const uncachedPkgIds = selectedPkgs.filter(pkg => !this.packageArtifacts[pkg.Id]).map(pkg => pkg.Id)
-      if (uncachedPkgIds.length === 0) return
-      const results = await GetPackageArtifacts(String(this.deliveryRequest.SourceTenant.ID), uncachedPkgIds)
-      results.forEach(r => { this.packageArtifacts[r.packageId] = r.artifacts ?? [] })
+      const uncachedPkgs = selectedPkgs.filter(pkg => !this.packageArtifacts[pkg.Id])
+      if (uncachedPkgs.length === 0) return
+      await Promise.all(uncachedPkgs.map(async pkg => {
+        const arts = await GetPackageArtifacts(String(this.deliveryRequest.SourceTenant.ID), pkg.Id)
+        this.packageArtifacts[pkg.Id] = arts ?? []
+      }))
     },
     handleFilterArtifacts(pkgId: string, event: Event) {
       const input = event.target as HTMLInputElement;
@@ -1052,19 +1056,17 @@ export default {
       this.globalArtifactResults = []
       this.globalArtifactSearching = true
       try {
-        // batch-load all uncached packages in one request
-        const uncachedPkgIds = this.tenantPkgs.filter(pkg => !this.packageArtifacts[pkg.Id]).map(pkg => pkg.Id)
-        if (uncachedPkgIds.length > 0) {
-          const results = await GetPackageArtifacts(String(this.deliveryRequest.SourceTenant.ID), uncachedPkgIds)
-          results.forEach(r => { this.packageArtifacts[r.packageId] = r.artifacts ?? [] })
-        }
-        if (version !== this.globalArtifactSearchVersion) return // stale
-        // search through all cached artifacts
-        this.globalArtifactResults = this.tenantPkgs.flatMap(pkg =>
-          (this.packageArtifacts[pkg.Id] ?? [])
+        await Promise.all(this.tenantPkgs.map(async pkg => {
+          if (!this.packageArtifacts[pkg.Id]) {
+            const arts = await GetPackageArtifacts(String(this.deliveryRequest.SourceTenant.ID), pkg.Id)
+            this.packageArtifacts[pkg.Id] = arts ?? []
+          }
+          if (version !== this.globalArtifactSearchVersion) return // stale
+          const matches = (this.packageArtifacts[pkg.Id] ?? [])
             .filter(a => a.TechID.toLowerCase().includes(kw) || a.Version.toLowerCase().includes(kw))
             .map(artifact => ({ pkg, artifact }))
-        )
+          this.globalArtifactResults.push(...matches)
+        }))
       } finally {
         if (version === this.globalArtifactSearchVersion) {
           this.globalArtifactSearching = false

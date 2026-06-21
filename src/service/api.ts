@@ -52,10 +52,17 @@ export interface PackageArtifactsResult {
   error?: string
 }
 
-export const GetPackageArtifacts = (tenantId: string, packageIds: string[]) => {
+export const GetPackageArtifactsBatch = (tenantId: string, packageIds: string[]) => {
   return http.get('/api/v1/tenant/packages/artifacts', {
     params: { tenant: tenantId, packages: packageIds.join(',') }
   }) as Promise<PackageArtifactsResult[]>
+}
+
+export const GetPackageArtifacts = async (tenantId: string, packageId: string): Promise<Artifact[]> => {
+  const results = await GetPackageArtifactsBatch(tenantId, [packageId])
+  const r = results?.[0]
+  if (r?.error) throw new Error(r.error)
+  return r?.artifacts ?? []
 }
 
 export const GetRuntimeArtifacts = (tenantId: string) => {
