@@ -46,10 +46,16 @@ export const GenerateTR = (tenantId: number, deliveryRequestID: number, artifact
   }) as Promise<GenerateTRResponse>
 }
 
-export const GetPackageArtifacts = (tenantId: string, packageId: string) => {
+export interface PackageArtifactsResult {
+  packageId: string
+  artifacts: Artifact[]
+  error?: string
+}
+
+export const GetPackageArtifacts = (tenantId: string, packageIds: string[]) => {
   return http.get('/api/v1/tenant/packages/artifacts', {
-    params: { tenant: tenantId, package: packageId }
-  }) as Promise<Artifact[]>
+    params: { tenant: tenantId, packages: packageIds.join(',') }
+  }) as Promise<PackageArtifactsResult[]>
 }
 
 export const GetRuntimeArtifacts = (tenantId: string) => {
