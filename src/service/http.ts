@@ -72,7 +72,7 @@ export function classify(error: any): { code: HttpErrorCode; retryable: boolean 
   if (status === 429) return { code: 'TOO_MANY_REQUESTS', retryable: true }
   if (status === 400 || status === 422) return { code: 'INVALID_INPUT', retryable: false }
 
-  // Gateway errors: approuter / reverse proxy cannot reach backend
+  // Gateway errors: CF GoRouter or upstream service unreachable
   if (status === 502 || status === 503 || status === 504)
     return { code: 'GATEWAY_UNAVAILABLE', retryable: true }
 

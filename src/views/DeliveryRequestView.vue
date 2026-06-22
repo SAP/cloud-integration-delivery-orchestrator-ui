@@ -770,6 +770,7 @@ export default {
         this.tenantPkgs = pkgs ?? []
         // pre-load artifacts for packages that already have saved ops
         const savedPackageIDs = [...new Set(this.sourceOps.map(op => op.PackageID))]
+        if (savedPackageIDs.length === 0) return
         await Promise.all(savedPackageIDs.map(async pkgId => {
           const arts = await GetPackageArtifacts(String(this.deliveryRequest.SourceTenant.ID), pkgId)
           this.packageArtifacts[pkgId] = arts ?? []
@@ -1038,11 +1039,11 @@ export default {
         .filter((pkg): pkg is Package => pkg !== null)
       this.selectedPackages = selectedPkgs
       // lazy-load artifacts for newly selected packages not yet in cache
-      await Promise.all(selectedPkgs.map(async pkg => {
-        if (!this.packageArtifacts[pkg.Id]) {
-          const arts = await GetPackageArtifacts(String(this.deliveryRequest.SourceTenant.ID), pkg.Id)
-          this.packageArtifacts[pkg.Id] = arts ?? []
-        }
+      const uncachedPkgs = selectedPkgs.filter(pkg => !this.packageArtifacts[pkg.Id])
+      if (uncachedPkgs.length === 0) return
+      await Promise.all(uncachedPkgs.map(async pkg => {
+        const arts = await GetPackageArtifacts(String(this.deliveryRequest.SourceTenant.ID), pkg.Id)
+        this.packageArtifacts[pkg.Id] = arts ?? []
       }))
     },
     handleFilterArtifacts(pkgId: string, event: Event) {
@@ -1061,11 +1062,10 @@ export default {
             this.packageArtifacts[pkg.Id] = arts ?? []
           }
           if (version !== this.globalArtifactSearchVersion) return // stale
-          for (const a of (this.packageArtifacts[pkg.Id] ?? [])) {
-            if (a.TechID.toLowerCase().includes(kw) || a.Version.toLowerCase().includes(kw)) {
-              this.globalArtifactResults.push({ pkg, artifact: a })
-            }
-          }
+          const matches = (this.packageArtifacts[pkg.Id] ?? [])
+            .filter(a => a.TechID.toLowerCase().includes(kw) || a.Version.toLowerCase().includes(kw))
+            .map(artifact => ({ pkg, artifact }))
+          this.globalArtifactResults.push(...matches)
         }))
       } finally {
         if (version === this.globalArtifactSearchVersion) {
