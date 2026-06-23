@@ -255,10 +255,10 @@ onMounted(async () => {
     <!-- Central TMS -->
     <ui5-panel header-text="Central TMS" fixed>
       <ui5-busy-indicator :active="tmsContextLoading" :delay="0" size="M" style="width: 100%;">
-        <ui5-message-strip v-if="!tmsConfigured && !tmsContextLoading" design="Critical" hide-close-button style="margin-bottom: 0.75rem;">
-          Central TMS is not configured. Bootstrap will be blocked.
-        </ui5-message-strip>
-        <div class="info-center">
+        <div class="panel-body">
+          <ui5-message-strip v-if="!tmsConfigured && !tmsContextLoading" design="Critical" hide-close-button>
+            Central TMS is not configured. Bootstrap and transport request operations will be blocked. Click "Edit" to set the TMS API destination name.
+          </ui5-message-strip>
           <div class="info-row">
             <div class="info-field">
               <ui5-label>Destination</ui5-label>
@@ -268,8 +268,6 @@ onMounted(async () => {
               <ui5-label>Endpoint</ui5-label>
               <ui5-text class="mono">{{ tmsContext.TmsApiEndpoint }}</ui5-text>
             </div>
-          </div>
-          <div class="info-row">
             <div class="info-field" v-if="tmsContext?.LastValidatedAt">
               <ui5-label>Last Validated</ui5-label>
               <ui5-text>{{ new Date(tmsContext.LastValidatedAt).toLocaleString() }}</ui5-text>
@@ -361,26 +359,24 @@ onMounted(async () => {
 
     <!-- Database -->
     <ui5-panel header-text="Database" fixed>
-      <div class="info-center">
-        <div class="info-row">
-          <div class="info-field">
-            <ui5-label>Host</ui5-label>
-            <ui5-text class="mono">{{ dbInfo?.host || '—' }}:{{ dbInfo?.port || '' }}</ui5-text>
-          </div>
-          <div class="info-field">
-            <ui5-label>Database</ui5-label>
-            <ui5-text>{{ dbInfo?.dbName || '—' }}</ui5-text>
-          </div>
-          <div class="info-field">
-            <ui5-label>Status</ui5-label>
-            <ui5-tag v-if="getStatus('database')" :design="statusDesign(getStatus('database')?.status)" style="font-size: 0.75rem;">
-              {{ getStatus('database')?.status === 'ok' ? 'OK' : getStatus('database')?.message }}
-            </ui5-tag>
-            <ui5-tag v-else-if="dbInfo" :design="statusDesign(dbInfo.status)" style="font-size: 0.75rem;">
-              {{ dbInfo.status === 'ok' ? 'OK' : 'Error' }}
-            </ui5-tag>
-            <ui5-text v-else style="color: var(--sapContent_LabelColor);">—</ui5-text>
-          </div>
+      <div class="info-row">
+        <div class="info-field">
+          <ui5-label>Host</ui5-label>
+          <ui5-text class="mono">{{ dbInfo?.host || '—' }}:{{ dbInfo?.port || '' }}</ui5-text>
+        </div>
+        <div class="info-field">
+          <ui5-label>Database</ui5-label>
+          <ui5-text>{{ dbInfo?.dbName || '—' }}</ui5-text>
+        </div>
+        <div class="info-field">
+          <ui5-label>Status</ui5-label>
+          <ui5-tag v-if="getStatus('database')" :design="statusDesign(getStatus('database')?.status)" style="font-size: 0.75rem;">
+            {{ getStatus('database')?.status === 'ok' ? 'OK' : getStatus('database')?.message }}
+          </ui5-tag>
+          <ui5-tag v-else-if="dbInfo" :design="statusDesign(dbInfo.status)" style="font-size: 0.75rem;">
+            {{ dbInfo.status === 'ok' ? 'OK' : 'Error' }}
+          </ui5-tag>
+          <ui5-text v-else style="color: var(--sapContent_LabelColor);">—</ui5-text>
         </div>
       </div>
     </ui5-panel>
@@ -408,20 +404,20 @@ onMounted(async () => {
   gap: 0.75rem;
 }
 
-/* Info panels (TMS, Database) — block centered in panel, content left-aligned */
-.info-center {
-  width: fit-content;
-  margin: 0 auto;
+/* Info panels (TMS, Database) */
+.panel-body {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
-  padding: 0.5rem 0;
+  gap: 0.75rem;
 }
 
 .info-row {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
   gap: 2rem;
+  padding: 0.5rem 1rem;
 }
 
 .info-field {
