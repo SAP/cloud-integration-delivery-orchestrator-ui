@@ -57,11 +57,10 @@ const runConnectivityCheck = async () => {
 const loadLastConnectivity = async () => {
   try {
     const report = await GetLastConnectivity()
-    console.log('loadLastConnectivity result:', report)
     connectivityResults.value = report.results || []
     checkedAt.value = new Date(report.checkedAt).toLocaleString()
-  } catch (e) {
-    console.log('loadLastConnectivity failed:', e)
+  } catch {
+    // silently ignore — first visit or no cached report
   }
 }
 

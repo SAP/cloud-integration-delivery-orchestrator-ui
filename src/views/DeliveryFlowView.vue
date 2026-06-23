@@ -127,7 +127,6 @@ watch(toGroupNode, async(newVal) => {
     Object.entries(newVal).forEach(([id, node]) => {
         const el = document.getElementById(node.id)
         const {width, height} = el?.getBoundingClientRect() ?? {}
-        console.log(`DeliverGroup ${node.id} real size`, width, height)
         node.height = height
         node.width = width
     })
