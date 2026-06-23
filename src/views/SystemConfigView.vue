@@ -257,7 +257,7 @@ onMounted(async () => {
       <ui5-busy-indicator :active="tmsContextLoading" :delay="0" size="M" style="width: 100%;">
         <div class="panel-body">
           <ui5-message-strip v-if="!tmsConfigured && !tmsContextLoading" design="Critical" hide-close-button>
-            Central TMS is not configured. Bootstrap and transport request operations will be blocked. Click "Edit" to set the TMS API destination name.
+            Central TMS is not configured. Bootstrap and transport request operations will be blocked. Click "Configure" to set the TMS API destination name.
           </ui5-message-strip>
           <div class="info-row">
             <div class="info-field">
