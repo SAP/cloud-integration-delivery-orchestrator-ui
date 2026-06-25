@@ -969,7 +969,7 @@ export default {
       const op = this.artifactOpDetial
       if (!op || op.ID === undefined) return
 
-      const deployBlocked = ['IN_PROGRESS', 'COMPLETE'].some(
+      const deployBlocked = ['IN_PROGRESS', 'COMPLETE', 'QUEUED', 'FAILED'].some(
         s => op.DeployState === s || op.DeployState === `DEPLOY_${s}`
       )
       if (deployBlocked && !op.SkipDeploy) {
