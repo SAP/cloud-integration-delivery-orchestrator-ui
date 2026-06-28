@@ -87,14 +87,14 @@ export const CANCELLABLE_STATUSES = new Set<AggregateStatus>([
 ])
 
 export const STATUS_FILTER_GROUPS = {
-  All: null,
-  Completed: new Set<AggregateStatus>(['DEPLOYED']),
   'In Progress': new Set<AggregateStatus>([
     'PENDING', 'WAITING_APPROVAL', 'AWAITING_IMPORT', 'IMPORTING',
     'AWAITING_DEPLOY', 'DEPLOYING', 'IN_PROGRESS', 'IMPORTED'
   ]),
+  Completed: new Set<AggregateStatus>(['DEPLOYED']),
   Failed: new Set<AggregateStatus>(['IMPORT_FAILED', 'DEPLOY_FAILED', 'FAILED', 'Error']),
-  Canceled: new Set<AggregateStatus>(['CANCELED'])
+  Canceled: new Set<AggregateStatus>(['CANCELED']),
+  All: null,
 } as const
 
 export type StatusFilterKey = keyof typeof STATUS_FILTER_GROUPS

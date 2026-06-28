@@ -91,9 +91,10 @@ import { defineComponent } from 'vue'
 import DataTable from '@/components/DataTable.vue'
 import ConfirmDeleteDialog from '@/components/ConfirmDeleteDialog.vue'
 import { deliveryRequestColumns, type ToolBar } from '@/service/consts'
-import { DeleteDeliveryRequest, GetDeliveryRequests, CreateDeliveryRequest, GetDeliveryRules } from '@/service/api';
+import { DeleteDeliveryRequest, GetDeliveryRequests, CreateDeliveryRequest, GetDeliveryRules, CurrentUser } from '@/service/api';
 import type { DeliveryRequest, DeliveryRule, UserInfo } from '@/service/model';
 import { STATUS_FILTER_GROUPS, type StatusFilterKey } from '@/service/statuses';
+import { sortByOwnerAndDate } from '@/service/sort';
 import { useAuth } from '@/composables/useAuth'
 import { useUserCache } from '@/composables/useUserCache'
 
@@ -133,11 +134,12 @@ export default defineComponent({
       loading: false as boolean,
       showDeleteDialog: false,
       pendingDeleteRows: [] as DeliveryRequest[],
-      activeFilter: 'All' as StatusFilterKey,
+      activeFilter: 'In Progress' as StatusFilterKey,
       searchKeyword: '',
       currentPage: 1,
       pageSize: 20,
       total: 0,
+      currentUserEmail: '',
     }
   },
   computed: {
@@ -161,8 +163,8 @@ export default defineComponent({
     },
     filteredDeliveryRequests(): DeliveryRequest[] {
       const group = STATUS_FILTER_GROUPS[this.activeFilter]
-      if (group === null) return this.searchedDeliveryRequests
-      return this.searchedDeliveryRequests.filter(dr => group.has(dr.AggregateStatus))
+      const filtered = group === null ? this.searchedDeliveryRequests : this.searchedDeliveryRequests.filter(dr => group.has(dr.AggregateStatus))
+      return sortByOwnerAndDate(filtered, this.currentUserEmail)
     },
   },
   methods: {
@@ -251,6 +253,8 @@ export default defineComponent({
     },
   },
   async created() {
+    const user = await CurrentUser()
+    this.currentUserEmail = user?.email || ''
     await this.loadDeliveryRequests()
     const options = await GetDeliveryRules()
     this.deliveryRuleOptions = options.map(op => ({ label: op.Name, value: op, disabled: !op.Active }))
