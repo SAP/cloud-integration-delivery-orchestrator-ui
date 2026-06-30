@@ -737,7 +737,6 @@ export default {
       this.approveStepLoading = true
       try {
         await Approve(this.deliveryRequest.ID, '')
-        await this.refresh()
         window.$toast?.success?.('Delivery Request approved.')
       } finally {
         this.approveStepLoading = false
