@@ -8,6 +8,8 @@ general:
   vaultNamespace: 'ies/hyperspace/pipelines'
   nativeBuild: true
 stages:
+  Security:
+    detectExecuteScan: true
   Release:
     sapDownloadArtifact: false
   Post:
@@ -21,3 +23,17 @@ steps:
     serverUrl: 'https://sonar.tools.sap'
   sapCumulusUpload:
     pipelineId: 'd66a5815-572a-4f81-9236-41ee7681fa22'
+  detectExecuteScan:
+    serverUrl: https://sap.blackducksoftware.com
+    groups: ['Delivery Orchestration for SAP Cloud Integration']
+    scanners: []
+    scanPaths: []
+    detectTools: ['DETECTOR']
+    npmDependencyTypesExcluded: ['DEV']
+    scanProperties: [
+        "--detect.accuracy.required=NONE",
+        "--detect.project.version.distribution=SAAS",
+        "--detect.timeout=6000",
+        "--blackduck.trust.cert=true",
+        "--min-scan-interval=0",
+      ]
