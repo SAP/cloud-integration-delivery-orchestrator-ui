@@ -1,5 +1,6 @@
 general:
   # buildTool: Add the name of your build tool which fits your project. For example: maven, docker, npm
+  buildTool: 'npm'
   productiveBranch: 'main'
   vaultPath: 'piper/PIPELINE-GROUP-70'
   vaultBasePath: 'piper/PIPELINE-GROUP-70'
