@@ -75,7 +75,7 @@ const userRoles = computed(() =>
   <ui5-shellbar>
     <ui5-shellbar-branding @click="() => router.push('/')" slot="branding">
       CPI Delivery
-      <img slot="logo" src="https://ui5.github.io/webcomponents/images/sap-logo-svg.svg" />
+      <img slot="logo" src="/sap-logo.svg" />
     </ui5-shellbar-branding>
     <ui5-button v-if="canBack" @click="() => router.go(-1)" icon="nav-back" slot="startButton"></ui5-button>
     <ui5-shellbar-item @click="handleHelp" icon="sys-help" text="Help"></ui5-shellbar-item>
