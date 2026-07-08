@@ -27,11 +27,10 @@ steps:
   detectExecuteScan:
     serverUrl: https://sap.blackducksoftware.com
     groups: ['Delivery Orchestration for SAP Cloud Integration']
-    scanners: []
-    scanPaths: []
     detectTools: ['DETECTOR']
     npmDependencyTypesExcluded: ['DEV']
     scanProperties: [
+        "--detect.tools=DETECTOR",
         "--detect.accuracy.required=NONE",
         "--detect.project.version.distribution=SAAS",
         "--detect.timeout=6000",
