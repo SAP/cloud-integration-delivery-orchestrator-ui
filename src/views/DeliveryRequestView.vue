@@ -290,7 +290,7 @@
                       :subtitle-text="`Please Retry...`" />
                   </div>
 
-                  <ui5-multi-combobox v-else show-clear-icon show-select-all @selection-change="handleSelectPackage"
+                  <ui5-multi-combobox v-else show-clear-icon show-select-all filter="Contains" @selection-change="handleSelectPackage"
                     style="width: 100%;">
                     <ui5-mcb-item v-for="pkg in packageOptions" :id="pkg.value.Id" :key="pkg.value.Id"
                       :text="pkg.value.Name" :additional-text="`${pkg.value.Version}`"

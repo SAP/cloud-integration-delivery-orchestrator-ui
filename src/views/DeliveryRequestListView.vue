@@ -15,6 +15,7 @@
           :value="String(selectedDeliveryRequest.DeliveryRule?.Name || '')"
           @change="handleRuleChange"
           placeholder="Choose Delivery Rule"
+          filter="Contains"
           style="width: 100%;">
           <ui5-cb-item
             v-for="option in deliveryRuleOptions"

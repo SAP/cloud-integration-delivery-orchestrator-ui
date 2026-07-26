@@ -207,6 +207,7 @@ const columns: Column[] = [
         <ui5-label>Tenant:</ui5-label>
         <ui5-multi-combobox
           class="filter-tenant"
+          filter="Contains"
           @selection-change="($event: any) => {
             filter.tenantIds = Array.from($event.target.items)
               .filter((i: any) => i.selected)

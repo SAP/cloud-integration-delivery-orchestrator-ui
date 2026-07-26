@@ -26,6 +26,7 @@
             <ui5-multi-combobox
                 show-clear-icon
                 show-select-all
+                filter="Contains"
                 @selection-change="handleTenantSelectionChange"
                 style="width: 80%;">
                 <ui5-mcb-item
