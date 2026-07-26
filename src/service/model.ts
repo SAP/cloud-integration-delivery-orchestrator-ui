@@ -491,11 +491,22 @@ export interface IntegrationConfig {
 
 export interface GitRepoConfig {
   ID?: number
-  provider: string        // github | github_enterprise
+  provider: string
   destinationName: string
   owner: string
   repo: string
   enabled: boolean
+}
+
+export interface GitOwnerInfo {
+  login: string
+  type: string // "User" | "Organization"
+}
+
+export interface GitRepoInfo {
+  name: string
+  fullName: string
+  private: boolean
 }
 
 export interface ConnectivityStatus {

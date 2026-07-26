@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted, computed } from 'vue'
-import { CheckConnectivity, GetLastConnectivity, GetDatabaseInfo, GetIntegrations, UpdateIntegration, TestIntegration, GetCentralTmsContext, UpsertCentralTmsContext, GetCpiTenants, GetGitRepoConfig, UpsertGitRepoConfig, TestGitRepoConnection } from '@/service/api'
-import type { ConnectivityStatus, IntegrationConfig, CentralTmsContext, CpiTenant, GitRepoConfig } from '@/service/model'
+import { CheckConnectivity, GetLastConnectivity, GetDatabaseInfo, GetIntegrations, UpdateIntegration, TestIntegration, GetCentralTmsContext, UpsertCentralTmsContext, GetCpiTenants, GetGitRepoConfig, GetGitProviders, UpsertGitRepoConfig, TestGitRepoConnection, GetCPIApiEndpoints, GetGitOwners, GetGitRepos } from '@/service/api'
+import type { ConnectivityStatus, IntegrationConfig, CentralTmsContext, CpiTenant, GitRepoConfig, GitOwnerInfo, GitRepoInfo, ApiEndpoint } from '@/service/model'
 
 import "@ui5/webcomponents/dist/Title.js"
 import "@ui5/webcomponents/dist/Button.js"
@@ -21,6 +21,10 @@ import "@ui5/webcomponents/dist/Dialog.js"
 import "@ui5/webcomponents/dist/Toolbar.js"
 import "@ui5/webcomponents/dist/ToolbarButton.js"
 import "@ui5/webcomponents/dist/MessageStrip.js"
+import "@ui5/webcomponents/dist/Select.js"
+import "@ui5/webcomponents/dist/Option.js"
+import "@ui5/webcomponents/dist/ComboBox.js"
+import "@ui5/webcomponents/dist/ComboBoxItem.js"
 import "@ui5/webcomponents-icons/dist/refresh.js"
 import "@ui5/webcomponents-icons/dist/edit.js"
 import "@ui5/webcomponents-icons/dist/connected.js"
@@ -105,13 +109,79 @@ const onSaveTmsContext = async () => {
 
 // ── Git Repository Config ────────────────────────────────────────────────────
 
-const gitConfig = ref<GitRepoConfig>({ provider: 'github', destinationName: '', owner: '', repo: '', enabled: false })
+const emptyGitConfig = (): GitRepoConfig => ({ provider: 'github', destinationName: '', owner: '', repo: '', enabled: false })
+
+const gitConfig = ref<GitRepoConfig>(emptyGitConfig())
 const gitConfigLoading = ref(false)
 const showGitEditDialog = ref(false)
-const gitEditForm = ref<GitRepoConfig>({ provider: 'github', destinationName: '', owner: '', repo: '', enabled: false })
+const gitEditForm = ref<GitRepoConfig>(emptyGitConfig())
 const gitSaving = ref(false)
 const gitTestResult = ref<{ status: string; message: string } | null>(null)
 const gitTesting = ref(false)
+
+// Cascading dropdown data
+const destinations = ref<ApiEndpoint[]>([])
+const gitProviders = ref<string[]>([])
+const gitOwners = ref<GitOwnerInfo[]>([])
+const gitRepos = ref<GitRepoInfo[]>([])
+const gitOwnersLoading = ref(false)
+const gitReposLoading = ref(false)
+
+const loadDestinations = async () => {
+  try {
+    destinations.value = await GetCPIApiEndpoints() || []
+  } catch { /* ignore */ }
+}
+
+const loadGitProviders = async () => {
+  try {
+    gitProviders.value = await GetGitProviders() || []
+  } catch { /* ignore */ }
+}
+
+const onGitProviderChange = (provider: string) => {
+  gitEditForm.value.provider = provider
+  // Reset all downstream selections
+  gitEditForm.value.destinationName = ''
+  gitEditForm.value.owner = ''
+  gitEditForm.value.repo = ''
+  gitOwners.value = []
+  gitRepos.value = []
+}
+
+const onGitDestinationChange = async (destName: string) => {
+  gitEditForm.value.destinationName = destName
+  // Reset downstream selections
+  gitEditForm.value.owner = ''
+  gitEditForm.value.repo = ''
+  gitOwners.value = []
+  gitRepos.value = []
+  if (!destName) return
+  // Fetch owners for this destination
+  gitOwnersLoading.value = true
+  try {
+    gitOwners.value = await GetGitOwners(gitEditForm.value.provider, destName)
+  } catch { /* error shown by interceptor */ } finally {
+    gitOwnersLoading.value = false
+  }
+}
+
+const onGitOwnerChange = async (owner: string) => {
+  gitEditForm.value.owner = owner
+  // Reset repo
+  gitEditForm.value.repo = ''
+  gitRepos.value = []
+  if (!owner || !gitEditForm.value.destinationName) return
+  const ownerInfo = gitOwners.value.find(o => o.login === owner)
+  if (!ownerInfo) return
+  // Fetch repos for this owner
+  gitReposLoading.value = true
+  try {
+    gitRepos.value = await GetGitRepos(gitEditForm.value.provider, gitEditForm.value.destinationName, owner, ownerInfo.type)
+  } catch { /* error shown by interceptor */ } finally {
+    gitReposLoading.value = false
+  }
+}
 
 const loadGitConfig = async () => {
   gitConfigLoading.value = true
@@ -125,9 +195,31 @@ const loadGitConfig = async () => {
   }
 }
 
-const openGitEditDialog = () => {
+const openGitEditDialog = async () => {
   gitEditForm.value = { ...gitConfig.value }
+  gitOwners.value = []
+  gitRepos.value = []
   showGitEditDialog.value = true
+  // Pre-load cascading data for existing config
+  if (gitEditForm.value.destinationName) {
+    gitOwnersLoading.value = true
+    try {
+      gitOwners.value = await GetGitOwners(gitEditForm.value.provider, gitEditForm.value.destinationName)
+    } catch { /* ignore */ } finally {
+      gitOwnersLoading.value = false
+    }
+    if (gitEditForm.value.owner) {
+      const ownerInfo = gitOwners.value.find(o => o.login === gitEditForm.value.owner)
+      if (ownerInfo) {
+        gitReposLoading.value = true
+        try {
+          gitRepos.value = await GetGitRepos(gitEditForm.value.provider, gitEditForm.value.destinationName, gitEditForm.value.owner, ownerInfo.type)
+        } catch { /* ignore */ } finally {
+          gitReposLoading.value = false
+        }
+      }
+    }
+  }
 }
 
 const onSaveGitConfig = async () => {
@@ -230,7 +322,7 @@ const loadDatabaseInfo = async () => {
 // ── Lifecycle ────────────────────────────────────────────────────────────────
 
 onMounted(async () => {
-  await Promise.allSettled([loadTmsContext(), loadGitConfig(), loadIntegrations(), loadTenants(), loadDatabaseInfo(), loadLastConnectivity()])
+  await Promise.allSettled([loadTmsContext(), loadGitConfig(), loadGitProviders(), loadDestinations(), loadIntegrations(), loadTenants(), loadDatabaseInfo(), loadLastConnectivity()])
 })
 </script>
 
@@ -297,29 +389,48 @@ onMounted(async () => {
     style="width: 36rem;">
     <div class="sc-dialog-content">
       <ui5-label required>Provider</ui5-label>
-      <ui5-input
-        :value="gitEditForm.provider"
-        @input="gitEditForm.provider = ($event as any).target.value"
-        placeholder="github or github_enterprise"
-        style="width: 100%;" />
-      <ui5-label required style="margin-top: 0.75rem;">Destination Name</ui5-label>
-      <ui5-input
-        :value="gitEditForm.destinationName"
-        @input="gitEditForm.destinationName = ($event as any).target.value"
-        placeholder="e.g. cpi-delivery-github"
-        style="width: 100%;" />
+      <ui5-select style="width: 100%;" @change="onGitProviderChange(($event as any).detail.selectedOption.value)">
+        <ui5-option v-for="p in gitProviders" :key="p" :value="p" :selected="gitEditForm.provider === p">{{ p }}</ui5-option>
+      </ui5-select>
+
+      <ui5-label required style="margin-top: 0.75rem;">Destination</ui5-label>
+      <ui5-combobox
+        style="width: 100%;"
+        placeholder="Search Git Destinations..."
+        filter="Contains"
+        :selected-value="gitEditForm.destinationName"
+        @selection-change="onGitDestinationChange(($event as any).detail.item?.getAttribute('value') || '')">
+        <ui5-cb-item v-for="d in destinations" :key="d.name" :text="d.name" :value="d.name"></ui5-cb-item>
+      </ui5-combobox>
+
       <ui5-label required style="margin-top: 0.75rem;">Owner</ui5-label>
-      <ui5-input
-        :value="gitEditForm.owner"
-        @input="gitEditForm.owner = ($event as any).target.value"
-        placeholder="GitHub org or user"
-        style="width: 100%;" />
+      <ui5-busy-indicator :active="gitOwnersLoading" :delay="0" size="S" style="width: 100%;">
+        <ui5-combobox
+          style="width: 100%;"
+          placeholder="Search Owner..."
+          filter="Contains"
+          :selected-value="gitEditForm.owner"
+          :disabled="gitOwners.length === 0 && !gitOwnersLoading"
+          :loading="gitOwnersLoading"
+          @selection-change="onGitOwnerChange(($event as any).detail.item?.getAttribute('value') || '')">
+          <ui5-cb-item v-for="o in gitOwners" :key="o.login" :text="`${o.login} (${o.type})`" :value="o.login"></ui5-cb-item>
+        </ui5-combobox>
+      </ui5-busy-indicator>
+
       <ui5-label required style="margin-top: 0.75rem;">Repository</ui5-label>
-      <ui5-input
-        :value="gitEditForm.repo"
-        @input="gitEditForm.repo = ($event as any).target.value"
-        placeholder="Repository name"
-        style="width: 100%;" />
+      <ui5-busy-indicator :active="gitReposLoading" :delay="0" size="S" style="width: 100%;">
+        <ui5-combobox
+          style="width: 100%;"
+          placeholder="Search Repository..."
+          filter="Contains"
+          :selected-value="gitEditForm.repo"
+          :disabled="gitRepos.length === 0 && !gitReposLoading"
+          :loading="gitReposLoading"
+          @selection-change="gitEditForm.repo = ($event as any).detail.item?.getAttribute('value') || ''">
+          <ui5-cb-item v-for="r in gitRepos" :key="r.name" :text="r.private ? `${r.name} (private)` : r.name" :value="r.name"></ui5-cb-item>
+        </ui5-combobox>
+      </ui5-busy-indicator>
+
       <ui5-checkbox
         style="margin-top: 0.75rem;"
         :checked="gitEditForm.enabled"
@@ -327,7 +438,7 @@ onMounted(async () => {
         text="Enabled" />
     </div>
     <ui5-toolbar slot="footer">
-      <ui5-toolbar-button design="Emphasized" text="Save" :disabled="gitSaving" @click="onSaveGitConfig" />
+      <ui5-toolbar-button design="Emphasized" text="Save" :disabled="gitSaving || !gitEditForm.destinationName || !gitEditForm.owner || !gitEditForm.repo" @click="onSaveGitConfig" />
       <ui5-toolbar-button design="Transparent" text="Cancel" @click="showGitEditDialog = false" />
     </ui5-toolbar>
   </ui5-dialog>
@@ -389,7 +500,7 @@ onMounted(async () => {
           <div class="info-row">
             <div class="info-field">
               <ui5-label>Provider</ui5-label>
-              <ui5-tag design="Set2" color-scheme="8" style="font-size: 0.75rem;">{{ gitConfig.provider || '—' }}</ui5-tag>
+              <ui5-tag design="Set2" color-scheme="6" style="font-size: 0.75rem;">{{ gitConfig.provider || '—' }}</ui5-tag>
             </div>
             <div class="info-field">
               <ui5-label>Destination</ui5-label>
@@ -408,7 +519,7 @@ onMounted(async () => {
             <div class="info-field">
               <ui5-label>Status</ui5-label>
               <ui5-tag v-if="gitTestResult" :design="statusDesign(gitTestResult.status)" style="font-size: 0.7rem;">
-                {{ gitTestResult.status === 'success' ? 'Connected' : gitTestResult.message }}
+                {{ gitTestResult.status === 'ok' ? 'Connected' : gitTestResult.message }}
               </ui5-tag>
               <ui5-text v-else style="color: var(--sapContent_LabelColor);">—</ui5-text>
             </div>

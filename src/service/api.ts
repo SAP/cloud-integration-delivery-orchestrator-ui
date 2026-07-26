@@ -1,6 +1,6 @@
 import axios from 'axios'
 import http from './http'
-import type { ApiEndpoint, Artifact, ArtifactTenantOperation, AppCount, BackfillTechIDResult, BootstrapJob, BootstrapPreview, CentralTmsContext, ConnectivityReport, ConnectivityStatus, CpiTenant, CreateDRFromMismatchRequest, CreateDRFromMismatchResponse, DeliverOpRequest, DeliveryRequest, DeliveryRule, GenerateTRResponse, GitRepoConfig, IntegrationConfig, NodeTransportRequest, OperationCondition, OperationsHistoryFilters, OperationsHistoryResponse, Package, PreviewDRResponse, RuntimeArtifact, TmsNodeConfirmResponse, TmsRoutesResponse, TransportNode, TransportRoute, TriggerResult, UserInfo, VersionCompareIncludedPackage, VersionCompareResponse, VersionCompareSummaryItem } from './model'
+import type { ApiEndpoint, Artifact, ArtifactTenantOperation, AppCount, BackfillTechIDResult, BootstrapJob, BootstrapPreview, CentralTmsContext, ConnectivityReport, ConnectivityStatus, CpiTenant, CreateDRFromMismatchRequest, CreateDRFromMismatchResponse, DeliverOpRequest, DeliveryRequest, DeliveryRule, GenerateTRResponse, GitOwnerInfo, GitRepoConfig, GitRepoInfo, IntegrationConfig, NodeTransportRequest, OperationCondition, OperationsHistoryFilters, OperationsHistoryResponse, Package, PreviewDRResponse, RuntimeArtifact, TmsNodeConfirmResponse, TmsRoutesResponse, TransportNode, TransportRoute, TriggerResult, UserInfo, VersionCompareIncludedPackage, VersionCompareResponse, VersionCompareSummaryItem } from './model'
 import type { AggregateStatus, DeployState, ImportState, RequestState } from './statuses'
 
 export const GetDrCounts = () => {
@@ -350,12 +350,24 @@ export const GetGitRepoConfig = () => {
   return http.get('/api/v1/system/gitRepoConfig') as Promise<GitRepoConfig>
 }
 
+export const GetGitProviders = () => {
+  return http.get('/api/v1/system/gitRepoConfig/providers') as Promise<string[]>
+}
+
 export const UpsertGitRepoConfig = (config: GitRepoConfig) => {
   return http.put('/api/v1/system/gitRepoConfig', config) as Promise<GitRepoConfig>
 }
 
 export const TestGitRepoConnection = () => {
   return http.post('/api/v1/system/gitRepoConfig/test', {}) as Promise<{ status: string; message: string }>
+}
+
+export const GetGitOwners = (provider: string, destinationName: string) => {
+  return http.get('/api/v1/system/gitRepoConfig/owners', { params: { provider, destinationName } }) as Promise<GitOwnerInfo[]>
+}
+
+export const GetGitRepos = (provider: string, destinationName: string, owner: string, ownerType: string) => {
+  return http.get('/api/v1/system/gitRepoConfig/repos', { params: { provider, destinationName, owner, ownerType } }) as Promise<GitRepoInfo[]>
 }
 
 // --- Git Sync Snapshots ---
