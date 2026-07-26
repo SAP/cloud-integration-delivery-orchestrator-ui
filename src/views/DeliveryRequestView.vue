@@ -501,20 +501,26 @@
               subtitle-text="Add artifacts to this delivery request to compare code." />
           </div>
           <div v-else class="code-compare-content">
-            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px; flex-wrap: wrap;">
               <ui5-label>Artifact:</ui5-label>
               <ui5-select @change="onCodeCompareArtifactChange($event)">
                 <ui5-option v-for="op in sourceOps" :key="op.ID" :value="op.ArtifactTechID">
                   {{ op.ArtifactName || op.ArtifactTechID }} (v{{ op.ArtifactVersion }})
                 </ui5-option>
               </ui5-select>
+              <ui5-label>Compare with:</ui5-label>
+              <ui5-select @change="onCodeCompareTargetChange($event)">
+                <ui5-option v-for="t in targetTenants" :key="t.ID" :value="String(t.ID)">
+                  {{ t.Name }}
+                </ui5-option>
+              </ui5-select>
             </div>
             <CodeCompareViewer
-              v-if="codeCompareArtifactId && codeCompareSelectedOp"
+              v-if="codeCompareArtifactId && codeCompareSelectedOp && codeCompareTargetTenantId"
               :artifact-id="codeCompareArtifactId"
               :artifact-version="codeCompareSelectedOp.ArtifactVersion"
               :source-tenant-id="deliveryRequest.SourceTenant?.ID"
-              :target-tenant-id="codeCompareSelectedOp.TenantID"
+              :target-tenant-id="codeCompareTargetTenantId"
             />
           </div>
         </div>
@@ -738,6 +744,7 @@ export default {
       // Code Compare
       gitSyncEnabled: false,
       codeCompareArtifactId: '',
+      codeCompareTargetTenantId: 0,
     }
   },
   methods: {
@@ -1070,6 +1077,9 @@ export default {
     onCodeCompareArtifactChange(event: any) {
       this.codeCompareArtifactId = event.detail?.selectedOption?.value || ''
     },
+    onCodeCompareTargetChange(event: any) {
+      this.codeCompareTargetTenantId = Number(event.detail?.selectedOption?.value) || 0
+    },
     scheduleWSRefresh() {
       if (this.wsRefreshTimer) return
       if (Date.now() - this.lastRefreshAt < 500) return
@@ -1209,6 +1219,10 @@ export default {
     },
     codeCompareSelectedOp(): ArtifactTenantOperation | undefined {
       return this.sourceOps.find(op => op.ArtifactTechID === this.codeCompareArtifactId)
+    },
+    targetTenants(): CpiTenant[] {
+      // All tenants in this DR except the source tenant
+      return this.cpiTenants.filter(t => t.ID !== this.deliveryRequest.SourceTenant?.ID)
     },
     packageOptions() {
       return this.tenantPkgs.map(pkg => ({ label: `${pkg.Name} - ${pkg.Version}`, value: pkg }))
@@ -1420,5 +1434,19 @@ export default {
   border-radius: 4px;
   max-height: 200px;
   overflow-y: auto;
+}
+
+/* Code Compare tab */
+.code-compare-tab {
+  padding: 1rem 0;
+}
+.code-compare-empty {
+  display: flex;
+  justify-content: center;
+  padding: 2rem;
+}
+.code-compare-content {
+  display: flex;
+  flex-direction: column;
 }
 </style>
