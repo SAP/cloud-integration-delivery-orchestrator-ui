@@ -199,6 +199,10 @@
         </div>
       </div>
     </ui5-dynamic-page-header>
+
+    <!-- Tab Container: Delivery Flow | Code Compare | Logs -->
+    <ui5-tabcontainer fixed>
+      <ui5-tab text="Delivery Flow" selected>
     <!-- Generate Delivery Request -->
     <ui5-wizard id="wiz">
       <!-- Step 1: Prepare -->
@@ -480,9 +484,41 @@
           </div>
         </div>
       </ui5-wizard-step>
-      <!-- Step 4: Logs -->
-      <ui5-wizard-step id="step4" title-text="Logs">
-        <div style="display: flex; flex-direction: column; gap: 10px;">
+    </ui5-wizard>
+      </ui5-tab>
+
+      <!-- Tab 2: Code Compare -->
+      <ui5-tab text="Code Compare">
+        <div class="code-compare-tab">
+          <div v-if="!gitSyncEnabled" class="code-compare-empty">
+            <ui5-illustrated-message name="NoData"
+              title-text="Code Compare Not Available"
+              subtitle-text="Enable Git Sync in System Configuration to use Code Compare." />
+          </div>
+          <div v-else-if="!sourceOps.length" class="code-compare-empty">
+            <ui5-illustrated-message name="NoEntries"
+              title-text="No Artifacts"
+              subtitle-text="Add artifacts to this delivery request to compare code." />
+          </div>
+          <div v-else class="code-compare-content">
+            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+              <ui5-label>Artifact:</ui5-label>
+              <ui5-select @change="onCodeCompareArtifactChange($event)">
+                <ui5-option v-for="op in sourceOps" :key="op.ID" :value="op.ArtifactTechID">
+                  {{ op.ArtifactName || op.ArtifactTechID }} (v{{ op.ArtifactVersion }})
+                </ui5-option>
+              </ui5-select>
+            </div>
+            <ui5-message-strip design="Information" hide-close-button>
+              Code Compare will be available after diff2html + Shiki integration (Phase 4.4).
+            </ui5-message-strip>
+          </div>
+        </div>
+      </ui5-tab>
+
+      <!-- Tab 3: Logs -->
+      <ui5-tab text="Logs">
+        <div style="display: flex; flex-direction: column; gap: 10px; padding: 1rem 0;">
           <div style="display: flex; align-items: center; gap: 8px;">
             <ui5-title>Logs</ui5-title>
             <ui5-segmented-button>
@@ -510,8 +546,8 @@
             title-text="No Logs Available"
             subtitle-text="There are no Logs for this delivery request." />
         </div>
-      </ui5-wizard-step>
-    </ui5-wizard>
+      </ui5-tab>
+    </ui5-tabcontainer>
   </ui5-dynamic-page>
 
   <ui5-dialog header-text="Cancel Delivery Request" :open="showCancelDialog"
@@ -566,6 +602,7 @@ import {
   Approve,
   CurrentUser,
   CancelDeliveryRequest,
+  GetGitRepoConfig,
 } from '@/service/api'
 import { CANCELLABLE_STATUSES, type ConditionType } from '@/service/statuses'
 import { toLocalTime } from '@/service/consts'
@@ -623,6 +660,12 @@ import "@ui5/webcomponents/dist/TableHeaderCell.js";
 
 import "@ui5/webcomponents-fiori/dist/Wizard.js";
 import "@ui5/webcomponents-fiori/dist/WizardStep.js";
+
+import "@ui5/webcomponents/dist/TabContainer.js";
+import "@ui5/webcomponents/dist/Tab.js";
+import "@ui5/webcomponents/dist/Select.js";
+import "@ui5/webcomponents/dist/Option.js";
+import "@ui5/webcomponents-fiori/dist/illustrations/NoEntries.js";
 
 export default {
   name: 'TransportPlanView',
@@ -686,6 +729,9 @@ export default {
       globalArtifactSearchVersion: 0,
       globalSearchTimer: null as ReturnType<typeof setTimeout> | null,
       step1Message: null as { type: 'Negative' | 'Positive' | 'Information'; text: string } | null,
+      // Code Compare
+      gitSyncEnabled: false,
+      codeCompareArtifactId: '',
     }
   },
   methods: {
@@ -1007,6 +1053,17 @@ export default {
     },
     // Throttle WS-triggered refresh: skip if a refresh already happened recently
     // (e.g. user just clicked Approve/Cancel/Sync which already called refresh).
+    async loadGitSyncStatus() {
+      try {
+        const config = await GetGitRepoConfig()
+        this.gitSyncEnabled = !!(config && config.enabled)
+      } catch {
+        this.gitSyncEnabled = false
+      }
+    },
+    onCodeCompareArtifactChange(event: any) {
+      this.codeCompareArtifactId = event.detail?.selectedOption?.value || ''
+    },
     scheduleWSRefresh() {
       if (this.wsRefreshTimer) return
       if (Date.now() - this.lastRefreshAt < 500) return
@@ -1236,6 +1293,8 @@ export default {
         if (data?.drId === this.id) this.scheduleWSRefresh()
       }),
     )
+    // Check if Git Sync is enabled
+    this.loadGitSyncStatus()
   },
   beforeUnmount() {
     wsClient.unsubscribe(this.id)
