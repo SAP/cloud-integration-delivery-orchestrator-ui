@@ -358,6 +358,31 @@ export const TestGitRepoConnection = () => {
   return http.post('/api/v1/system/gitRepoConfig/test', {}) as Promise<{ status: string; message: string }>
 }
 
+// --- Git Sync Snapshots ---
+
+export interface SnapshotFileEntry {
+  path: string
+  content?: string
+  isBinary: boolean
+  size: number
+}
+
+export interface SnapshotFilesResponse {
+  snapshotId: number
+  artifactId: string
+  version: string
+  tenant: string
+  files: SnapshotFileEntry[]
+}
+
+export const GetGitSnapshots = (artifactId: string, tenantId: number) => {
+  return http.get('/api/v1/gitSync/snapshots', { params: { artifactId, tenantId } }) as Promise<any[]>
+}
+
+export const GetSnapshotFiles = (snapshotId: number) => {
+  return http.get(`/api/v1/gitSync/snapshots/${snapshotId}/files`) as Promise<SnapshotFilesResponse>
+}
+
 export const CheckConnectivity = () => {
   return http.post('/api/v1/system/connectivity/all', {}) as Promise<ConnectivityReport>
 }

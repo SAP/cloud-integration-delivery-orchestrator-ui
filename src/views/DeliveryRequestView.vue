@@ -509,9 +509,13 @@
                 </ui5-option>
               </ui5-select>
             </div>
-            <ui5-message-strip design="Information" hide-close-button>
-              Code Compare will be available after diff2html + Shiki integration (Phase 4.4).
-            </ui5-message-strip>
+            <CodeCompareViewer
+              v-if="codeCompareArtifactId && codeCompareSelectedOp"
+              :artifact-id="codeCompareArtifactId"
+              :artifact-version="codeCompareSelectedOp.ArtifactVersion"
+              :source-tenant-id="deliveryRequest.SourceTenant?.ID"
+              :target-tenant-id="codeCompareSelectedOp.TenantID"
+            />
           </div>
         </div>
       </ui5-tab>
@@ -611,6 +615,7 @@ import DeliveryFlowView from './DeliveryFlowView.vue'
 import CpiTransportFlowView from './CpiTransportFlowView.vue'
 import ArtifactOpTag from '@/components/ArtifactOpTag.vue'
 import ConfirmDeleteDialog from '@/components/ConfirmDeleteDialog.vue'
+import CodeCompareViewer from '@/components/CodeCompareViewer.vue'
 import { nextTick } from 'vue'
 import { aggregateStatusToUi5Design, conditionTypeToDesign } from '@/service/statuses'
 import { wsClient } from '@/service/ws'
@@ -679,6 +684,7 @@ export default {
     CpiTransportFlowView,
     ConfirmDeleteDialog,
     ArtifactOpTag,
+    CodeCompareViewer,
   },
   props: { id: { required: true, type: Number } },
   data() {
@@ -1200,6 +1206,9 @@ export default {
     },
     sourceOps(): ArtifactTenantOperation[] { // existing operations for source tenant. will not change unless refresh
       return (this.deliveryRequest.ArtifactTenantOperations || []).filter(op => op.TenantID === this.deliveryRequest.SourceTenant.ID)
+    },
+    codeCompareSelectedOp(): ArtifactTenantOperation | undefined {
+      return this.sourceOps.find(op => op.ArtifactTechID === this.codeCompareArtifactId)
     },
     packageOptions() {
       return this.tenantPkgs.map(pkg => ({ label: `${pkg.Name} - ${pkg.Version}`, value: pkg }))
