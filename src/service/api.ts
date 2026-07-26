@@ -1,6 +1,6 @@
 import axios from 'axios'
 import http from './http'
-import type { ApiEndpoint, Artifact, ArtifactTenantOperation, AppCount, BackfillTechIDResult, BootstrapJob, BootstrapPreview, CentralTmsContext, ConnectivityReport, ConnectivityStatus, CpiTenant, CreateDRFromMismatchRequest, CreateDRFromMismatchResponse, DeliverOpRequest, DeliveryRequest, DeliveryRule, GenerateTRResponse, IntegrationConfig, NodeTransportRequest, OperationCondition, OperationsHistoryFilters, OperationsHistoryResponse, Package, PreviewDRResponse, RuntimeArtifact, TmsNodeConfirmResponse, TmsRoutesResponse, TransportNode, TransportRoute, TriggerResult, UserInfo, VersionCompareIncludedPackage, VersionCompareResponse, VersionCompareSummaryItem } from './model'
+import type { ApiEndpoint, Artifact, ArtifactTenantOperation, AppCount, BackfillTechIDResult, BootstrapJob, BootstrapPreview, CentralTmsContext, ConnectivityReport, ConnectivityStatus, CpiTenant, CreateDRFromMismatchRequest, CreateDRFromMismatchResponse, DeliverOpRequest, DeliveryRequest, DeliveryRule, GenerateTRResponse, GitRepoConfig, IntegrationConfig, NodeTransportRequest, OperationCondition, OperationsHistoryFilters, OperationsHistoryResponse, Package, PreviewDRResponse, RuntimeArtifact, TmsNodeConfirmResponse, TmsRoutesResponse, TransportNode, TransportRoute, TriggerResult, UserInfo, VersionCompareIncludedPackage, VersionCompareResponse, VersionCompareSummaryItem } from './model'
 import type { AggregateStatus, DeployState, ImportState, RequestState } from './statuses'
 
 export const GetDrCounts = () => {
@@ -342,6 +342,20 @@ export const UpdateIntegration = (type: string, payload: { destinationName: stri
 
 export const TestIntegration = (type: string) => {
   return http.get(`/api/v1/system/connectivity/integration/${type}`) as Promise<{ name: string; type: string; status: string; message?: string }>
+}
+
+// --- Git Repository Config ---
+
+export const GetGitRepoConfig = () => {
+  return http.get('/api/v1/system/gitRepoConfig') as Promise<GitRepoConfig>
+}
+
+export const UpsertGitRepoConfig = (config: GitRepoConfig) => {
+  return http.put('/api/v1/system/gitRepoConfig', config) as Promise<GitRepoConfig>
+}
+
+export const TestGitRepoConnection = () => {
+  return http.post('/api/v1/system/gitRepoConfig/test', {}) as Promise<{ status: string; message: string }>
 }
 
 export const CheckConnectivity = () => {

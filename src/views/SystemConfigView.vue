@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted, computed } from 'vue'
-import { CheckConnectivity, GetLastConnectivity, GetDatabaseInfo, GetIntegrations, UpdateIntegration, TestIntegration, GetCentralTmsContext, UpsertCentralTmsContext, GetCpiTenants } from '@/service/api'
-import type { ConnectivityStatus, IntegrationConfig, CentralTmsContext, CpiTenant } from '@/service/model'
+import { CheckConnectivity, GetLastConnectivity, GetDatabaseInfo, GetIntegrations, UpdateIntegration, TestIntegration, GetCentralTmsContext, UpsertCentralTmsContext, GetCpiTenants, GetGitRepoConfig, UpsertGitRepoConfig, TestGitRepoConnection } from '@/service/api'
+import type { ConnectivityStatus, IntegrationConfig, CentralTmsContext, CpiTenant, GitRepoConfig } from '@/service/model'
 
 import "@ui5/webcomponents/dist/Title.js"
 import "@ui5/webcomponents/dist/Button.js"
@@ -103,6 +103,56 @@ const onSaveTmsContext = async () => {
   }
 }
 
+// ── Git Repository Config ────────────────────────────────────────────────────
+
+const gitConfig = ref<GitRepoConfig>({ provider: 'github', destinationName: '', owner: '', repo: '', enabled: false })
+const gitConfigLoading = ref(false)
+const showGitEditDialog = ref(false)
+const gitEditForm = ref<GitRepoConfig>({ provider: 'github', destinationName: '', owner: '', repo: '', enabled: false })
+const gitSaving = ref(false)
+const gitTestResult = ref<{ status: string; message: string } | null>(null)
+const gitTesting = ref(false)
+
+const loadGitConfig = async () => {
+  gitConfigLoading.value = true
+  try {
+    const config = await GetGitRepoConfig()
+    if (config && config.provider) {
+      gitConfig.value = config
+    }
+  } catch { /* ignore */ } finally {
+    gitConfigLoading.value = false
+  }
+}
+
+const openGitEditDialog = () => {
+  gitEditForm.value = { ...gitConfig.value }
+  showGitEditDialog.value = true
+}
+
+const onSaveGitConfig = async () => {
+  gitSaving.value = true
+  try {
+    gitConfig.value = await UpsertGitRepoConfig(gitEditForm.value)
+    window.$toast.success('Git repository config saved')
+    showGitEditDialog.value = false
+  } catch { /* Error displayed by http interceptor */ } finally {
+    gitSaving.value = false
+  }
+}
+
+const onTestGitConnection = async () => {
+  gitTesting.value = true
+  gitTestResult.value = null
+  try {
+    gitTestResult.value = await TestGitRepoConnection()
+  } catch (e: any) {
+    gitTestResult.value = { status: 'error', message: e?.message ?? 'test failed' }
+  } finally {
+    gitTesting.value = false
+  }
+}
+
 // ── Integration Registry ─────────────────────────────────────────────────────
 
 const integrations = ref<IntegrationConfig[]>([])
@@ -180,7 +230,7 @@ const loadDatabaseInfo = async () => {
 // ── Lifecycle ────────────────────────────────────────────────────────────────
 
 onMounted(async () => {
-  await Promise.allSettled([loadTmsContext(), loadIntegrations(), loadTenants(), loadDatabaseInfo(), loadLastConnectivity()])
+  await Promise.allSettled([loadTmsContext(), loadGitConfig(), loadIntegrations(), loadTenants(), loadDatabaseInfo(), loadLastConnectivity()])
 })
 </script>
 
@@ -239,6 +289,49 @@ onMounted(async () => {
     </ui5-toolbar>
   </ui5-dialog>
 
+  <!-- Edit Git Repository Config Dialog -->
+  <ui5-dialog
+    header-text="Configure Git Repository"
+    :open="showGitEditDialog"
+    @before-close="showGitEditDialog = false"
+    style="width: 36rem;">
+    <div class="sc-dialog-content">
+      <ui5-label required>Provider</ui5-label>
+      <ui5-input
+        :value="gitEditForm.provider"
+        @input="gitEditForm.provider = ($event as any).target.value"
+        placeholder="github or github_enterprise"
+        style="width: 100%;" />
+      <ui5-label required style="margin-top: 0.75rem;">Destination Name</ui5-label>
+      <ui5-input
+        :value="gitEditForm.destinationName"
+        @input="gitEditForm.destinationName = ($event as any).target.value"
+        placeholder="e.g. cpi-delivery-github"
+        style="width: 100%;" />
+      <ui5-label required style="margin-top: 0.75rem;">Owner</ui5-label>
+      <ui5-input
+        :value="gitEditForm.owner"
+        @input="gitEditForm.owner = ($event as any).target.value"
+        placeholder="GitHub org or user"
+        style="width: 100%;" />
+      <ui5-label required style="margin-top: 0.75rem;">Repository</ui5-label>
+      <ui5-input
+        :value="gitEditForm.repo"
+        @input="gitEditForm.repo = ($event as any).target.value"
+        placeholder="Repository name"
+        style="width: 100%;" />
+      <ui5-checkbox
+        style="margin-top: 0.75rem;"
+        :checked="gitEditForm.enabled"
+        @change="gitEditForm.enabled = ($event as any).target.checked"
+        text="Enabled" />
+    </div>
+    <ui5-toolbar slot="footer">
+      <ui5-toolbar-button design="Emphasized" text="Save" :disabled="gitSaving" @click="onSaveGitConfig" />
+      <ui5-toolbar-button design="Transparent" text="Cancel" @click="showGitEditDialog = false" />
+    </ui5-toolbar>
+  </ui5-dialog>
+
   <div class="page">
     <!-- Header -->
     <div class="page-header">
@@ -283,6 +376,49 @@ onMounted(async () => {
               <ui5-button design="Transparent" icon="edit" @click="openTmsEditDialog">
                 {{ tmsConfigured ? 'Edit' : 'Configure' }}
               </ui5-button>
+            </div>
+          </div>
+        </div>
+      </ui5-busy-indicator>
+    </ui5-panel>
+
+    <!-- Git Repository -->
+    <ui5-panel header-text="Git Repository" fixed>
+      <ui5-busy-indicator :active="gitConfigLoading" :delay="0" size="M" style="width: 100%;">
+        <div class="panel-body">
+          <div class="info-row">
+            <div class="info-field">
+              <ui5-label>Provider</ui5-label>
+              <ui5-tag design="Set2" color-scheme="8" style="font-size: 0.75rem;">{{ gitConfig.provider || '—' }}</ui5-tag>
+            </div>
+            <div class="info-field">
+              <ui5-label>Destination</ui5-label>
+              <ui5-text class="mono">{{ gitConfig.destinationName || '—' }}</ui5-text>
+            </div>
+            <div class="info-field">
+              <ui5-label>Owner / Repo</ui5-label>
+              <ui5-text class="mono">{{ gitConfig.owner && gitConfig.repo ? `${gitConfig.owner}/${gitConfig.repo}` : '—' }}</ui5-text>
+            </div>
+            <div class="info-field">
+              <ui5-label>Enabled</ui5-label>
+              <ui5-tag :design="gitConfig.enabled ? 'Positive' : 'Neutral'" style="font-size: 0.75rem;">
+                {{ gitConfig.enabled ? 'Yes' : 'No' }}
+              </ui5-tag>
+            </div>
+            <div class="info-field">
+              <ui5-label>Status</ui5-label>
+              <ui5-tag v-if="gitTestResult" :design="statusDesign(gitTestResult.status)" style="font-size: 0.7rem;">
+                {{ gitTestResult.status === 'success' ? 'Connected' : gitTestResult.message }}
+              </ui5-tag>
+              <ui5-text v-else style="color: var(--sapContent_LabelColor);">—</ui5-text>
+            </div>
+            <div class="info-field">
+              <ui5-label>&nbsp;</ui5-label>
+              <div style="display: flex; gap: 0.25rem;">
+                <ui5-button design="Transparent" icon="edit" @click="openGitEditDialog" tooltip="Edit" />
+                <ui5-button design="Transparent" icon="connected" @click="onTestGitConnection"
+                  :disabled="!gitConfig.destinationName || gitTesting" tooltip="Test Connection" />
+              </div>
             </div>
           </div>
         </div>

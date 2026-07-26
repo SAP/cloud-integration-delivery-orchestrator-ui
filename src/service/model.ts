@@ -489,6 +489,15 @@ export interface IntegrationConfig {
   description: string
 }
 
+export interface GitRepoConfig {
+  ID?: number
+  provider: string        // github | github_enterprise
+  destinationName: string
+  owner: string
+  repo: string
+  enabled: boolean
+}
+
 export interface ConnectivityStatus {
   name: string
   type: string    // "database" | "tms" | "cpi_tenant" | "integration"
