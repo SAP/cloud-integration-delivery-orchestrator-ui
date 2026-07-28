@@ -355,7 +355,7 @@ export const GetGitProviders = () => {
 }
 
 export const UpsertGitRepoConfig = (config: GitRepoConfig) => {
-  return http.put('/api/v1/system/gitRepoConfig', config) as Promise<GitRepoConfig>
+  return http.put('/api/v1/system/gitRepoConfig', config) as Promise<{ config: GitRepoConfig; warning?: string }>
 }
 
 export const TestGitRepoConnection = () => {

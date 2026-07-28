@@ -225,8 +225,13 @@ const openGitEditDialog = async () => {
 const onSaveGitConfig = async () => {
   gitSaving.value = true
   try {
-    gitConfig.value = await UpsertGitRepoConfig(gitEditForm.value)
-    window.$toast.success('Git repository config saved')
+    const result = await UpsertGitRepoConfig(gitEditForm.value)
+    gitConfig.value = result.config
+    if (result.warning) {
+      window.$toast.warning(result.warning)
+    } else {
+      window.$toast.success('Git repository config saved')
+    }
     showGitEditDialog.value = false
   } catch { /* Error displayed by http interceptor */ } finally {
     gitSaving.value = false
