@@ -387,12 +387,28 @@ export interface SnapshotFilesResponse {
   files: SnapshotFileEntry[]
 }
 
+export interface GitSnapshot {
+  ID: number
+  artifactId: string
+  version: string
+  cpiTenantId: number
+  status: 'pending' | 'completed' | 'failed'
+  triggeredAt: string
+  completedAt?: string
+  error?: string
+  commitSHA?: string
+}
+
 export const GetGitSnapshots = (artifactId: string, tenantId: number) => {
-  return http.get('/api/v1/gitSync/snapshots', { params: { artifactId, tenantId } }) as Promise<any[]>
+  return http.get('/api/v1/gitSync/snapshots', { params: { artifactId, tenantId } }) as Promise<GitSnapshot[]>
 }
 
 export const GetSnapshotFiles = (snapshotId: number) => {
   return http.get(`/api/v1/gitSync/snapshots/${snapshotId}/files`) as Promise<SnapshotFilesResponse>
+}
+
+export const TriggerGitSync = (payload: { artifactId: string; version: string; cpiTenantId: number }) => {
+  return http.post('/api/v1/gitSync/trigger', payload) as Promise<GitSnapshot>
 }
 
 export const CheckConnectivity = () => {
