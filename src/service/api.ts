@@ -397,6 +397,7 @@ export interface GitSnapshot {
   completedAt?: string
   error?: string
   commitSHA?: string
+  commitUrl?: string
 }
 
 export const GetGitSnapshots = async (artifactId: string, tenantId: number): Promise<GitSnapshot[]> => {

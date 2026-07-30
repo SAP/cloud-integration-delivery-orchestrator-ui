@@ -6,10 +6,16 @@ import { Diff2HtmlUI } from 'diff2html/lib-esm/ui/js/diff2html-ui-base'
 import 'diff2html/bundles/css/diff2html.min.css'
 
 import "@ui5/webcomponents/dist/BusyIndicator.js"
+import "@ui5/webcomponents/dist/Icon.js"
 import "@ui5/webcomponents/dist/MessageStrip.js"
 import "@ui5/webcomponents/dist/Button.js"
+import "@ui5/webcomponents/dist/Link.js"
 import "@ui5/webcomponents/dist/SegmentedButton.js"
 import "@ui5/webcomponents/dist/SegmentedButtonItem.js"
+import "@ui5/webcomponents-icons/dist/full-screen.js"
+import "@ui5/webcomponents-icons/dist/exit-full-screen.js"
+import "@ui5/webcomponents-icons/dist/chain-link.js"
+import "@ui5/webcomponents-icons/dist/arrow-right.js"
 
 const PENDING_TIMEOUT_MS = 3 * 60 * 1000 // 3 minutes — a pending snapshot older than this is "stuck"
 const POLL_INTERVAL_MS = 5000 // 5 seconds
@@ -28,7 +34,7 @@ const loading = ref(true)
 const error = ref('')
 const hasDiff = ref(false)
 const fileStats = ref({ added: 0, deleted: 0, modified: 0, unchanged: 0 })
-const compareInfo = ref({ sourceTenant: '', sourceVersion: '', targetTenant: '', targetVersion: '' })
+const compareInfo = ref({ sourceTenant: '', sourceVersion: '', targetTenant: '', targetVersion: '', sourceCommitUrl: '', targetCommitUrl: '' })
 
 // Toolbar controls
 const outputFormat = ref<'side-by-side' | 'line-by-line'>('side-by-side')
@@ -217,6 +223,10 @@ async function loadDiff(sourceSnap: GitSnapshot, targetSnap: GitSnapshot) {
     ])
 
     const patches = computePatches(sourceFiles, targetFiles)
+    // Set commit URLs from the snapshot objects (not from file responses)
+    compareInfo.value.sourceCommitUrl = sourceSnap.commitUrl || ''
+    compareInfo.value.targetCommitUrl = targetSnap.commitUrl || ''
+
     if (!patches.length) {
       error.value = 'No differences found between the two versions.'
       return
@@ -310,6 +320,8 @@ function computePatches(source: SnapshotFilesResponse, target: SnapshotFilesResp
     sourceVersion: source.version,
     targetTenant: target.tenant,
     targetVersion: target.version,
+    sourceCommitUrl: compareInfo.value.sourceCommitUrl,
+    targetCommitUrl: compareInfo.value.targetCommitUrl,
   }
 
   const allPaths = new Set([...sourceMap.keys(), ...targetMap.keys()])
@@ -394,45 +406,33 @@ onUnmounted(() => stopPoll())
       </ui5-message-strip>
 
       <template v-if="hasDiff || patchesCache.length">
-        <!-- Compare info + toolbar -->
-        <div class="diff-toolbar">
-          <div class="diff-toolbar-start">
-            <span class="compare-info">
-              {{ compareInfo.sourceTenant }} v{{ compareInfo.sourceVersion }}
-              <span class="compare-arrow">→</span>
-              {{ compareInfo.targetTenant }} v{{ compareInfo.targetVersion }}
-            </span>
-            <div class="diff-stats">
-              <span class="stat-item stat-added" v-if="fileStats.added">+{{ fileStats.added }}</span>
-              <span class="stat-item stat-modified" v-if="fileStats.modified">~{{ fileStats.modified }}</span>
-              <span class="stat-item stat-deleted" v-if="fileStats.deleted">-{{ fileStats.deleted }}</span>
-              <span class="stat-item stat-unchanged">{{ fileStats.unchanged }} unchanged</span>
-            </div>
-          </div>
+        <!-- Compare info line -->
+        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px; font-size: 0.85rem;">
+          <ui5-link v-if="compareInfo.sourceCommitUrl" :href="compareInfo.sourceCommitUrl" target="_blank" icon="chain-link" design="Emphasized" style="font-size: 1rem;">{{ compareInfo.sourceTenant }} v{{ compareInfo.sourceVersion }}</ui5-link>
+          <span v-else style="font-weight: 500; font-size: 1rem;">{{ compareInfo.sourceTenant }} v{{ compareInfo.sourceVersion }}</span>
+          <ui5-icon name="arrow-right" style="color: #656d76; font-size: 0.85rem;" />
+          <ui5-link v-if="compareInfo.targetCommitUrl" :href="compareInfo.targetCommitUrl" target="_blank" icon="chain-link" design="Emphasized" style="font-size: 1rem;">{{ compareInfo.targetTenant }} v{{ compareInfo.targetVersion }}</ui5-link>
+          <span v-else style="font-weight: 500; font-size: 1rem;">{{ compareInfo.targetTenant }} v{{ compareInfo.targetVersion }}</span>
 
-          <div class="diff-toolbar-end">
-            <ui5-segmented-button>
-              <ui5-segmented-button-item :selected="outputFormat === 'side-by-side'"
-                @click="outputFormat = 'side-by-side'" tooltip="Side by Side">
-                Split
-              </ui5-segmented-button-item>
-              <ui5-segmented-button-item :selected="outputFormat === 'line-by-line'"
-                @click="outputFormat = 'line-by-line'" tooltip="Unified View">
-                Unified
-              </ui5-segmented-button-item>
-            </ui5-segmented-button>
+          <span style="margin-left: auto; display: flex; gap: 5px; font-size: 0.78rem;">
+            <span v-if="fileStats.added" style="padding: 1px 5px; border-radius: 3px; background: #dafbe1; color: #1a7f37;">+{{ fileStats.added }}</span>
+            <span v-if="fileStats.modified" style="padding: 1px 5px; border-radius: 3px; background: #fff8c5; color: #9a6700;">~{{ fileStats.modified }}</span>
+            <span v-if="fileStats.deleted" style="padding: 1px 5px; border-radius: 3px; background: #ffebe9; color: #cf222e;">-{{ fileStats.deleted }}</span>
+            <span style="color: #656d76;">{{ fileStats.unchanged }} unchanged</span>
+          </span>
 
-            <ui5-segmented-button style="margin-left: 8px;">
-              <ui5-segmented-button-item :selected="diffMatchStyle === 'word'"
-                @click="diffMatchStyle = 'word'" tooltip="Word-level diff">
-                Word
-              </ui5-segmented-button-item>
-              <ui5-segmented-button-item :selected="diffMatchStyle === 'char'"
-                @click="diffMatchStyle = 'char'" tooltip="Character-level diff">
-                Char
-              </ui5-segmented-button-item>
-            </ui5-segmented-button>
-          </div>
+          <ui5-segmented-button style="margin-left: 8px;">
+            <ui5-segmented-button-item :selected="outputFormat === 'side-by-side'"
+              @click="outputFormat = 'side-by-side'" icon="full-screen" tooltip="Side by Side (展开)" />
+            <ui5-segmented-button-item :selected="outputFormat === 'line-by-line'"
+              @click="outputFormat = 'line-by-line'" icon="exit-full-screen" tooltip="Unified (折叠)" />
+          </ui5-segmented-button>
+          <ui5-segmented-button>
+            <ui5-segmented-button-item :selected="diffMatchStyle === 'word'"
+              @click="diffMatchStyle = 'word'" tooltip="Word-level diff">W</ui5-segmented-button-item>
+            <ui5-segmented-button-item :selected="diffMatchStyle === 'char'"
+              @click="diffMatchStyle = 'char'" tooltip="Character-level diff">C</ui5-segmented-button-item>
+          </ui5-segmented-button>
         </div>
 
         <!-- Diff content (Diff2HtmlUI manages this element) -->
@@ -444,39 +444,5 @@ onUnmounted(() => stopPoll())
 
 <style scoped>
 .code-compare-viewer { width: 100%; }
-.code-compare-viewer :deep(ui5-message-strip) { width: auto; }
 .snapshot-status { margin-bottom: 0.75rem; display: flex; align-items: center; gap: 4px; }
-
-/* Toolbar */
-.diff-toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 8px;
-  padding: 8px 12px;
-  background: #f6f8fa;
-  border: 1px solid #d0d7de;
-  border-radius: 6px 6px 0 0;
-  margin-bottom: 0;
-}
-.diff-toolbar-start { display: flex; align-items: center; gap: 12px; }
-.diff-toolbar-end { display: flex; align-items: center; }
-
-.compare-info { font-size: 0.85rem; color: #24292f; }
-.compare-arrow { color: #656d76; margin: 0 4px; }
-
-.diff-stats { display: flex; gap: 6px; font-size: 0.8rem; }
-.stat-item { padding: 2px 6px; border-radius: 3px; font-weight: 500; }
-.stat-added { background: #dafbe1; color: #1a7f37; }
-.stat-modified { background: #fff8c5; color: #9a6700; }
-.stat-deleted { background: #ffebe9; color: #cf222e; }
-.stat-unchanged { color: #656d76; }
-
-/* Diff container — let Diff2HtmlUI manage layout */
-.diff-container {
-  border: 1px solid #d0d7de;
-  border-top: none;
-  border-radius: 0 0 6px 6px;
-}
 </style>
