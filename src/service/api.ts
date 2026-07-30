@@ -399,16 +399,20 @@ export interface GitSnapshot {
   commitSHA?: string
 }
 
-export const GetGitSnapshots = (artifactId: string, tenantId: number) => {
-  return http.get('/api/v1/gitSync/snapshots', { params: { artifactId, tenantId } }) as Promise<GitSnapshot[]>
+export const GetGitSnapshots = async (artifactId: string, tenantId: number): Promise<GitSnapshot[]> => {
+  const data = await (http.get('/api/v1/gitSync/snapshots', { params: { artifactId, tenantId } }) as Promise<GitSnapshot[] | null>)
+  return data ?? []
 }
 
-export const GetSnapshotFiles = (snapshotId: number) => {
-  return http.get(`/api/v1/gitSync/snapshots/${snapshotId}/files`) as Promise<SnapshotFilesResponse>
+export const GetSnapshotFiles = async (snapshotId: number): Promise<SnapshotFilesResponse> => {
+  const data = await (http.get(`/api/v1/gitSync/snapshots/${snapshotId}/files`) as Promise<SnapshotFilesResponse | null>)
+  const resp = data ?? { snapshotId, artifactId: '', version: '', tenant: '', files: [] }
+  resp.files = resp.files ?? []
+  return resp
 }
 
-export const TriggerGitSync = (payload: { artifactId: string; version: string; cpiTenantId: number }) => {
-  return http.post('/api/v1/gitSync/trigger', payload) as Promise<GitSnapshot>
+export const TriggerGitSync = (payload: { artifactId: string; cpiTenantId: number; artifactType: string; packageId: string }) => {
+  return http.post('/api/v1/gitSync/trigger', payload) as Promise<void>
 }
 
 export const CheckConnectivity = () => {

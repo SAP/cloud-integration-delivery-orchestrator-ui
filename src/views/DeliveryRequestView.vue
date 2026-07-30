@@ -516,11 +516,13 @@
               </ui5-select>
             </div>
             <CodeCompareViewer
-              v-if="codeCompareArtifactId && codeCompareSelectedOp && codeCompareTargetTenantId"
-              :artifact-id="codeCompareArtifactId"
+              v-if="codeCompareSelectedOp && effectiveTargetTenantId"
+              :artifact-id="codeCompareSelectedOp.ArtifactTechID"
               :artifact-version="codeCompareSelectedOp.ArtifactVersion"
+              :package-id="codeCompareSelectedOp.PackageID"
+              :artifact-type="codeCompareSelectedOp.ArtifactType"
               :source-tenant-id="deliveryRequest.SourceTenant?.ID"
-              :target-tenant-id="codeCompareTargetTenantId"
+              :target-tenant-id="effectiveTargetTenantId"
             />
           </div>
         </div>
@@ -1218,11 +1220,16 @@ export default {
       return (this.deliveryRequest.ArtifactTenantOperations || []).filter(op => op.TenantID === this.deliveryRequest.SourceTenant.ID)
     },
     codeCompareSelectedOp(): ArtifactTenantOperation | undefined {
-      return this.sourceOps.find(op => op.ArtifactTechID === this.codeCompareArtifactId)
+      const id = this.codeCompareArtifactId || this.sourceOps[0]?.ArtifactTechID
+      return this.sourceOps.find(op => op.ArtifactTechID === id)
+    },
+    effectiveTargetTenantId(): number {
+      return this.codeCompareTargetTenantId || this.targetTenants[0]?.ID || 0
     },
     targetTenants(): CpiTenant[] {
-      // All tenants in this DR except the source tenant
-      return this.cpiTenants.filter(t => t.ID !== this.deliveryRequest.SourceTenant?.ID)
+      // Only tenants included in the delivery rule, excluding source
+      const included = this.deliveryRequest.DeliveryRule?.IncludedTenants || []
+      return included.filter(t => t.ID !== this.deliveryRequest.SourceTenant?.ID)
     },
     packageOptions() {
       return this.tenantPkgs.map(pkg => ({ label: `${pkg.Name} - ${pkg.Version}`, value: pkg }))
