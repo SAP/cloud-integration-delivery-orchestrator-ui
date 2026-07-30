@@ -1,9 +1,12 @@
 <script setup lang="ts">
 import { ref, watch, nextTick, onUnmounted } from 'vue'
-import { GetGitSnapshots, GetSnapshotFiles, TriggerGitSync, type GitSnapshot, type SnapshotFileEntry, type SnapshotFilesResponse } from '@/service/api'
-import { createPatch } from 'diff'
+import { GetGitSnapshots, GetSnapshotFiles, TriggerGitSync, type GitSnapshot } from '@/service/api'
+import { buildCompareFiles, type CompareFileItem } from '@/service/codeCompareFiles'
 import { Diff2HtmlUI } from 'diff2html/lib-esm/ui/js/diff2html-ui-base'
 import 'diff2html/bundles/css/diff2html.min.css'
+
+import BpmnCompareDialog from './BpmnCompareDialog.vue'
+import IflowCompareCard from './IflowCompareCard.vue'
 
 import "@ui5/webcomponents/dist/BusyIndicator.js"
 import "@ui5/webcomponents/dist/Icon.js"
@@ -40,6 +43,9 @@ const compareInfo = ref({ sourceTenant: '', sourceVersion: '', targetTenant: '',
 const outputFormat = ref<'side-by-side' | 'line-by-line'>('side-by-side')
 const diffMatchStyle = ref<'word' | 'char'>('word')
 const patchesCache = ref<string[]>([])
+const iflowFiles = ref<CompareFileItem[]>([])
+const selectedIflow = ref<CompareFileItem | null>(null)
+const bpmnDialogOpen = ref(false)
 
 // Sync status
 type SnapshotDisplayStatus = 'loading' | 'syncing' | 'completed' | 'failed'
@@ -57,6 +63,10 @@ const sourceVersionMismatch = ref('')
 const diffContainerRef = ref<HTMLElement | null>(null)
 let pollTimer: ReturnType<typeof setTimeout> | null = null
 let generation = 0 // incremented each loadCompare; stale resolveSide results are discarded
+
+function isCurrent(gen: number): boolean {
+  return gen === generation
+}
 
 // A pending snapshot older than the timeout is considered "stuck" and should be re-triggered.
 function isStuck(snap: GitSnapshot | undefined): boolean {
@@ -84,8 +94,12 @@ function compareCPIVersion(a: string, b: string): number {
 
 // --- Diff rendering (Diff2HtmlUI handles collapse, sticky headers, sync scroll) ---
 
-function renderDiff() {
-  if (!patchesCache.value.length || !diffContainerRef.value) return
+function renderDiff(gen: number) {
+  if (
+    !isCurrent(gen)
+    || !patchesCache.value.length
+    || !diffContainerRef.value
+  ) return
 
   const diffInput = patchesCache.value.join('\n')
   const ui = new Diff2HtmlUI(diffContainerRef.value, diffInput, {
@@ -99,18 +113,24 @@ function renderDiff() {
     highlight: false,
   })
   ui.draw()
+  if (!isCurrent(gen)) return
   hasDiff.value = true
 }
 
 // --- Data loading ---
 
-function resolveSourceSnapshot(snapshots: GitSnapshot[]): GitSnapshot | undefined {
+function resolveSourceSnapshot(
+  snapshots: GitSnapshot[],
+  gen: number,
+): GitSnapshot | undefined {
   if (!snapshots.length) return undefined
   const exact = snapshots.find(s => s.version === props.artifactVersion && s.status === 'completed')
   if (exact) return exact
   const latestCompleted = snapshots.find(s => s.status === 'completed')
   if (latestCompleted && compareCPIVersion(latestCompleted.version, props.artifactVersion) > 0) {
-    sourceVersionMismatch.value = `Source is v${latestCompleted.version}, DR references v${props.artifactVersion}`
+    if (isCurrent(gen)) {
+      sourceVersionMismatch.value = `Source is v${latestCompleted.version}, DR references v${props.artifactVersion}`
+    }
     return latestCompleted
   }
   return snapshots.find(s => s.version === props.artifactVersion) || undefined
@@ -122,14 +142,17 @@ function resolveTargetSnapshot(snapshots: GitSnapshot[]): GitSnapshot | undefine
 }
 
 async function loadCompare() {
-  if (!props.artifactId || !props.sourceTenantId || !props.targetTenantId) return
-
   stopPoll()
   const gen = ++generation // stale-request guard
+  if (!props.artifactId || !props.sourceTenantId || !props.targetTenantId) return
+
   loading.value = true
   error.value = ''
   hasDiff.value = false
   patchesCache.value = []
+  iflowFiles.value = []
+  selectedIflow.value = null
+  bpmnDialogOpen.value = false
   fileStats.value = { added: 0, deleted: 0, modified: 0, unchanged: 0 }
   sourceStatus.value = 'loading'
   targetStatus.value = 'loading'
@@ -146,26 +169,26 @@ async function loadCompare() {
       GetGitSnapshots(props.artifactId, props.targetTenantId),
     ])
   } catch (e: any) {
-    if (gen !== generation) return // superseded
+    if (!isCurrent(gen)) return // superseded
     loading.value = false
     error.value = e?.message || 'Failed to query snapshots'
     return
   }
-  if (gen !== generation) return // superseded
+  if (!isCurrent(gen)) return // superseded
 
   // Flip loading off so per-side status (syncing/failed) is visible during Phase 2.
   loading.value = false
 
   // === Phase 2: resolve each side independently (may auto-trigger) ===
   const [source, target] = await Promise.all([
-    resolveSide('source', sourceSnapshots),
-    resolveSide('target', targetSnapshots),
+    resolveSide('source', sourceSnapshots, gen),
+    resolveSide('target', targetSnapshots, gen),
   ])
-  if (gen !== generation) return // superseded
+  if (!isCurrent(gen)) return // superseded
 
   // === Phase 3: decide next step ===
   if (source.kind === 'completed' && target.kind === 'completed') {
-    return loadDiff(source.snap, target.snap)
+    return loadDiff(source.snap, target.snap, gen)
   }
   if (source.kind === 'failed' || target.kind === 'failed') {
     return // UI shows the failed side + Retry; compare can't proceed
@@ -177,14 +200,24 @@ async function loadCompare() {
 // resolveSide resolves ONE tenant's snapshot to a terminal outcome, independent of
 // the other side. It auto-triggers a sync when the snapshot is stuck or absent, then
 // re-queries. This per-side independence is what prevents the two sides from deadlocking.
-async function resolveSide(side: 'source' | 'target', snapshots: GitSnapshot[]): Promise<SideOutcome> {
+async function resolveSide(
+  side: 'source' | 'target',
+  snapshots: GitSnapshot[],
+  gen: number,
+): Promise<SideOutcome> {
   const isSource = side === 'source'
   const tenantId = isSource ? props.sourceTenantId : props.targetTenantId
-  const setStatus = (s: SnapshotDisplayStatus) => { (isSource ? sourceStatus : targetStatus).value = s }
-  const setError = (msg: string) => { (isSource ? sourceError : targetError).value = msg }
+  const staleOutcome = (): SideOutcome => ({ kind: 'pending' })
+  const setStatus = (s: SnapshotDisplayStatus) => {
+    if (isCurrent(gen)) (isSource ? sourceStatus : targetStatus).value = s
+  }
+  const setError = (msg: string) => {
+    if (isCurrent(gen)) (isSource ? sourceError : targetError).value = msg
+  }
   const resolve = (list: GitSnapshot[]) =>
-    isSource ? resolveSourceSnapshot(list) : resolveTargetSnapshot(list)
+    isSource ? resolveSourceSnapshot(list, gen) : resolveTargetSnapshot(list)
 
+  if (!isCurrent(gen)) return staleOutcome()
   const snap = resolve(snapshots)
 
   if (snap?.status === 'completed') { setStatus('completed'); return { kind: 'completed', snap } }
@@ -197,16 +230,20 @@ async function resolveSide(side: 'source' | 'target', snapshots: GitSnapshot[]):
   try {
     await TriggerGitSync({ artifactId: props.artifactId, cpiTenantId: tenantId, artifactType: props.artifactType, packageId: props.packageId })
   } catch (e: any) {
+    if (!isCurrent(gen)) return staleOutcome()
     setStatus('failed'); setError(e?.message || 'Sync failed'); return { kind: 'failed' }
   }
+  if (!isCurrent(gen)) return staleOutcome()
 
   // Re-query after the trigger resolves.
   let after: GitSnapshot[]
   try {
     after = await GetGitSnapshots(props.artifactId, tenantId)
   } catch (e: any) {
+    if (!isCurrent(gen)) return staleOutcome()
     setStatus('failed'); setError(e?.message || 'Failed to query snapshots after sync'); return { kind: 'failed' }
   }
+  if (!isCurrent(gen)) return staleOutcome()
 
   const snap2 = resolve(after)
   if (snap2?.status === 'completed') { setStatus('completed'); return { kind: 'completed', snap: snap2 } }
@@ -214,36 +251,55 @@ async function resolveSide(side: 'source' | 'target', snapshots: GitSnapshot[]):
   setStatus('syncing'); return { kind: 'pending' }
 }
 
-async function loadDiff(sourceSnap: GitSnapshot, targetSnap: GitSnapshot) {
+async function loadDiff(
+  sourceSnap: GitSnapshot,
+  targetSnap: GitSnapshot,
+  gen: number,
+) {
+  if (!isCurrent(gen)) return
   loading.value = true
   try {
     const [sourceFiles, targetFiles] = await Promise.all([
       GetSnapshotFiles(sourceSnap.ID),
       GetSnapshotFiles(targetSnap.ID),
     ])
+    if (!isCurrent(gen)) return
 
-    const patches = computePatches(sourceFiles, targetFiles)
-    // Set commit URLs from the snapshot objects (not from file responses)
-    compareInfo.value.sourceCommitUrl = sourceSnap.commitUrl || ''
-    compareInfo.value.targetCommitUrl = targetSnap.commitUrl || ''
+    const result = buildCompareFiles(sourceFiles, targetFiles)
+    if (!isCurrent(gen)) return
+    compareInfo.value = {
+      sourceTenant: sourceFiles.tenant,
+      sourceVersion: sourceFiles.version,
+      targetTenant: targetFiles.tenant,
+      targetVersion: targetFiles.version,
+      sourceCommitUrl: sourceSnap.commitUrl || '',
+      targetCommitUrl: targetSnap.commitUrl || '',
+    }
+    fileStats.value = result.stats
+    patchesCache.value = result.textPatches
+    iflowFiles.value = result.iflowFiles
 
-    if (!patches.length) {
+    if (!result.textPatches.length && !result.iflowFiles.length) {
       error.value = 'No differences found between the two versions.'
       return
     }
 
-    patchesCache.value = patches
+    hasDiff.value = true
   } catch (e: any) {
+    if (!isCurrent(gen)) return
     error.value = e?.message || 'Failed to load diff'
     return
   } finally {
-    loading.value = false
+    if (isCurrent(gen)) loading.value = false
   }
+
+  if (!isCurrent(gen) || !patchesCache.value.length) return
 
   // loading is now false → the v-else branch (and diff container) is rendered.
   // Wait for the DOM flush so diffContainerRef is attached before drawing.
   await nextTick()
-  renderDiff()
+  if (!isCurrent(gen)) return
+  renderDiff(gen)
 }
 
 // Poll is tenant-agnostic: it just waits until BOTH sides report completed (or times
@@ -254,7 +310,7 @@ function startPoll(gen: number) {
 
   function scheduleNext() {
     pollTimer = setTimeout(async () => {
-      if (gen !== generation) return // superseded by a new loadCompare
+      if (!isCurrent(gen)) return // superseded by a new loadCompare
       if (Date.now() - startedAt >= POLL_TIMEOUT_MS) {
         if (sourceStatus.value === 'syncing') { sourceStatus.value = 'failed'; if (!sourceError.value) sourceError.value = 'Sync timed out' }
         if (targetStatus.value === 'syncing') { targetStatus.value = 'failed'; if (!targetError.value) targetError.value = 'Sync timed out' }
@@ -265,8 +321,8 @@ function startPoll(gen: number) {
           GetGitSnapshots(props.artifactId, props.sourceTenantId),
           GetGitSnapshots(props.artifactId, props.targetTenantId),
         ])
-        if (gen !== generation) return // superseded
-        if (resolveSourceSnapshot(sourceSnapshots)?.status === 'completed') sourceStatus.value = 'completed'
+        if (!isCurrent(gen)) return // superseded
+        if (resolveSourceSnapshot(sourceSnapshots, gen)?.status === 'completed') sourceStatus.value = 'completed'
         if (resolveTargetSnapshot(targetSnapshots)?.status === 'completed') targetStatus.value = 'completed'
 
         if (sourceStatus.value === 'completed' && targetStatus.value === 'completed') {
@@ -276,7 +332,7 @@ function startPoll(gen: number) {
       } catch {
         // Transient query error — retry on next iteration.
       }
-      if (gen === generation) scheduleNext()
+      if (isCurrent(gen)) scheduleNext()
     }, POLL_INTERVAL_MS)
   }
 
@@ -288,9 +344,14 @@ function stopPoll() {
 }
 
 async function handleRetry(side: 'source' | 'target') {
+  const gen = generation
   const isSource = side === 'source'
-  const setStatus = (s: SnapshotDisplayStatus) => { (isSource ? sourceStatus : targetStatus).value = s }
-  const setError = (msg: string) => { (isSource ? sourceError : targetError).value = msg }
+  const setStatus = (s: SnapshotDisplayStatus) => {
+    if (isCurrent(gen)) (isSource ? sourceStatus : targetStatus).value = s
+  }
+  const setError = (msg: string) => {
+    if (isCurrent(gen)) (isSource ? sourceError : targetError).value = msg
+  }
 
   setStatus('syncing')
   setError('')
@@ -301,54 +362,33 @@ async function handleRetry(side: 'source' | 'target') {
       artifactType: props.artifactType,
       packageId: props.packageId,
     })
+    if (!isCurrent(gen)) return
     // Re-evaluate both sides; the retried side is now completed.
     await loadCompare()
   } catch (e: any) {
+    if (!isCurrent(gen)) return
     setStatus('failed')
     setError(e?.message || 'Sync failed')
   }
 }
 
-function computePatches(source: SnapshotFilesResponse, target: SnapshotFilesResponse): string[] {
-  const sourceMap = new Map<string, SnapshotFileEntry>()
-  const targetMap = new Map<string, SnapshotFileEntry>()
-  source.files.forEach(f => sourceMap.set(f.path, f))
-  target.files.forEach(f => targetMap.set(f.path, f))
+function openBpmnDiff(file: CompareFileItem) {
+  selectedIflow.value = file
+  bpmnDialogOpen.value = true
+}
 
-  compareInfo.value = {
-    sourceTenant: source.tenant,
-    sourceVersion: source.version,
-    targetTenant: target.tenant,
-    targetVersion: target.version,
-    sourceCommitUrl: compareInfo.value.sourceCommitUrl,
-    targetCommitUrl: compareInfo.value.targetCommitUrl,
-  }
-
-  const allPaths = new Set([...sourceMap.keys(), ...targetMap.keys()])
-  const patches: string[] = []
-  let added = 0, deleted = 0, modified = 0, unchanged = 0
-
-  for (const path of allPaths) {
-    const sf = sourceMap.get(path)
-    const tf = targetMap.get(path)
-    if (sf?.isBinary || tf?.isBinary) continue
-    const sourceContent = sf?.content || ''
-    const targetContent = tf?.content || ''
-    if (sourceContent === targetContent) { unchanged++; continue }
-    // Patch direction is source→target: a path only in target is an addition,
-    // a path only in source is a deletion.
-    if (!sf) { added++ } else if (!tf) { deleted++ } else { modified++ }
-    patches.push(createPatch(path, sourceContent, targetContent))
-  }
-
-  fileStats.value = { added, deleted, modified, unchanged }
-  return patches
+function closeBpmnDiff() {
+  bpmnDialogOpen.value = false
+  selectedIflow.value = null
 }
 
 // Re-render on toolbar changes (no re-fetch needed)
 watch([outputFormat, diffMatchStyle], () => {
   if (patchesCache.value.length) {
-    nextTick(() => renderDiff())
+    const gen = generation
+    nextTick(() => {
+      if (isCurrent(gen)) renderDiff(gen)
+    })
   }
 })
 
@@ -357,7 +397,11 @@ watch(() => [props.artifactId, props.artifactVersion, props.sourceTenantId, prop
   loadCompare()
 }, { immediate: true })
 
-onUnmounted(() => stopPoll())
+onUnmounted(() => {
+  generation += 1
+  stopPoll()
+  closeBpmnDiff()
+})
 </script>
 
 <template>
@@ -421,13 +465,16 @@ onUnmounted(() => stopPoll())
             <span style="color: #656d76;">{{ fileStats.unchanged }} unchanged</span>
           </span>
 
-          <ui5-segmented-button style="margin-left: 8px;">
+          <ui5-segmented-button
+            accessible-name="Diff layout"
+            style="margin-left: 8px;"
+          >
             <ui5-segmented-button-item :selected="outputFormat === 'side-by-side'"
               @click="outputFormat = 'side-by-side'" icon="full-screen" tooltip="Side by Side (展开)" />
             <ui5-segmented-button-item :selected="outputFormat === 'line-by-line'"
               @click="outputFormat = 'line-by-line'" icon="exit-full-screen" tooltip="Unified (折叠)" />
           </ui5-segmented-button>
-          <ui5-segmented-button>
+          <ui5-segmented-button accessible-name="Diff granularity">
             <ui5-segmented-button-item :selected="diffMatchStyle === 'word'"
               @click="diffMatchStyle = 'word'" tooltip="Word-level diff">W</ui5-segmented-button-item>
             <ui5-segmented-button-item :selected="diffMatchStyle === 'char'"
@@ -435,14 +482,38 @@ onUnmounted(() => stopPoll())
           </ui5-segmented-button>
         </div>
 
+        <div v-if="iflowFiles.length" class="iflow-files">
+          <IflowCompareCard
+            v-for="file in iflowFiles"
+            :key="file.path"
+            :file="file"
+            :output-format="outputFormat"
+            :diff-match-style="diffMatchStyle"
+            @open-visual="openBpmnDiff"
+          />
+        </div>
+
         <!-- Diff content (Diff2HtmlUI manages this element) -->
-        <div ref="diffContainerRef" class="diff-container" />
+        <div
+          v-if="patchesCache.length"
+          ref="diffContainerRef"
+          class="diff-container"
+        />
       </template>
     </template>
+
+    <BpmnCompareDialog
+      :open="bpmnDialogOpen"
+      :file="selectedIflow"
+      :left-label="`${compareInfo.sourceTenant} v${compareInfo.sourceVersion}`"
+      :right-label="`${compareInfo.targetTenant} v${compareInfo.targetVersion}`"
+      @close="closeBpmnDiff"
+    />
   </div>
 </template>
 
 <style scoped>
 .code-compare-viewer { width: 100%; }
 .snapshot-status { margin-bottom: 0.75rem; display: flex; align-items: center; gap: 4px; }
+.iflow-files { display: flex; flex-direction: column; gap: 0.75rem; margin-bottom: 0.75rem; }
 </style>

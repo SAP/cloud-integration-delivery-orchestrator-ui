@@ -1,0 +1,53 @@
+.djs-shape.bpmn-diff-added .djs-visual > :first-child {
+  stroke: #107e3e !important;
+  stroke-width: 2.5px !important;
+  stroke-dasharray: none !important;
+  fill: #e8f5e9 !important;
+}
+
+.djs-shape.bpmn-diff-removed .djs-visual > :first-child {
+  stroke: #bb0000 !important;
+  stroke-width: 2.5px !important;
+  stroke-dasharray: 8 4 !important;
+  fill: #ffebee !important;
+}
+
+.djs-shape.bpmn-diff-changed .djs-visual > :first-child {
+  stroke: #c35500 !important;
+  stroke-width: 2.5px !important;
+  stroke-dasharray: 4 3 !important;
+  fill: #fff3e0 !important;
+}
+
+.djs-shape.bpmn-diff-layout .djs-visual > :first-child {
+  stroke: #0a6ed1 !important;
+  stroke-width: 2.5px !important;
+  stroke-dasharray: 1 4 !important;
+  stroke-linecap: round !important;
+  fill: #eaf3fc !important;
+}
+
+.djs-connection.bpmn-diff-added .djs-visual > path {
+  stroke: #107e3e !important;
+  stroke-width: 2.5px !important;
+  stroke-dasharray: none !important;
+}
+
+.djs-connection.bpmn-diff-removed .djs-visual > path {
+  stroke: #bb0000 !important;
+  stroke-width: 2.5px !important;
+  stroke-dasharray: 8 4 !important;
+}
+
+.djs-connection.bpmn-diff-changed .djs-visual > path {
+  stroke: #c35500 !important;
+  stroke-width: 2.5px !important;
+  stroke-dasharray: 4 3 !important;
+}
+
+.djs-connection.bpmn-diff-layout .djs-visual > path {
+  stroke: #0a6ed1 !important;
+  stroke-width: 2.5px !important;
+  stroke-dasharray: 1 4 !important;
+  stroke-linecap: round !important;
+}
