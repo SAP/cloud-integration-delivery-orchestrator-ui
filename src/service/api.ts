@@ -392,7 +392,7 @@ export interface GitSnapshot {
   artifactId: string
   version: string
   cpiTenantId: number
-  status: 'pending' | 'completed' | 'failed'
+  status: 'pending' | 'completed' | 'failed' | 'not_found'
   triggeredAt: string
   completedAt?: string
   error?: string

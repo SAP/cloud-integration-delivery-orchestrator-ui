@@ -54,11 +54,13 @@ type SideOutcome =
   | { kind: 'completed'; snap: GitSnapshot }
   | { kind: 'failed' }
   | { kind: 'pending' } // still syncing within timeout → caller should poll
+  | { kind: 'not_found' } // artifact does not exist on this tenant (first delivery)
 const sourceStatus = ref<SnapshotDisplayStatus>('loading')
 const targetStatus = ref<SnapshotDisplayStatus>('loading')
 const sourceError = ref('')
 const targetError = ref('')
 const sourceVersionMismatch = ref('')
+const targetNotFound = ref(false)
 
 const diffContainerRef = ref<HTMLElement | null>(null)
 let pollTimer: ReturnType<typeof setTimeout> | null = null
@@ -133,7 +135,9 @@ function resolveSourceSnapshot(
     }
     return latestCompleted
   }
-  return snapshots.find(s => s.version === props.artifactVersion) || undefined
+  return snapshots.find(s => s.version === props.artifactVersion)
+    || snapshots.find(s => s.status === 'not_found')
+    || undefined
 }
 
 function resolveTargetSnapshot(snapshots: GitSnapshot[]): GitSnapshot | undefined {
@@ -159,6 +163,7 @@ async function loadCompare() {
   sourceError.value = ''
   targetError.value = ''
   sourceVersionMismatch.value = ''
+  targetNotFound.value = false
 
   // === Phase 1: initial snapshot query (both sides) ===
   let sourceSnapshots: GitSnapshot[]
@@ -187,6 +192,19 @@ async function loadCompare() {
   if (!isCurrent(gen)) return // superseded
 
   // === Phase 3: decide next step ===
+  if (source.kind === 'not_found' && target.kind === 'not_found') {
+    error.value = 'Artifact not found on either tenant.'
+    return
+  }
+  if (source.kind === 'not_found') {
+    error.value = 'Source artifact not found on source tenant.'
+    return
+  }
+  if (target.kind === 'not_found') {
+    // First delivery — target has no baseline. Show source files as all-added.
+    if (isCurrent(gen)) targetNotFound.value = true
+    if (source.kind === 'completed') return loadDiff(source.snap, null, gen)
+  }
   if (source.kind === 'completed' && target.kind === 'completed') {
     return loadDiff(source.snap, target.snap, gen)
   }
@@ -221,6 +239,7 @@ async function resolveSide(
   const snap = resolve(snapshots)
 
   if (snap?.status === 'completed') { setStatus('completed'); return { kind: 'completed', snap } }
+  if (snap?.status === 'not_found') { setStatus('completed'); return { kind: 'not_found' } }
   if (snap?.status === 'failed') { setStatus('failed'); setError(snap.error || 'Unknown error'); return { kind: 'failed' } }
   // pending but within timeout → genuinely syncing, let the poller wait for it
   if (snap && !isStuck(snap)) { setStatus('syncing'); return { kind: 'pending' } }
@@ -247,21 +266,23 @@ async function resolveSide(
 
   const snap2 = resolve(after)
   if (snap2?.status === 'completed') { setStatus('completed'); return { kind: 'completed', snap: snap2 } }
+  if (snap2?.status === 'not_found') { setStatus('completed'); return { kind: 'not_found' } }
   if (snap2?.status === 'failed') { setStatus('failed'); setError(snap2.error || 'Unknown error'); return { kind: 'failed' } }
   setStatus('syncing'); return { kind: 'pending' }
 }
 
 async function loadDiff(
   sourceSnap: GitSnapshot,
-  targetSnap: GitSnapshot,
+  targetSnap: GitSnapshot | null,
   gen: number,
 ) {
   if (!isCurrent(gen)) return
   loading.value = true
   try {
+    const emptyFiles = { snapshotId: 0, artifactId: '', version: '', tenant: '', files: [] }
     const [sourceFiles, targetFiles] = await Promise.all([
       GetSnapshotFiles(sourceSnap.ID),
-      GetSnapshotFiles(targetSnap.ID),
+      targetSnap ? GetSnapshotFiles(targetSnap.ID) : Promise.resolve(emptyFiles),
     ])
     if (!isCurrent(gen)) return
 
@@ -270,10 +291,10 @@ async function loadDiff(
     compareInfo.value = {
       sourceTenant: sourceFiles.tenant,
       sourceVersion: sourceFiles.version,
-      targetTenant: targetFiles.tenant,
-      targetVersion: targetFiles.version,
+      targetTenant: targetFiles.tenant || '(new)',
+      targetVersion: targetFiles.version || '—',
       sourceCommitUrl: sourceSnap.commitUrl || '',
-      targetCommitUrl: targetSnap.commitUrl || '',
+      targetCommitUrl: targetSnap?.commitUrl || '',
     }
     fileStats.value = result.stats
     patchesCache.value = result.textPatches
@@ -443,6 +464,10 @@ onUnmounted(() => {
     <template v-else>
       <ui5-message-strip v-if="sourceVersionMismatch" design="Information" hide-close-button style="margin-bottom: 0.75rem;">
         {{ sourceVersionMismatch }}
+      </ui5-message-strip>
+
+      <ui5-message-strip v-if="targetNotFound" design="Information" hide-close-button style="margin-bottom: 0.75rem;">
+        Target artifact is new (no baseline on target tenant). All files shown as added.
       </ui5-message-strip>
 
       <ui5-message-strip v-if="error" design="Negative" hide-close-button style="margin-bottom: 1rem;">
