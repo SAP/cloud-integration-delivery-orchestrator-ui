@@ -530,8 +530,8 @@ onUnmounted(() => {
     <BpmnCompareDialog
       :open="bpmnDialogOpen"
       :file="selectedIflow"
-      :left-label="`${compareInfo.sourceTenant} v${compareInfo.sourceVersion}`"
-      :right-label="`${compareInfo.targetTenant} v${compareInfo.targetVersion}`"
+      :left-label="`${compareInfo.targetTenant} v${compareInfo.targetVersion}`"
+      :right-label="`${compareInfo.sourceTenant} v${compareInfo.sourceVersion}`"
       @close="closeBpmnDiff"
     />
   </div>

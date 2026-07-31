@@ -27,15 +27,18 @@ const snapshot = (
 })
 
 describe('buildCompareFiles', () => {
+  // Direction: target(old/baseline) → source(new/delivering)
+  // left = target content, right = source content
+
   it('classifies changed iflw files case-insensitively and keeps text patches separate', () => {
     const result = buildCompareFiles(
       snapshot('DEV', [
-        file('flow/Integration.IFLW', '<old/>'),
-        file('script/a.groovy', 'old'),
-      ]),
-      snapshot('TEST', [
         file('flow/Integration.IFLW', '<new/>'),
         file('script/a.groovy', 'new'),
+      ]),
+      snapshot('TEST', [
+        file('flow/Integration.IFLW', '<old/>'),
+        file('script/a.groovy', 'old'),
       ]),
     )
 
@@ -45,8 +48,8 @@ describe('buildCompareFiles', () => {
     ])
     expect(result.iflowFiles).toEqual([result.files[0]])
     expect(result.iflowFiles[0]).toMatchObject({
-      leftContent: '<old/>',
-      rightContent: '<new/>',
+      leftContent: '<old/>',   // target = old
+      rightContent: '<new/>',  // source = new
     })
     expect(result.iflowFiles[0].patch.split('\n')).toEqual(expect.arrayContaining([
       '--- flow/Integration.IFLW',
@@ -63,15 +66,15 @@ describe('buildCompareFiles', () => {
     })
   })
 
-  it('uses source-to-target direction and sorts iflow files by path', () => {
+  it('uses target-to-source direction: source-only=added, target-only=deleted', () => {
     const result = buildCompareFiles(
-      snapshot('DEV', [file('flows/zeta.iflw', '<old/>')]),
-      snapshot('TEST', [file('flows/alpha.iflw', '<new/>')]),
+      snapshot('DEV', [file('flows/zeta.iflw', '<new/>')]),    // source: delivering this
+      snapshot('TEST', [file('flows/alpha.iflw', '<old/>')]),  // target: has this baseline
     )
 
     expect(result.iflowFiles.map(item => [item.path, item.status])).toEqual([
-      ['flows/alpha.iflw', 'added'],
-      ['flows/zeta.iflw', 'deleted'],
+      ['flows/alpha.iflw', 'deleted'],  // only in target → will be removed
+      ['flows/zeta.iflw', 'added'],     // only in source → being added
     ])
     expect(result.stats).toEqual({
       added: 1,
@@ -81,23 +84,23 @@ describe('buildCompareFiles', () => {
     })
   })
 
-  it('uses /dev/null as the old filename for an added empty text file', () => {
+  it('uses /dev/null as the old filename for a file only in source (added)', () => {
     const result = buildCompareFiles(
-      snapshot('DEV', []),
-      snapshot('TEST', [file('empty-added.txt', undefined)]),
+      snapshot('DEV', [file('new-file.txt', 'content')]),  // source has it
+      snapshot('TEST', []),                                  // target doesn't
     )
 
     expect(result.files).toHaveLength(1)
     expect(result.files[0]).toMatchObject({
-      path: 'empty-added.txt',
+      path: 'new-file.txt',
       kind: 'text',
       status: 'added',
     })
-    expect(result.files[0].leftContent).toBeUndefined()
-    expect(result.files[0].rightContent).toBeUndefined()
+    expect(result.files[0].leftContent).toBeUndefined()   // no target content
+    expect(result.files[0].rightContent).toBe('content')  // source content
     expect(result.textPatches[0].split('\n')).toEqual(expect.arrayContaining([
       '--- /dev/null',
-      '+++ empty-added.txt',
+      '+++ new-file.txt',
     ]))
     expect(result.stats).toEqual({
       added: 1,
@@ -107,22 +110,22 @@ describe('buildCompareFiles', () => {
     })
   })
 
-  it('uses /dev/null as the new filename for a deleted empty text file', () => {
+  it('uses /dev/null as the new filename for a file only in target (deleted)', () => {
     const result = buildCompareFiles(
-      snapshot('DEV', [file('empty-deleted.txt', '')]),
-      snapshot('TEST', []),
+      snapshot('DEV', []),                                      // source doesn't have it
+      snapshot('TEST', [file('old-file.txt', 'baseline')]),    // target has it
     )
 
     expect(result.files).toHaveLength(1)
     expect(result.files[0]).toMatchObject({
-      path: 'empty-deleted.txt',
+      path: 'old-file.txt',
       kind: 'text',
       status: 'deleted',
-      leftContent: '',
+      leftContent: 'baseline',  // target content (old)
     })
     expect(result.files[0].rightContent).toBeUndefined()
     expect(result.textPatches[0].split('\n')).toEqual(expect.arrayContaining([
-      '--- empty-deleted.txt',
+      '--- old-file.txt',
       '+++ /dev/null',
     ]))
     expect(result.stats).toEqual({
@@ -137,12 +140,12 @@ describe('buildCompareFiles', () => {
     const result = buildCompareFiles(
       snapshot('DEV', [
         file('same.prop', 'same'),
-        file('lib/mixed.jar', 'old'),
+        file('lib/mixed.jar', 'new'),
         file('lib/source-only.jar', 'binary', true),
       ]),
       snapshot('TEST', [
         file('same.prop', 'same'),
-        file('lib/mixed.jar', 'new', true),
+        file('lib/mixed.jar', 'old', true),
       ]),
     )
 
@@ -157,18 +160,18 @@ describe('buildCompareFiles', () => {
     })
   })
 
-  it('classifies an empty iflw that exists only in target as added', () => {
+  it('classifies an iflw only in source as added', () => {
     const result = buildCompareFiles(
-      snapshot('DEV', []),
-      snapshot('TEST', [file('flows/empty-added.iflw', '')]),
+      snapshot('DEV', [file('flows/new.iflw', '<bpmn/>')]),  // source delivering
+      snapshot('TEST', []),                                    // target has nothing
     )
 
     expect(result.iflowFiles).toHaveLength(1)
     expect(result.iflowFiles[0]).toMatchObject({
-      path: 'flows/empty-added.iflw',
+      path: 'flows/new.iflw',
       kind: 'bpmn',
       status: 'added',
-      rightContent: '',
+      rightContent: '<bpmn/>',  // source = right
     })
     expect(result.iflowFiles[0].leftContent).toBeUndefined()
     expect(result.stats).toEqual({
@@ -179,18 +182,18 @@ describe('buildCompareFiles', () => {
     })
   })
 
-  it('classifies an empty iflw that exists only in source as deleted', () => {
+  it('classifies an iflw only in target as deleted', () => {
     const result = buildCompareFiles(
-      snapshot('DEV', [file('flows/empty-deleted.iflw', '')]),
-      snapshot('TEST', []),
+      snapshot('DEV', []),                                           // source doesn't have it
+      snapshot('TEST', [file('flows/legacy.iflw', '<old-bpmn/>')]), // target has it
     )
 
     expect(result.iflowFiles).toHaveLength(1)
     expect(result.iflowFiles[0]).toMatchObject({
-      path: 'flows/empty-deleted.iflw',
+      path: 'flows/legacy.iflw',
       kind: 'bpmn',
       status: 'deleted',
-      leftContent: '',
+      leftContent: '<old-bpmn/>',  // target = left
     })
     expect(result.iflowFiles[0].rightContent).toBeUndefined()
     expect(result.stats).toEqual({
@@ -203,19 +206,19 @@ describe('buildCompareFiles', () => {
 
   it('keeps missing-side content undefined while creating patches from empty strings', () => {
     const result = buildCompareFiles(
-      snapshot('DEV', [file('deleted.groovy', 'old')]),
-      snapshot('TEST', [file('added.groovy', 'new')]),
+      snapshot('DEV', [file('source-only.groovy', 'new')]),   // source: added
+      snapshot('TEST', [file('target-only.groovy', 'old')]),  // target: deleted
     )
 
-    const added = result.files.find(item => item.path === 'added.groovy')
-    const deleted = result.files.find(item => item.path === 'deleted.groovy')
+    const added = result.files.find(item => item.path === 'source-only.groovy')
+    const deleted = result.files.find(item => item.path === 'target-only.groovy')
 
-    expect(added?.leftContent).toBeUndefined()
-    expect(added?.rightContent).toBe('new')
-    expect(added?.patch).toBe(createTwoFilesPatch('/dev/null', 'added.groovy', '', 'new'))
+    expect(added?.leftContent).toBeUndefined()     // no target content
+    expect(added?.rightContent).toBe('new')         // source content
+    expect(added?.patch).toBe(createTwoFilesPatch('/dev/null', 'source-only.groovy', '', 'new'))
 
-    expect(deleted?.leftContent).toBe('old')
-    expect(deleted?.rightContent).toBeUndefined()
-    expect(deleted?.patch).toBe(createTwoFilesPatch('deleted.groovy', '/dev/null', 'old', ''))
+    expect(deleted?.leftContent).toBe('old')        // target content
+    expect(deleted?.rightContent).toBeUndefined()   // no source content
+    expect(deleted?.patch).toBe(createTwoFilesPatch('target-only.groovy', '/dev/null', 'old', ''))
   })
 })

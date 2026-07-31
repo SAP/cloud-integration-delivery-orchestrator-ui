@@ -55,9 +55,11 @@ export function buildCompareFiles(
     ...targetMap.keys(),
   ])].sort((a, b) => a.localeCompare(b))
 
+  // Diff direction: target(old/baseline) → source(new/delivering).
+  // "What will change on target when we deliver source?"
   for (const path of paths) {
-    const left = sourceMap.get(path)
-    const right = targetMap.get(path)
+    const left = targetMap.get(path)   // old (what's currently on target)
+    const right = sourceMap.get(path)  // new (what we're delivering from source)
 
     if (left?.isBinary || right?.isBinary) continue
 
@@ -70,9 +72,9 @@ export function buildCompareFiles(
     }
 
     const status: CompareFileStatus = !left
-      ? 'added'
+      ? 'added'      // only in source (new) → being added to target
       : !right
-        ? 'deleted'
+        ? 'deleted'  // only in target (old) → will be removed
         : 'modified'
     const oldFileName = status === 'added' ? '/dev/null' : path
     const newFileName = status === 'deleted' ? '/dev/null' : path

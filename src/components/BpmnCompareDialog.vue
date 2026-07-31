@@ -113,9 +113,9 @@ function addFailure(
   path = props.file?.path ?? 'Unknown BPMN file',
 ) {
   const sideLabel = side === 'left'
-    ? 'left (Source)'
+    ? 'left (Target)'
     : side === 'right'
-      ? 'right (Target)'
+      ? 'right (Source)'
       : 'general'
   const detail = messageFrom(error)
   const key = `${path}:${side}:${detail}`
@@ -462,11 +462,11 @@ onBeforeUnmount(() => {
 
         <div class="compare-direction" aria-label="Comparison direction">
           <span class="compare-direction__endpoint">
-            Source · {{ leftLabel }}
+            Target · {{ leftLabel }}
           </span>
           <span class="compare-direction__arrow" aria-hidden="true">→</span>
           <span class="compare-direction__endpoint">
-            Target · {{ rightLabel }}
+            Source · {{ rightLabel }}
           </span>
         </div>
       </header>
@@ -578,11 +578,11 @@ onBeforeUnmount(() => {
       </div>
 
       <main v-else class="bpmn-dialog__layout">
-        <section class="canvas-panel" aria-labelledby="source-canvas-title">
+        <section class="canvas-panel" aria-labelledby="target-canvas-title">
           <header class="canvas-panel__header">
             <div>
-              <span class="canvas-panel__eyebrow">SOURCE CANVAS</span>
-              <h3 id="source-canvas-title">{{ leftLabel }}</h3>
+              <span class="canvas-panel__eyebrow">TARGET CANVAS</span>
+              <h3 id="target-canvas-title">{{ leftLabel }}</h3>
             </div>
             <span class="canvas-panel__side">LEFT</span>
           </header>
@@ -595,8 +595,8 @@ onBeforeUnmount(() => {
               data-testid="left-canvas"
             />
             <div v-else class="canvas-placeholder">
-              <strong>Not present in source</strong>
-              <span>This iFlow exists only in the target snapshot.</span>
+              <strong>Not present in target</strong>
+              <span>This iFlow exists only in the source snapshot.</span>
             </div>
 
             <div
@@ -605,7 +605,7 @@ onBeforeUnmount(() => {
               role="status"
             >
               <ui5-busy-indicator active size="M" />
-              <span>Loading source BPMN…</span>
+              <span>Loading target BPMN…</span>
             </div>
             <div
               v-else-if="leftCanvasFailure"
@@ -613,17 +613,17 @@ onBeforeUnmount(() => {
               data-testid="canvas-error-left"
               role="alert"
             >
-              <strong>Source rendering incomplete</strong>
+              <strong>Target rendering incomplete</strong>
               <span>{{ leftCanvasFailure.text }}</span>
             </div>
           </div>
         </section>
 
-        <section class="canvas-panel" aria-labelledby="target-canvas-title">
+        <section class="canvas-panel" aria-labelledby="source-canvas-title">
           <header class="canvas-panel__header">
             <div>
-              <span class="canvas-panel__eyebrow">TARGET CANVAS</span>
-              <h3 id="target-canvas-title">{{ rightLabel }}</h3>
+              <span class="canvas-panel__eyebrow">SOURCE CANVAS</span>
+              <h3 id="source-canvas-title">{{ rightLabel }}</h3>
             </div>
             <span class="canvas-panel__side">RIGHT</span>
           </header>
@@ -636,8 +636,8 @@ onBeforeUnmount(() => {
               data-testid="right-canvas"
             />
             <div v-else class="canvas-placeholder">
-              <strong>Not present in target</strong>
-              <span>This iFlow exists only in the source snapshot.</span>
+              <strong>Not present in source</strong>
+              <span>This iFlow exists only in the target snapshot.</span>
             </div>
 
             <div
@@ -646,7 +646,7 @@ onBeforeUnmount(() => {
               role="status"
             >
               <ui5-busy-indicator active size="M" />
-              <span>Loading target BPMN…</span>
+              <span>Loading source BPMN…</span>
             </div>
             <div
               v-else-if="rightCanvasFailure"
@@ -654,7 +654,7 @@ onBeforeUnmount(() => {
               data-testid="canvas-error-right"
               role="alert"
             >
-              <strong>Target rendering incomplete</strong>
+              <strong>Source rendering incomplete</strong>
               <span>{{ rightCanvasFailure.text }}</span>
             </div>
           </div>
