@@ -283,7 +283,7 @@ async function initialize() {
     if (hasLeftSide.value) {
       try {
         if (!leftCanvas.value) {
-          throw new Error('Source canvas is unavailable')
+          throw new Error('Target canvas is unavailable')
         }
         leftViewer.value = viewerRuntime.createBpmnViewer(leftCanvas.value)
       } catch (error) {
@@ -294,7 +294,7 @@ async function initialize() {
     if (hasRightSide.value) {
       try {
         if (!rightCanvas.value) {
-          throw new Error('Target canvas is unavailable')
+          throw new Error('Source canvas is unavailable')
         }
         rightViewer.value = viewerRuntime.createBpmnViewer(rightCanvas.value)
       } catch (error) {
@@ -306,43 +306,36 @@ async function initialize() {
 
     const leftXml = file.leftContent ?? ''
     const rightXml = file.rightContent ?? ''
-    const importJobs: Array<{
-      side: BpmnDiffSide
-      promise: Promise<{ warnings: readonly unknown[] }>
-    }> = []
+    const importJobs: Promise<void>[] = []
+    const importViewer = async (
+      side: BpmnDiffSide,
+      viewer: BpmnViewerHandle,
+      xml: string,
+    ) => {
+      try {
+        const result = await viewer.importXml(xml)
+        if (!isCurrent(token, file)) return
+
+        if (side === 'left') leftReady.value = true
+        if (side === 'right') rightReady.value = true
+        addWarnings(side, result.warnings)
+      } catch (error) {
+        if (!isCurrent(token, file)) return
+
+        addFailure(side, error, file.path)
+      }
+    }
 
     if (leftViewer.value) {
-      const viewer = leftViewer.value
-      importJobs.push({
-        side: 'left',
-        promise: viewer.importXml(leftXml),
-      })
+      importJobs.push(importViewer('left', leftViewer.value, leftXml))
     }
 
     if (rightViewer.value) {
-      const viewer = rightViewer.value
-      importJobs.push({
-        side: 'right',
-        promise: viewer.importXml(rightXml),
-      })
+      importJobs.push(importViewer('right', rightViewer.value, rightXml))
     }
 
-    const importResults = await Promise.allSettled(
-      importJobs.map(job => job.promise),
-    )
+    await Promise.all(importJobs)
     if (!isCurrent(token, file)) return
-
-    importResults.forEach((result, index) => {
-      const side = importJobs[index].side
-      if (result.status === 'fulfilled') {
-        if (side === 'left') leftReady.value = true
-        if (side === 'right') rightReady.value = true
-        addWarnings(side, result.value.warnings)
-        return
-      }
-
-      addFailure(side, result.reason, file.path)
-    })
 
     if (file.status === 'modified') {
       try {
@@ -392,7 +385,10 @@ function handleDialogOpen() {
   void initialize()
 }
 
-function handleDialogClose() {
+function handleDialogClose(event: Event) {
+  const dialog = event.currentTarget as EventTarget & { open?: boolean }
+  if (dialog.open === true) return
+
   dialogActuallyOpen = false
   invalidate()
   emitCloseOnce()
@@ -600,21 +596,21 @@ onBeforeUnmount(() => {
             </div>
 
             <div
-              v-if="phase === 'loading' && hasLeftSide"
-              class="canvas-state"
-              role="status"
-            >
-              <ui5-busy-indicator active size="M" />
-              <span>Loading target BPMN…</span>
-            </div>
-            <div
-              v-else-if="leftCanvasFailure"
+              v-if="leftCanvasFailure"
               class="canvas-state canvas-state--error"
               data-testid="canvas-error-left"
               role="alert"
             >
               <strong>Target rendering incomplete</strong>
               <span>{{ leftCanvasFailure.text }}</span>
+            </div>
+            <div
+              v-else-if="phase === 'loading' && hasLeftSide"
+              class="canvas-state"
+              role="status"
+            >
+              <ui5-busy-indicator active size="M" />
+              <span>Loading target BPMN…</span>
             </div>
           </div>
         </section>
@@ -641,21 +637,21 @@ onBeforeUnmount(() => {
             </div>
 
             <div
-              v-if="phase === 'loading' && hasRightSide"
-              class="canvas-state"
-              role="status"
-            >
-              <ui5-busy-indicator active size="M" />
-              <span>Loading source BPMN…</span>
-            </div>
-            <div
-              v-else-if="rightCanvasFailure"
+              v-if="rightCanvasFailure"
               class="canvas-state canvas-state--error"
               data-testid="canvas-error-right"
               role="alert"
             >
               <strong>Source rendering incomplete</strong>
               <span>{{ rightCanvasFailure.text }}</span>
+            </div>
+            <div
+              v-else-if="phase === 'loading' && hasRightSide"
+              class="canvas-state"
+              role="status"
+            >
+              <ui5-busy-indicator active size="M" />
+              <span>Loading source BPMN…</span>
             </div>
           </div>
         </section>

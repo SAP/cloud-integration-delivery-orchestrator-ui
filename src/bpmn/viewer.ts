@@ -1,7 +1,10 @@
 import NavigatedViewer from 'bpmn-js/lib/NavigatedViewer'
+import type { BaseViewerOptions } from 'bpmn-js/lib/BaseViewer'
 import type Canvas from 'diagram-js/lib/core/Canvas'
 import type ElementRegistry from 'diagram-js/lib/core/ElementRegistry'
+import cpiRendererModule from './cpiRendererModule'
 import type { BpmnChangeStatus, BpmnElementChange } from './diff'
+import { prepareIflowXmlForRendering } from './iflowRenderXml'
 
 import 'bpmn-js/dist/assets/diagram-js.css'
 import 'bpmn-js/dist/assets/bpmn-js.css'
@@ -15,7 +18,12 @@ export interface ViewerLike {
   destroy(): void
 }
 
-type ViewerFactory = (options: { container: HTMLElement }) => ViewerLike
+export type ViewerFactoryOptions = BaseViewerOptions & {
+  container: HTMLElement
+  additionalModules: NonNullable<BaseViewerOptions['additionalModules']>
+}
+
+export type ViewerFactory = (options: ViewerFactoryOptions) => ViewerLike
 
 const markerClass: Record<BpmnChangeStatus, string> = {
   added: 'bpmn-diff-added',
@@ -37,7 +45,10 @@ export function createBpmnViewer(
   container: HTMLElement,
   factory: ViewerFactory = (options) => new NavigatedViewer(options) as unknown as ViewerLike
 ) {
-  const viewer = factory({ container })
+  const viewer = factory({
+    container,
+    additionalModules: [cpiRendererModule]
+  })
   const activeMarkers: Array<{
     elementId: string
     className: string
@@ -67,7 +78,7 @@ export function createBpmnViewer(
 
       imported = false
       clearMarkers()
-      const result = await viewer.importXML(xml)
+      const result = await viewer.importXML(prepareIflowXmlForRendering(xml))
       if (!destroyed) imported = true
       return result
     },

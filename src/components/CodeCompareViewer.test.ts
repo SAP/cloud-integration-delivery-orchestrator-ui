@@ -15,8 +15,8 @@ const api = vi.hoisted(() => {
   }
 
   const state = {
-    sourceVersion: '1.0.0',
-    targetVersion: '1.0.1',
+    sourceVersion: '1.0.1',
+    targetVersion: '1.0.0',
     sourceFiles: [] as FileEntry[],
     targetFiles: [] as FileEntry[],
   }
@@ -140,7 +140,7 @@ interface ViewerProps {
 
 const defaultProps: ViewerProps = {
   artifactId: 'Artifact',
-  artifactVersion: '1.0.0',
+  artifactVersion: '1.0.1',
   packageId: 'Package',
   artifactType: 'Integration Flow',
   sourceTenantId: 1,
@@ -164,12 +164,12 @@ function file(
 
 function useMixedChanges() {
   api.state.sourceFiles = [
-    file('flow/Integration.iflw', '<old/>'),
-    file('script/a.groovy', 'old'),
-  ]
-  api.state.targetFiles = [
     file('flow/Integration.iflw', '<new/>'),
     file('script/a.groovy', 'new'),
+  ]
+  api.state.targetFiles = [
+    file('flow/Integration.iflw', '<old/>'),
+    file('script/a.groovy', 'old'),
   ]
 }
 
@@ -244,8 +244,8 @@ describe('CodeCompareViewer', () => {
     api.triggerGitSync.mockImplementation(api.defaultTriggerGitSync)
     renderer.construct.mockClear()
     renderer.draw.mockClear()
-    api.state.sourceVersion = '1.0.0'
-    api.state.targetVersion = '1.0.1'
+    api.state.sourceVersion = '1.0.1'
+    api.state.targetVersion = '1.0.0'
     useMixedChanges()
   })
 
@@ -277,8 +277,8 @@ describe('CodeCompareViewer', () => {
     expect(diffInput).toContain('script/a.groovy')
     expect(diffInput).not.toContain('flow/Integration.iflw')
     expect(wrapper.text()).toContain('~2')
-    expect(wrapper.text()).toContain('DEV v1.0.0')
-    expect(wrapper.text()).toContain('TEST v1.0.1')
+    expect(wrapper.text()).toContain('DEV v1.0.1')
+    expect(wrapper.text()).toContain('TEST v1.0.0')
 
     const cardElement = wrapper.get('[data-testid="iflow-card"]').element
     const diffOutput = wrapper.get('[data-testid="rendered-diff"]').element
@@ -290,10 +290,10 @@ describe('CodeCompareViewer', () => {
 
   it('keeps an iflw-only comparison in the diff state without creating a top-level renderer', async () => {
     api.state.sourceFiles = [
-      file('flow/Integration.iflw', '<old/>'),
+      file('flow/Integration.iflw', '<new/>'),
     ]
     api.state.targetFiles = [
-      file('flow/Integration.iflw', '<new/>'),
+      file('flow/Integration.iflw', '<old/>'),
     ]
     const wrapper = mountViewer()
 
@@ -308,11 +308,11 @@ describe('CodeCompareViewer', () => {
   it('shows no differences only when all non-binary files are unchanged', async () => {
     api.state.sourceFiles = [
       file('script/a.groovy', 'same'),
-      file('lib/dependency.jar', 'old-binary', true),
+      file('lib/dependency.jar', 'new-binary', true),
     ]
     api.state.targetFiles = [
       file('script/a.groovy', 'same'),
-      file('lib/dependency.jar', 'new-binary', true),
+      file('lib/dependency.jar', 'old-binary', true),
     ]
     const wrapper = mountViewer()
 
@@ -336,8 +336,8 @@ describe('CodeCompareViewer', () => {
     const dialog = wrapper.getComponent(BpmnCompareDialogStub)
     expect(dialog.props('open')).toBe(true)
     expect(dialog.props('file')).toBe(selectedFile)
-    expect(dialog.props('leftLabel')).toBe('DEV v1.0.0')
-    expect(dialog.props('rightLabel')).toBe('TEST v1.0.1')
+    expect(dialog.props('leftLabel')).toBe('TEST v1.0.0')
+    expect(dialog.props('rightLabel')).toBe('DEV v1.0.1')
 
     await dialog.get('[data-testid="close-bpmn-dialog"]').trigger('click')
 
@@ -377,19 +377,19 @@ describe('CodeCompareViewer', () => {
     await flushPromises()
     expect(api.getSnapshotFiles).toHaveBeenCalledTimes(2)
 
-    api.state.sourceVersion = '2.0.0'
-    api.state.targetVersion = '2.0.1'
-    await wrapper.setProps({ artifactVersion: '2.0.0' })
+    api.state.sourceVersion = '2.0.1'
+    api.state.targetVersion = '2.0.0'
+    await wrapper.setProps({ artifactVersion: '2.0.1' })
     await flushPromises()
     expect(api.getSnapshotFiles).toHaveBeenCalledTimes(4)
 
-    sourceB.resolve(snapshotFiles(101, 'B-SOURCE', '2.0.0', [
-      file('flow/B.iflw', '<b-old/>'),
-      file('script/B.groovy', 'b-old'),
-    ]))
-    targetB.resolve(snapshotFiles(202, 'B-TARGET', '2.0.1', [
+    sourceB.resolve(snapshotFiles(101, 'B-SOURCE', '2.0.1', [
       file('flow/B.iflw', '<b-new/>'),
       file('script/B.groovy', 'b-new'),
+    ]))
+    targetB.resolve(snapshotFiles(202, 'B-TARGET', '2.0.0', [
+      file('flow/B.iflw', '<b-old/>'),
+      file('script/B.groovy', 'b-old'),
     ]))
     await flushPromises()
 
@@ -397,29 +397,29 @@ describe('CodeCompareViewer', () => {
       .toMatchObject({ path: 'flow/B.iflw' })
     expect(wrapper.get('[data-testid="rendered-diff"]').text())
       .toContain('script/B.groovy')
-    expect(wrapper.text()).toContain('B-SOURCE v2.0.0')
-    expect(wrapper.text()).toContain('B-TARGET v2.0.1')
+    expect(wrapper.text()).toContain('B-SOURCE v2.0.1')
+    expect(wrapper.text()).toContain('B-TARGET v2.0.0')
     expect(wrapper.text()).toContain('~2')
     expect(renderer.construct).toHaveBeenCalledTimes(1)
 
-    sourceA.resolve(snapshotFiles(101, 'A-SOURCE', '1.0.0', [
-      file('flow/A.iflw', '<a-old/>'),
-      file('script/A.groovy', 'a-old'),
-      file('config/A.properties', 'a=old'),
-    ]))
-    targetA.resolve(snapshotFiles(202, 'A-TARGET', '1.0.1', [
+    sourceA.resolve(snapshotFiles(101, 'A-SOURCE', '1.0.1', [
       file('flow/A.iflw', '<a-new/>'),
       file('script/A.groovy', 'a-new'),
       file('config/A.properties', 'a=new'),
     ]))
+    targetA.resolve(snapshotFiles(202, 'A-TARGET', '1.0.0', [
+      file('flow/A.iflw', '<a-old/>'),
+      file('script/A.groovy', 'a-old'),
+      file('config/A.properties', 'a=old'),
+    ]))
     await flushPromises()
 
     expect(wrapper.getComponent(IflowCompareCardStub).props('file'))
       .toMatchObject({ path: 'flow/B.iflw' })
     expect(wrapper.get('[data-testid="rendered-diff"]').text())
       .toContain('script/B.groovy')
-    expect(wrapper.text()).toContain('B-SOURCE v2.0.0')
-    expect(wrapper.text()).toContain('B-TARGET v2.0.1')
+    expect(wrapper.text()).toContain('B-SOURCE v2.0.1')
+    expect(wrapper.text()).toContain('B-TARGET v2.0.0')
     expect(wrapper.text()).toContain('~2')
     expect(wrapper.text()).not.toContain('A-SOURCE')
     expect(wrapper.text()).not.toContain('~3')
@@ -441,27 +441,27 @@ describe('CodeCompareViewer', () => {
     const wrapper = mountViewer()
     await flushPromises()
 
-    api.state.sourceVersion = '2.0.0'
-    api.state.targetVersion = '2.0.1'
-    await wrapper.setProps({ artifactVersion: '2.0.0' })
+    api.state.sourceVersion = '2.0.1'
+    api.state.targetVersion = '2.0.0'
+    await wrapper.setProps({ artifactVersion: '2.0.1' })
     await flushPromises()
 
-    sourceA.resolve(snapshotFiles(101, 'A-SOURCE', '1.0.0', [
-      file('script/A.groovy', 'a-old'),
-    ]))
-    targetA.resolve(snapshotFiles(202, 'A-TARGET', '1.0.1', [
+    sourceA.resolve(snapshotFiles(101, 'A-SOURCE', '1.0.1', [
       file('script/A.groovy', 'a-new'),
+    ]))
+    targetA.resolve(snapshotFiles(202, 'A-TARGET', '1.0.0', [
+      file('script/A.groovy', 'a-old'),
     ]))
     await flushPromises()
 
     expect(wrapper.find('ui5-busy-indicator').exists()).toBe(true)
     expect(renderer.construct).not.toHaveBeenCalled()
 
-    sourceB.resolve(snapshotFiles(101, 'B-SOURCE', '2.0.0', [
-      file('script/B.groovy', 'b-old'),
-    ]))
-    targetB.resolve(snapshotFiles(202, 'B-TARGET', '2.0.1', [
+    sourceB.resolve(snapshotFiles(101, 'B-SOURCE', '2.0.1', [
       file('script/B.groovy', 'b-new'),
+    ]))
+    targetB.resolve(snapshotFiles(202, 'B-TARGET', '2.0.0', [
+      file('script/B.groovy', 'b-old'),
     ]))
     await flushPromises()
 
@@ -484,8 +484,8 @@ describe('CodeCompareViewer', () => {
 
     wrapper.unmount()
     mountedWrappers.delete(wrapper)
-    sourceSnapshots.resolve([completedSnapshot(101, 1, '1.0.0')])
-    targetSnapshots.resolve([completedSnapshot(202, 2, '1.0.1')])
+    sourceSnapshots.resolve([completedSnapshot(101, 1, '1.0.1')])
+    targetSnapshots.resolve([completedSnapshot(202, 2, '1.0.0')])
     await flushPromises()
 
     expect(api.getSnapshotFiles).not.toHaveBeenCalled()
@@ -495,10 +495,10 @@ describe('CodeCompareViewer', () => {
 
   it('preserves top-level text diff options and toolbar redraw behavior', async () => {
     api.state.sourceFiles = [
-      file('script/a.groovy', 'old'),
+      file('script/a.groovy', 'new'),
     ]
     api.state.targetFiles = [
-      file('script/a.groovy', 'new'),
+      file('script/a.groovy', 'old'),
     ]
     const wrapper = mountViewer()
 

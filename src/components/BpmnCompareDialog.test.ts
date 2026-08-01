@@ -117,6 +117,31 @@ const file: CompareFileItem = {
   rightContent: '<right/>',
 }
 
+function expandedSubprocessFixture(suffix: string): string {
+  return [
+    '<?xml version="1.0" encoding="UTF-8"?>',
+    '<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"',
+    ' xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"',
+    ' xmlns:dc="http://www.omg.org/spec/DD/20100524/DC">',
+    `  <bpmn:process id="Process_${suffix}">`,
+    `    <bpmn:subProcess id="SubProcess_${suffix}">`,
+    `      <bpmn:task id="Child_${suffix}" />`,
+    '    </bpmn:subProcess>',
+    '  </bpmn:process>',
+    `  <bpmndi:BPMNDiagram id="Diagram_${suffix}">`,
+    `    <bpmndi:BPMNPlane id="Plane_${suffix}" bpmnElement="Process_${suffix}">`,
+    `      <bpmndi:BPMNShape id="SubProcessShape_${suffix}" bpmnElement="SubProcess_${suffix}">`,
+    '        <dc:Bounds x="100" y="100" width="300" height="180" />',
+    '      </bpmndi:BPMNShape>',
+    `      <bpmndi:BPMNShape id="ChildShape_${suffix}" bpmnElement="Child_${suffix}">`,
+    '        <dc:Bounds x="150" y="150" width="100" height="80" />',
+    '      </bpmndi:BPMNShape>',
+    '    </bpmndi:BPMNPlane>',
+    '  </bpmndi:BPMNDiagram>',
+    '</bpmn:definitions>',
+  ].join('\n')
+}
+
 const mountedWrappers = new Set<{ unmount: () => void }>()
 const resizeObservers: MockResizeObserver[] = []
 
@@ -178,8 +203,8 @@ function mountDialog(
     props: {
       open,
       file: fileProp,
-      leftLabel: 'DEV 1.0.0',
-      rightLabel: 'TEST 1.0.1',
+      leftLabel: 'TEST 1.0.0',
+      rightLabel: 'DEV 1.0.1',
     },
   })
   mountedWrappers.add(wrapper)
@@ -189,6 +214,15 @@ function mountDialog(
 async function openDialog(wrapper: ReturnType<typeof mountDialog>) {
   await wrapper.get('[data-testid="bpmn-dialog"]').trigger('open')
   await flushPromises()
+}
+
+async function closeDialog(
+  wrapper: ReturnType<typeof mountDialog>,
+  open: boolean = false,
+) {
+  const dialog = wrapper.get('[data-testid="bpmn-dialog"]')
+  ;(dialog.element as HTMLElement & { open: boolean }).open = open
+  await dialog.trigger('close')
 }
 
 function handle(side: 'left' | 'right') {
@@ -263,6 +297,24 @@ describe('BpmnCompareDialog', () => {
     )
   })
 
+  it('passes raw expanded-subprocess fixtures unchanged to both viewer and semantic boundaries', async () => {
+    const leftXml = expandedSubprocessFixture('Left')
+    const rightXml = expandedSubprocessFixture('Right')
+    const wrapper = mountDialog({
+      ...file,
+      leftContent: leftXml,
+      rightContent: rightXml,
+    })
+
+    await openDialog(wrapper)
+
+    expect(handle('left').importXml).toHaveBeenCalledWith(leftXml)
+    expect(handle('right').importXml).toHaveBeenCalledWith(rightXml)
+    expect(runtime.compute).toHaveBeenCalledWith(leftXml, rightXml)
+    expect(leftXml).not.toContain('isExpanded')
+    expect(rightXml).not.toContain('isExpanded')
+  })
+
   it('hides only layout-only entries by default and reapplies them when unchecked', async () => {
     const wrapper = mountDialog()
     await openDialog(wrapper)
@@ -330,8 +382,8 @@ describe('BpmnCompareDialog', () => {
     const wrapper = mountDialog()
     await openDialog(wrapper)
 
-    await wrapper.get('[data-testid="bpmn-dialog"]').trigger('close')
-    await wrapper.get('[data-testid="bpmn-dialog"]').trigger('close')
+    await closeDialog(wrapper)
+    await closeDialog(wrapper)
 
     expect(handle('left').destroy).toHaveBeenCalledOnce()
     expect(handle('right').destroy).toHaveBeenCalledOnce()
@@ -344,7 +396,7 @@ describe('BpmnCompareDialog', () => {
 
     await wrapper.get('[data-testid="close-dialog"]').trigger('click')
     await wrapper.setProps({ open: false })
-    await wrapper.get('[data-testid="bpmn-dialog"]').trigger('close')
+    await closeDialog(wrapper)
 
     expect(handle('left').destroy).toHaveBeenCalledOnce()
     expect(handle('right').destroy).toHaveBeenCalledOnce()
@@ -380,7 +432,7 @@ describe('BpmnCompareDialog', () => {
   it('ignores a stale host open event while closed and initializes on the legitimate reopen', async () => {
     const wrapper = mountDialog()
     await openDialog(wrapper)
-    await wrapper.get('[data-testid="bpmn-dialog"]').trigger('close')
+    await closeDialog(wrapper)
     await wrapper.setProps({ open: false })
     runtime.create.mockClear()
 
@@ -399,6 +451,77 @@ describe('BpmnCompareDialog', () => {
     ])
     expect(runtime.handles[2].importXml).toHaveBeenCalledWith('<left/>')
     expect(runtime.handles[3].importXml).toHaveBeenCalledWith('<right/>')
+  })
+
+  it('ignores a stale close after reopen and still handles the next genuine close once', async () => {
+    const wrapper = mountDialog()
+    await openDialog(wrapper)
+    const firstHandles = [...runtime.handles]
+
+    await closeDialog(wrapper)
+    firstHandles.forEach(viewer => {
+      expect(viewer.destroy).toHaveBeenCalledOnce()
+    })
+    expect(wrapper.emitted('close')).toHaveLength(1)
+
+    await wrapper.setProps({ open: false })
+    await wrapper.setProps({ open: true })
+    await openDialog(wrapper)
+    const reopenedHandles = runtime.handles.slice(2)
+    expect(reopenedHandles).toHaveLength(2)
+    expect(wrapper.find('[data-testid="change-Changed_1"]').exists()).toBe(true)
+
+    await closeDialog(wrapper, true)
+
+    reopenedHandles.forEach(viewer => {
+      expect(viewer.destroy).not.toHaveBeenCalled()
+    })
+    expect(wrapper.find('[data-testid="change-Changed_1"]').exists()).toBe(true)
+    expect(wrapper.emitted('close')).toHaveLength(1)
+
+    await closeDialog(wrapper)
+
+    reopenedHandles.forEach(viewer => {
+      expect(viewer.destroy).toHaveBeenCalledOnce()
+    })
+    expect(wrapper.emitted('close')).toHaveLength(2)
+  })
+
+  it('surfaces one import failure while the opposite side is pending and ignores its late result after invalidation', async () => {
+    const leftImport = deferred<{ warnings: string[] }>()
+    const rightImport = deferred<{ warnings: string[] }>()
+    runtime.importers.left = () => leftImport.promise
+    runtime.importers.right = () => rightImport.promise
+    const wrapper = mountDialog()
+
+    await wrapper.get('[data-testid="bpmn-dialog"]').trigger('open')
+    await flushPromises()
+    leftImport.reject(new Error('left renderer failed early'))
+    await flushPromises()
+
+    expect(wrapper.get('[data-testid="error-list"]').text()).toContain(
+      'left renderer failed early',
+    )
+    expect(wrapper.get('[data-testid="canvas-error-left"]').text()).toContain(
+      'left renderer failed early',
+    )
+    expect(wrapper.find('[data-testid="canvas-error-right"]').exists()).toBe(
+      false,
+    )
+    expect(wrapper.text()).toContain('Loading source BPMN')
+    expect(runtime.compute).not.toHaveBeenCalled()
+
+    await wrapper.setProps({ open: false })
+    rightImport.resolve({ warnings: ['late right warning'] })
+    await flushPromises()
+
+    expect(wrapper.find('[data-testid="warning-summary"]').exists()).toBe(false)
+    expect(runtime.compute).not.toHaveBeenCalled()
+    runtime.handles.forEach(viewer => {
+      expect(viewer.destroy).toHaveBeenCalledOnce()
+      expect(viewer.applyChanges).not.toHaveBeenCalled()
+      expect(viewer.fit).not.toHaveBeenCalled()
+    })
   })
 
   it('prevents delayed imports from writing state after open becomes false', async () => {
@@ -512,14 +635,14 @@ describe('BpmnCompareDialog', () => {
       existingSide: 'right' as const,
       content: '<right/>',
       message: 'Entire iFlow added',
-      placeholder: 'Not present in source',
+      placeholder: 'Not present in target',
     },
     {
       status: 'deleted' as const,
       existingSide: 'left' as const,
       content: '<left/>',
       message: 'Entire iFlow removed',
-      placeholder: 'Not present in target',
+      placeholder: 'Not present in source',
     },
   ])(
     'creates only the $existingSide viewer for a $status file and keeps its file entry non-focusable',
@@ -621,11 +744,8 @@ describe('BpmnCompareDialog', () => {
   )
 
   it.each(['left', 'right'] as const)(
-    'reports a malformed %s side with the path and text-diff fallback while retaining the other viewer',
+    'reports a semantic parse failure on the %s side with text-diff guidance',
     async (side) => {
-      runtime.importers[side] = async () => {
-        throw new Error(`${side} viewer import failed`)
-      }
       runtime.compute.mockRejectedValueOnce(
         new runtime.MockBpmnParseError(
           side,
@@ -649,9 +769,57 @@ describe('BpmnCompareDialog', () => {
         'Close this dialog and use Show text diff',
       )
 
-      const otherSide = side === 'left' ? 'right' : 'left'
-      expect(handle(otherSide).fit).toHaveBeenCalledOnce()
-      expect(handle(side).fit).not.toHaveBeenCalled()
+      expect(handle('left').fit).toHaveBeenCalledOnce()
+      expect(handle('right').fit).toHaveBeenCalledOnce()
+    },
+  )
+
+  it.each([
+    {
+      failedSide: 'left' as const,
+      failedLabel: 'left (Target)',
+      survivingSide: 'right' as const,
+    },
+    {
+      failedSide: 'right' as const,
+      failedLabel: 'right (Source)',
+      survivingSide: 'left' as const,
+    },
+  ])(
+    'keeps semantic diff and the surviving viewer active after a $failedSide custom-renderer failure',
+    async ({ failedSide, failedLabel, survivingSide }) => {
+      runtime.importers[failedSide] = async () => {
+        throw new Error('CPI custom renderer import failed')
+      }
+      const wrapper = mountDialog()
+
+      await openDialog(wrapper)
+
+      const errorText = wrapper.get('[data-testid="error-list"]').text()
+      expect(errorText).toContain(
+        `${file.path} — ${failedLabel}: CPI custom renderer import failed`,
+      )
+      expect(errorText).toContain(
+        'Close this dialog and use Show text diff',
+      )
+      expect(runtime.compute).toHaveBeenCalledWith('<left/>', '<right/>')
+      expect(handle(failedSide).fit).not.toHaveBeenCalled()
+      expect(handle(survivingSide).fit).toHaveBeenCalledOnce()
+      expect(handle(failedSide).applyChanges).not.toHaveBeenCalled()
+      expect(handle(survivingSide).applyChanges).toHaveBeenCalledWith(
+        changes,
+        survivingSide,
+        false,
+      )
+
+      handle(failedSide).destroy.mockImplementationOnce(() => {
+        throw new Error('custom renderer teardown failed')
+      })
+      await closeDialog(wrapper)
+
+      expect(handle(failedSide).destroy).toHaveBeenCalledOnce()
+      expect(handle(survivingSide).destroy).toHaveBeenCalledOnce()
+      expect(wrapper.emitted('close')).toHaveLength(1)
     },
   )
 
@@ -662,18 +830,18 @@ describe('BpmnCompareDialog', () => {
     runtime.importers.right = async () => {
       throw new Error('right viewer import failed')
     }
-    runtime.compute.mockRejectedValueOnce(new Error('semantic diff unavailable'))
     const wrapper = mountDialog()
 
     await openDialog(wrapper)
 
     const errorText = wrapper.get('[data-testid="error-list"]').text()
     expect(errorText).toContain(
-      `${file.path} — left (Source): left viewer creation failed`,
+      `${file.path} — left (Target): left viewer creation failed`,
     )
     expect(errorText).toContain(
-      `${file.path} — right (Target): right viewer import failed`,
+      `${file.path} — right (Source): right viewer import failed`,
     )
+    expect(runtime.compute).toHaveBeenCalledWith('<left/>', '<right/>')
   })
 
   it('shows general runtime failures in both canvas areas with the text-diff fallback', async () => {
@@ -711,8 +879,8 @@ describe('BpmnCompareDialog', () => {
       wrapper.get('[data-testid="bpmn-dialog"]').attributes('header-text'),
     ).toBe('BPMN Visual Diff')
     expect(wrapper.text()).toContain(file.path)
-    expect(wrapper.text()).toContain('Source · DEV 1.0.0')
-    expect(wrapper.text()).toContain('Target · TEST 1.0.1')
+    expect(wrapper.text()).toContain('Target · TEST 1.0.0')
+    expect(wrapper.text()).toContain('Source · DEV 1.0.1')
     expect(wrapper.get('[data-testid="legend-added"]').text()).toMatch(
       /Added.*solid/i,
     )
@@ -735,6 +903,15 @@ describe('BpmnCompareDialog', () => {
     expect(changedLine.attributes('stroke-dasharray')).toBe('4 3')
     expect(changedLine.attributes('stroke-dasharray')).not.toBe(
       removedLine.attributes('stroke-dasharray'),
+    )
+  })
+
+  it('attributes unavailable canvas details to left Target and right Source', () => {
+    expect(componentSource).toMatch(
+      /if \(!leftCanvas\.value\) \{\s+throw new Error\('Target canvas is unavailable'\)/,
+    )
+    expect(componentSource).toMatch(
+      /if \(!rightCanvas\.value\) \{\s+throw new Error\('Source canvas is unavailable'\)/,
     )
   })
 

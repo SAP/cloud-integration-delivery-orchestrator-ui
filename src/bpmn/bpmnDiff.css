@@ -1,25 +1,29 @@
-.djs-shape.bpmn-diff-added .djs-visual > :first-child {
+.djs-shape.bpmn-diff-added .djs-visual > .cpi-shape-outline,
+.djs-shape.bpmn-diff-added .djs-visual > :first-child:not(.cpi-shape-icon):not(.cpi-icon-symbol):not(.cpi-icon-badge):not(.djs-label) {
   stroke: #107e3e !important;
   stroke-width: 2.5px !important;
   stroke-dasharray: none !important;
   fill: #e8f5e9 !important;
 }
 
-.djs-shape.bpmn-diff-removed .djs-visual > :first-child {
+.djs-shape.bpmn-diff-removed .djs-visual > .cpi-shape-outline,
+.djs-shape.bpmn-diff-removed .djs-visual > :first-child:not(.cpi-shape-icon):not(.cpi-icon-symbol):not(.cpi-icon-badge):not(.djs-label) {
   stroke: #bb0000 !important;
   stroke-width: 2.5px !important;
   stroke-dasharray: 8 4 !important;
   fill: #ffebee !important;
 }
 
-.djs-shape.bpmn-diff-changed .djs-visual > :first-child {
+.djs-shape.bpmn-diff-changed .djs-visual > .cpi-shape-outline,
+.djs-shape.bpmn-diff-changed .djs-visual > :first-child:not(.cpi-shape-icon):not(.cpi-icon-symbol):not(.cpi-icon-badge):not(.djs-label) {
   stroke: #c35500 !important;
   stroke-width: 2.5px !important;
   stroke-dasharray: 4 3 !important;
   fill: #fff3e0 !important;
 }
 
-.djs-shape.bpmn-diff-layout .djs-visual > :first-child {
+.djs-shape.bpmn-diff-layout .djs-visual > .cpi-shape-outline,
+.djs-shape.bpmn-diff-layout .djs-visual > :first-child:not(.cpi-shape-icon):not(.cpi-icon-symbol):not(.cpi-icon-badge):not(.djs-label) {
   stroke: #0a6ed1 !important;
   stroke-width: 2.5px !important;
   stroke-dasharray: 1 4 !important;
