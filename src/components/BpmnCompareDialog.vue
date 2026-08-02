@@ -67,6 +67,9 @@ let dialogActuallyOpen = false
 let resizeObserver: ResizeObserver | null = null
 let resizeFrame: number | null = null
 let fitScheduled = false
+let viewboxSyncCleanup: (() => void) | null = null
+
+const changePanelOpen = ref(true)
 
 const hasLeftSide = computed(
   () => props.file !== null && props.file.status !== 'added',
@@ -175,9 +178,37 @@ function stopResizeMonitoring() {
   fitScheduled = false
 }
 
+function stopViewboxSync() {
+  viewboxSyncCleanup?.()
+  viewboxSyncCleanup = null
+}
+
+function startViewboxSync() {
+  stopViewboxSync()
+  const left = leftViewer.value
+  const right = rightViewer.value
+  if (!left || !right) return
+
+  let syncing = false
+  const unsubLeft = left.onViewboxChanged((viewbox) => {
+    if (syncing) return
+    syncing = true
+    right.setViewbox(viewbox)
+    syncing = false
+  })
+  const unsubRight = right.onViewboxChanged((viewbox) => {
+    if (syncing) return
+    syncing = true
+    left.setViewbox(viewbox)
+    syncing = false
+  })
+  viewboxSyncCleanup = () => { unsubLeft(); unsubRight() }
+}
+
 function invalidate() {
   generation += 1
   stopResizeMonitoring()
+  stopViewboxSync()
   destroyViewers()
   resetViewState()
 }
@@ -359,6 +390,7 @@ async function initialize() {
 
     if (!isCurrent(token, file)) return
     phase.value = 'ready'
+    startViewboxSync()
     scheduleFit(token, file)
   } catch (error) {
     if (!isCurrent(token, file)) return
@@ -573,90 +605,105 @@ onBeforeUnmount(() => {
         Select a BPMN file to start a visual comparison.
       </div>
 
-      <main v-else class="bpmn-dialog__layout">
-        <section class="canvas-panel" aria-labelledby="target-canvas-title">
-          <header class="canvas-panel__header">
-            <div>
-              <span class="canvas-panel__eyebrow">TARGET CANVAS</span>
-              <h3 id="target-canvas-title">{{ leftLabel }}</h3>
-            </div>
-            <span class="canvas-panel__side">LEFT</span>
-          </header>
+      <main v-else class="bpmn-dialog__layout" :class="{ 'panel-collapsed': !changePanelOpen }">
+        <div class="canvas-grid">
+          <section class="canvas-panel" aria-labelledby="target-canvas-title">
+            <header class="canvas-panel__header">
+              <div>
+                <span class="canvas-panel__eyebrow">TARGET</span>
+                <h3 id="target-canvas-title">{{ leftLabel }}</h3>
+              </div>
+            </header>
 
-          <div class="canvas-panel__viewport">
-            <div
-              v-if="hasLeftSide"
-              ref="leftCanvas"
-              class="bpmn-dialog__canvas"
-              data-testid="left-canvas"
-            />
-            <div v-else class="canvas-placeholder">
-              <strong>Not present in target</strong>
-              <span>This iFlow exists only in the source snapshot.</span>
-            </div>
+            <div class="canvas-panel__viewport">
+              <div
+                v-if="hasLeftSide"
+                ref="leftCanvas"
+                class="bpmn-dialog__canvas"
+                data-testid="left-canvas"
+              />
+              <div v-else class="canvas-placeholder">
+                <strong>Not present in target</strong>
+                <span>This iFlow exists only in the source snapshot.</span>
+              </div>
 
-            <div
-              v-if="leftCanvasFailure"
-              class="canvas-state canvas-state--error"
-              data-testid="canvas-error-left"
-              role="alert"
-            >
-              <strong>Target rendering incomplete</strong>
-              <span>{{ leftCanvasFailure.text }}</span>
+              <div
+                v-if="leftCanvasFailure"
+                class="canvas-state canvas-state--error"
+                data-testid="canvas-error-left"
+                role="alert"
+              >
+                <strong>Target rendering incomplete</strong>
+                <span>{{ leftCanvasFailure.text }}</span>
+              </div>
+              <div
+                v-else-if="phase === 'loading' && hasLeftSide"
+                class="canvas-state"
+                role="status"
+              >
+                <ui5-busy-indicator active size="M" />
+                <span>Loading target BPMN…</span>
+              </div>
             </div>
-            <div
-              v-else-if="phase === 'loading' && hasLeftSide"
-              class="canvas-state"
-              role="status"
-            >
-              <ui5-busy-indicator active size="M" />
-              <span>Loading target BPMN…</span>
-            </div>
-          </div>
-        </section>
+          </section>
 
-        <section class="canvas-panel" aria-labelledby="source-canvas-title">
-          <header class="canvas-panel__header">
-            <div>
-              <span class="canvas-panel__eyebrow">SOURCE CANVAS</span>
-              <h3 id="source-canvas-title">{{ rightLabel }}</h3>
-            </div>
-            <span class="canvas-panel__side">RIGHT</span>
-          </header>
+          <section class="canvas-panel" aria-labelledby="source-canvas-title">
+            <header class="canvas-panel__header">
+              <div>
+                <span class="canvas-panel__eyebrow">SOURCE</span>
+                <h3 id="source-canvas-title">{{ rightLabel }}</h3>
+              </div>
+            </header>
 
-          <div class="canvas-panel__viewport">
-            <div
-              v-if="hasRightSide"
-              ref="rightCanvas"
-              class="bpmn-dialog__canvas"
-              data-testid="right-canvas"
-            />
-            <div v-else class="canvas-placeholder">
-              <strong>Not present in source</strong>
-              <span>This iFlow exists only in the target snapshot.</span>
-            </div>
+            <div class="canvas-panel__viewport">
+              <div
+                v-if="hasRightSide"
+                ref="rightCanvas"
+                class="bpmn-dialog__canvas"
+                data-testid="right-canvas"
+              />
+              <div v-else class="canvas-placeholder">
+                <strong>Not present in source</strong>
+                <span>This iFlow exists only in the target snapshot.</span>
+              </div>
 
-            <div
-              v-if="rightCanvasFailure"
-              class="canvas-state canvas-state--error"
-              data-testid="canvas-error-right"
-              role="alert"
-            >
-              <strong>Source rendering incomplete</strong>
-              <span>{{ rightCanvasFailure.text }}</span>
+              <div
+                v-if="rightCanvasFailure"
+                class="canvas-state canvas-state--error"
+                data-testid="canvas-error-right"
+                role="alert"
+              >
+                <strong>Source rendering incomplete</strong>
+                <span>{{ rightCanvasFailure.text }}</span>
+              </div>
+              <div
+                v-else-if="phase === 'loading' && hasRightSide"
+                class="canvas-state"
+                role="status"
+              >
+                <ui5-busy-indicator active size="M" />
+                <span>Loading source BPMN…</span>
+              </div>
             </div>
-            <div
-              v-else-if="phase === 'loading' && hasRightSide"
-              class="canvas-state"
-              role="status"
-            >
-              <ui5-busy-indicator active size="M" />
-              <span>Loading source BPMN…</span>
-            </div>
-          </div>
-        </section>
+          </section>
+        </div>
 
-        <aside class="change-panel" aria-labelledby="change-panel-title">
+        <button
+          class="panel-toggle"
+          type="button"
+          :aria-expanded="changePanelOpen"
+          aria-controls="change-panel"
+          @click="changePanelOpen = !changePanelOpen"
+        >
+          {{ changePanelOpen ? '›' : '‹' }}
+        </button>
+
+        <aside
+          v-show="changePanelOpen"
+          id="change-panel"
+          class="change-panel"
+          aria-labelledby="change-panel-title"
+        >
           <header class="change-panel__header">
             <div>
               <span class="change-panel__eyebrow">NAVIGATION INDEX</span>
@@ -974,11 +1021,42 @@ onBeforeUnmount(() => {
 
 .bpmn-dialog__layout {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 20rem;
+  grid-template-columns: 1fr auto auto;
   min-height: 70vh;
-  gap: 0.75rem;
+  gap: 0;
   padding: 0.75rem;
   background: var(--sapBackgroundColor);
+}
+
+.bpmn-dialog__layout.panel-collapsed {
+  grid-template-columns: 1fr auto;
+}
+
+.canvas-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.panel-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.25rem;
+  margin: 0 0.25rem;
+  padding: 0;
+  color: var(--sapContent_LabelColor);
+  font-size: 1.25rem;
+  font-weight: bold;
+  background: var(--sapList_HeaderBackground);
+  border: 1px solid var(--sapList_BorderColor);
+  border-radius: var(--sapElement_BorderCornerRadius);
+  cursor: pointer;
+}
+
+.panel-toggle:hover {
+  background: var(--sapList_Hover_Background);
 }
 
 .canvas-panel,
@@ -1013,7 +1091,6 @@ onBeforeUnmount(() => {
   line-height: 1.25rem;
 }
 
-.canvas-panel__side,
 .change-panel__count {
   display: inline-flex;
   align-items: center;
@@ -1094,6 +1171,7 @@ onBeforeUnmount(() => {
 .change-panel {
   display: flex;
   flex-direction: column;
+  width: 18rem;
   max-height: calc(100vh - 13rem);
 }
 

@@ -1,5 +1,48 @@
+/* CPI connections — match CPI arrow style */
+.djs-connection .djs-visual > path {
+  stroke: rgb(6, 114, 163) !important;
+  stroke-width: 1px !important;
+}
+
+/* Arrowhead markers — same color as connection line */
+.djs-container svg marker path {
+  fill: rgb(6, 114, 163) !important;
+  stroke: rgb(6, 114, 163) !important;
+}
+
+/* Diff overlay badges */
+.bpmn-diff-badge {
+  display: inline-block;
+  border-radius: 50%;
+  color: #fff;
+  font-weight: bold;
+  font-size: 14px;
+  width: 20px;
+  height: 20px;
+  line-height: 20px;
+  text-align: center;
+  pointer-events: none;
+}
+
+.bpmn-diff-badge--added {
+  background-color: #107e3e;
+}
+
+.bpmn-diff-badge--removed {
+  background-color: #bb0000;
+}
+
+.bpmn-diff-badge--changed {
+  background-color: #c35500;
+}
+
+.bpmn-diff-badge--layout {
+  background-color: #0a6ed1;
+}
+
+/* Diff markers — shapes */
 .djs-shape.bpmn-diff-added .djs-visual > .cpi-shape-outline,
-.djs-shape.bpmn-diff-added .djs-visual > :first-child:not(.cpi-shape-icon):not(.cpi-icon-symbol):not(.cpi-icon-badge):not(.djs-label) {
+.djs-shape.bpmn-diff-added .djs-visual > :first-child:not(.cpi-shape-icon):not(.cpi-icon-symbol):not(.djs-label) {
   stroke: #107e3e !important;
   stroke-width: 2.5px !important;
   stroke-dasharray: none !important;
@@ -7,7 +50,7 @@
 }
 
 .djs-shape.bpmn-diff-removed .djs-visual > .cpi-shape-outline,
-.djs-shape.bpmn-diff-removed .djs-visual > :first-child:not(.cpi-shape-icon):not(.cpi-icon-symbol):not(.cpi-icon-badge):not(.djs-label) {
+.djs-shape.bpmn-diff-removed .djs-visual > :first-child:not(.cpi-shape-icon):not(.cpi-icon-symbol):not(.djs-label) {
   stroke: #bb0000 !important;
   stroke-width: 2.5px !important;
   stroke-dasharray: 8 4 !important;
@@ -15,7 +58,7 @@
 }
 
 .djs-shape.bpmn-diff-changed .djs-visual > .cpi-shape-outline,
-.djs-shape.bpmn-diff-changed .djs-visual > :first-child:not(.cpi-shape-icon):not(.cpi-icon-symbol):not(.cpi-icon-badge):not(.djs-label) {
+.djs-shape.bpmn-diff-changed .djs-visual > :first-child:not(.cpi-shape-icon):not(.cpi-icon-symbol):not(.djs-label) {
   stroke: #c35500 !important;
   stroke-width: 2.5px !important;
   stroke-dasharray: 4 3 !important;
@@ -23,7 +66,7 @@
 }
 
 .djs-shape.bpmn-diff-layout .djs-visual > .cpi-shape-outline,
-.djs-shape.bpmn-diff-layout .djs-visual > :first-child:not(.cpi-shape-icon):not(.cpi-icon-symbol):not(.cpi-icon-badge):not(.djs-label) {
+.djs-shape.bpmn-diff-layout .djs-visual > :first-child:not(.cpi-shape-icon):not(.cpi-icon-symbol):not(.djs-label) {
   stroke: #0a6ed1 !important;
   stroke-width: 2.5px !important;
   stroke-dasharray: 1 4 !important;
@@ -31,6 +74,7 @@
   fill: #eaf3fc !important;
 }
 
+/* Diff markers — connections */
 .djs-connection.bpmn-diff-added .djs-visual > path {
   stroke: #107e3e !important;
   stroke-width: 2.5px !important;

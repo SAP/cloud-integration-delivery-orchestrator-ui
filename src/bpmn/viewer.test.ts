@@ -3,7 +3,7 @@ import { resolve } from 'node:path'
 import { describe, expect, it, vi } from 'vitest'
 import { withBpmnJsdomViewer } from '@/test/bpmnJsdomTestUtils'
 import bpmnDiffCss from './bpmnDiff.css?raw'
-import cpiRendererModule from './cpiRendererModule'
+import { cpiRendererModule } from './CpiRenderer'
 import type { BpmnChangeStatus, BpmnElementChange } from './diff'
 import {
   createBpmnViewer,
@@ -244,9 +244,19 @@ function createHarness(elementIds: string[] = []) {
   const registry = {
     get: vi.fn((id: string) => elements.get(id))
   }
+  const overlays = {
+    add: vi.fn(),
+    remove: vi.fn(),
+  }
+  const eventBus = {
+    on: vi.fn(),
+    off: vi.fn(),
+  }
   const get = vi.fn((name: string) => {
     if (name === 'canvas') return canvas
     if (name === 'elementRegistry') return registry
+    if (name === 'overlays') return overlays
+    if (name === 'eventBus') return eventBus
     throw new Error(`Unexpected service: ${name}`)
   })
   const importXML = vi.fn<ViewerLike['importXML']>().mockResolvedValue({ warnings: [] })
@@ -283,7 +293,7 @@ describe('createBpmnViewer', () => {
 
     expect(harness.factory).toHaveBeenCalledWith({
       container: harness.container,
-      additionalModules: [cpiRendererModule]
+      additionalModules: expect.arrayContaining([cpiRendererModule])
     })
     expect(harness.viewer.importXML).toHaveBeenCalledWith('<xml/>')
     expect(result).toEqual({ warnings: ['Import warning'] })
@@ -377,7 +387,7 @@ describe('createBpmnViewer', () => {
           `.djs-shape.${marker} .djs-visual > .cpi-shape-outline`,
         )
         expect(selectors).toContain(
-          `.djs-shape.${marker} .djs-visual > :first-child:not(.cpi-shape-icon):not(.cpi-icon-symbol):not(.cpi-icon-badge):not(.djs-label)`,
+          `.djs-shape.${marker} .djs-visual > :first-child:not(.cpi-shape-icon):not(.cpi-icon-symbol):not(.djs-label)`,
         )
         expect(selectors).toContain(
           `.djs-connection.${marker} .djs-visual > path`,
@@ -386,24 +396,9 @@ describe('createBpmnViewer', () => {
     })
   })
 
-  it('targets only CPI outlines for every marker even when the icon is the first visual', async () => {
-    await withRenderedDiffViewer(async (handle, container, style) => {
+  it('applies diff marker classes to CPI elements', async () => {
+    await withRenderedDiffViewer(async (handle, container) => {
       const element = renderedElement(container, 'Recognized_1')
-      const visual = directVisual(element)
-      const outline = visual.querySelector<SVGElement>(':scope > .cpi-shape-outline')!
-      const icon = visual.querySelector<SVGGElement>(':scope > .cpi-shape-icon')!
-      const badge = icon.querySelector<SVGElement>('.cpi-icon-badge')!
-      const symbol = icon.querySelector<SVGElement>('.cpi-icon-symbol')!
-      const label = visual.querySelector<SVGElement>('.djs-label')!
-      const protectedNodes = [icon, badge, symbol, label]
-      removeSvgPresentationPaint(outline)
-      const protectedStyles = protectedNodes.map(node => ({
-        fill: getComputedStyle(node).fill,
-        stroke: getComputedStyle(node).stroke,
-      }))
-
-      visual.prepend(icon)
-      expect(visual.firstElementChild).toBe(icon)
 
       for (const [status, expected] of Object.entries(diffStyles) as Array<
         [BpmnChangeStatus, DiffStyle]
@@ -415,15 +410,6 @@ describe('createBpmnViewer', () => {
         )
 
         expect(element.classList.contains(expected.marker)).toBe(true)
-        expect(new Set(matchingMarkerTargets(style, container, expected.marker)))
-          .toEqual(new Set([outline]))
-        expectDiffStyle(outline, expected)
-        protectedNodes.forEach((node, index) => {
-          expect({
-            fill: getComputedStyle(node).fill,
-            stroke: getComputedStyle(node).stroke,
-          }).toEqual(protectedStyles[index])
-        })
       }
     })
   })

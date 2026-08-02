@@ -2,7 +2,10 @@ import NavigatedViewer from 'bpmn-js/lib/NavigatedViewer'
 import type { BaseViewerOptions } from 'bpmn-js/lib/BaseViewer'
 import type Canvas from 'diagram-js/lib/core/Canvas'
 import type ElementRegistry from 'diagram-js/lib/core/ElementRegistry'
-import cpiRendererModule from './cpiRendererModule'
+import type Overlays from 'diagram-js/lib/features/overlays/Overlays'
+import type EventBus from 'diagram-js/lib/core/EventBus'
+import { cpiRendererModule } from './CpiRenderer'
+import importConnectionCropperModule from './importConnectionCropperModule'
 import type { BpmnChangeStatus, BpmnElementChange } from './diff'
 import { prepareIflowXmlForRendering } from './iflowRenderXml'
 
@@ -32,6 +35,20 @@ const markerClass: Record<BpmnChangeStatus, string> = {
   'layout-only': 'bpmn-diff-layout'
 }
 
+const overlaySymbol: Record<BpmnChangeStatus, string> = {
+  added: '&#43;',
+  removed: '&minus;',
+  changed: '&#9998;',
+  'layout-only': '&#8680;',
+}
+
+const overlayClass: Record<BpmnChangeStatus, string> = {
+  added: 'bpmn-diff-badge bpmn-diff-badge--added',
+  removed: 'bpmn-diff-badge bpmn-diff-badge--removed',
+  changed: 'bpmn-diff-badge bpmn-diff-badge--changed',
+  'layout-only': 'bpmn-diff-badge bpmn-diff-badge--layout',
+}
+
 function belongsOnSide(status: BpmnChangeStatus, side: ViewerSide) {
   return (
     status === 'changed' ||
@@ -47,7 +64,7 @@ export function createBpmnViewer(
 ) {
   const viewer = factory({
     container,
-    additionalModules: [cpiRendererModule]
+    additionalModules: [cpiRendererModule, importConnectionCropperModule]
   })
   const activeMarkers: Array<{
     elementId: string
@@ -58,7 +75,9 @@ export function createBpmnViewer(
 
   const services = () => ({
     canvas: viewer.get<Canvas>('canvas'),
-    registry: viewer.get<ElementRegistry>('elementRegistry')
+    registry: viewer.get<ElementRegistry>('elementRegistry'),
+    overlays: viewer.get<Overlays>('overlays'),
+    eventBus: viewer.get<EventBus>('eventBus'),
   })
 
   const clearMarkers = () => {
@@ -70,6 +89,16 @@ export function createBpmnViewer(
     })
   }
 
+  const clearOverlays = () => {
+    if (!imported) return
+    try {
+      const { overlays } = services()
+      overlays.remove({ type: 'diff' })
+    } catch {
+      // ignore if overlay service unavailable
+    }
+  }
+
   return {
     async importXml(xml: string) {
       if (destroyed) {
@@ -78,6 +107,7 @@ export function createBpmnViewer(
 
       imported = false
       clearMarkers()
+      clearOverlays()
       const result = await viewer.importXML(prepareIflowXmlForRendering(xml))
       if (!destroyed) imported = true
       return result
@@ -87,7 +117,8 @@ export function createBpmnViewer(
       if (!imported || destroyed) return
 
       clearMarkers()
-      const { canvas, registry } = services()
+      clearOverlays()
+      const { canvas, registry, overlays } = services()
 
       changes.forEach((change) => {
         if (!belongsOnSide(change.status, side)) return
@@ -100,6 +131,15 @@ export function createBpmnViewer(
           elementId: change.id,
           className
         })
+
+        try {
+          overlays.add(change.id, 'diff', {
+            position: { top: -14, right: 14 },
+            html: `<span class="${overlayClass[change.status]}">${overlaySymbol[change.status]}</span>`
+          })
+        } catch {
+          // ignore if element not visible
+        }
       })
     },
 
@@ -120,6 +160,22 @@ export function createBpmnViewer(
       canvas.scrollToElement(elementId, 120)
     },
 
+    onViewboxChanged(callback: (viewbox: unknown) => void): () => void {
+      if (destroyed) return () => {}
+
+      const { eventBus } = services()
+      const handler = (e: { viewbox: unknown }) => callback(e.viewbox)
+      eventBus.on('canvas.viewbox.changed', handler)
+      return () => eventBus.off('canvas.viewbox.changed', handler)
+    },
+
+    setViewbox(viewbox: unknown) {
+      if (!imported || destroyed) return
+
+      const { canvas } = services()
+      canvas.viewbox(viewbox as any)
+    },
+
     destroy() {
       if (destroyed) return
 
@@ -127,6 +183,7 @@ export function createBpmnViewer(
       imported = false
       try {
         clearMarkers()
+        clearOverlays()
       } finally {
         viewer.destroy()
       }
