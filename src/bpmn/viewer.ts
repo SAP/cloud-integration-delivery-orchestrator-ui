@@ -123,22 +123,23 @@ export function createBpmnViewer(
       changes.forEach((change) => {
         if (!belongsOnSide(change.status, side)) return
         if (change.status === 'layout-only' && !showLayoutOnly) return
-        if (!registry.get(change.id)) return
+
+        const element = registry.get(change.id)
+        if (!element) return
 
         const className = markerClass[change.status]
         canvas.addMarker(change.id, className)
-        activeMarkers.push({
-          elementId: change.id,
-          className
-        })
+        activeMarkers.push({ elementId: change.id, className })
 
-        try {
-          overlays.add(change.id, 'diff', {
-            position: { top: -14, right: 14 },
-            html: `<span class="${overlayClass[change.status]}">${overlaySymbol[change.status]}</span>`
-          })
-        } catch {
-          // ignore if element not visible
+        const isConnection = 'waypoints' in element
+        if (!isConnection) {
+          // Shape badge at top-right
+          try {
+            overlays.add(change.id, 'diff', {
+              position: { top: -14, right: 14 },
+              html: `<span class="${overlayClass[change.status]}">${overlaySymbol[change.status]}</span>`
+            })
+          } catch { /* ignore */ }
         }
       })
     },
