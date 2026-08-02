@@ -5,6 +5,7 @@ import 'diff2html/bundles/css/diff2html.min.css'
 import '@ui5/webcomponents/dist/Panel.js'
 import '@ui5/webcomponents/dist/Button.js'
 import '@ui5/webcomponents/dist/Label.js'
+import '@ui5/webcomponents-icons/dist/ai.js'
 
 import type { CompareFileItem } from '@/service/codeCompareFiles'
 
@@ -77,27 +78,27 @@ onBeforeUnmount(() => {
           {{ file.status.toUpperCase() }}
         </ui5-label>
       </div>
-      <ui5-button
-        design="Emphasized"
-        @click.stop="emit('open-visual', file)"
-      >
-        Open Visual Diff
-      </ui5-button>
     </div>
 
     <div v-if="!loaded" class="load-diff-placeholder">
-      <ui5-button design="Transparent" class="load-diff-btn" @click="loadDiff">
-        Load Diff
-      </ui5-button>
-      <span class="load-diff-hint">Large diffs are not rendered by default.</span>
+      <div class="load-diff-actions">
+        <ui5-button design="Transparent" class="load-diff-btn" @click="loadDiff">
+          Text Diff
+        </ui5-button>
+        <div class="load-diff-divider" />
+        <ui5-button class="load-diff-btn" design="Transparent" icon="ai" @click.stop="emit('open-visual', file)">
+          Visual Diff
+        </ui5-button>
+      </div>
+
+      <ui5-label>Large diffs are not rendered by default.</ui5-label>
     </div>
 
-    <div
-      v-else
-      :id="panelId"
-      ref="diffContainer"
-      class="text-diff"
-      role="region"
+    <div v-else 
+      :id="panelId" 
+      ref="diffContainer" 
+      class="text-diff" 
+      role="region" 
       :aria-label="`Text diff for ${file.path}`"
     />
   </ui5-panel>
@@ -135,15 +136,23 @@ onBeforeUnmount(() => {
   padding: 1.5rem 1rem;
 }
 
+.load-diff-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.load-diff-divider {
+  width: 1px;
+  height: 1.25rem;
+  background: var(--sapGroup_ContentBorderColor, #d5dadd);
+}
+
 .load-diff-btn {
   font-weight: 700;
   font-size: var(--sapFontLargeSize, 1rem);
 }
 
-.load-diff-hint {
-  color: var(--sapContent_LabelColor, #556b82);
-  font-size: var(--sapFontSize, 0.875rem);
-}
 
 .text-diff {
   box-sizing: border-box;

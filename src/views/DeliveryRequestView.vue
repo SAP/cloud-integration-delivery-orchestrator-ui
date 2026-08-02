@@ -201,8 +201,8 @@
     </ui5-dynamic-page-header>
 
     <!-- Tab Container: Delivery Flow | Code Compare | Logs -->
-    <ui5-tabcontainer fixed>
-      <ui5-tab text="Delivery Flow" selected>
+    <ui5-tabcontainer tab-layout="Inline">
+      <ui5-tab text="Delivery Flow" icon="workflow-tasks" selected>
         <!-- Generate Delivery Request -->
         <ui5-wizard id="wiz">
           <!-- Step 1: Prepare -->
@@ -488,7 +488,7 @@
       </ui5-tab>
 
       <!-- Tab 2: Code Compare -->
-      <ui5-tab text="Code Compare">
+      <ui5-tab text="Code Compare" icon="source-code">
         <div class="code-compare-tab">
           <div v-if="!gitSyncEnabled" class="code-compare-empty">
             <ui5-illustrated-message name="NoData"
@@ -525,7 +525,7 @@
       </ui5-tab>
 
       <!-- Tab 3: Logs -->
-      <ui5-tab text="Logs">
+      <ui5-tab text="Logs" icon="document-text" :additional-text="String(conditionFilterCounts['All'])">
         <div style="display: flex; flex-direction: column; gap: 10px; padding: 1rem 0;">
           <div style="display: flex; align-items: center; gap: 8px;">
             <ui5-title>Logs</ui5-title>
@@ -651,6 +651,9 @@ import "@ui5/webcomponents-icons/dist/refresh.js";
 import "@ui5/webcomponents-icons/dist/italic-text.js";
 import "@ui5/webcomponents-icons/dist/synchronize.js";
 import "@ui5/webcomponents-icons/dist/show.js";
+import "@ui5/webcomponents-icons/dist/workflow-tasks.js";
+import "@ui5/webcomponents-icons/dist/source-code.js";
+import "@ui5/webcomponents-icons/dist/document-text.js";
 import "@ui5/webcomponents/dist/Dialog.js";
 import "@ui5/webcomponents/dist/Panel.js";
 import "@ui5/webcomponents/dist/BusyIndicator.js";
