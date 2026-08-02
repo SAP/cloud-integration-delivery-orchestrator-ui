@@ -5,8 +5,8 @@ import { buildCompareFiles, type CompareFileItem } from '@/service/codeCompareFi
 import { Diff2HtmlUI } from 'diff2html/lib-esm/ui/js/diff2html-ui-base'
 import 'diff2html/bundles/css/diff2html.min.css'
 
-import BpmnCompareDialog from './BpmnCompareDialog.vue'
-import IflowCompareCard from './IflowCompareCard.vue'
+import BpmnCompareDialog from '@/components/BpmnCompareDialog.vue'
+import IflowCompareCard from '@/components/IflowCompareCard.vue'
 
 import "@ui5/webcomponents/dist/BusyIndicator.js"
 import "@ui5/webcomponents/dist/Icon.js"

@@ -510,7 +510,7 @@
               @artifact-change="codeCompareArtifactId = $event"
               @target-change="codeCompareTargetTenantId = $event"
             />
-            <CodeCompareViewer
+            <CodeCompareView
               v-if="codeCompareSelectedOp && effectiveTargetTenantId"
               :artifact-id="codeCompareSelectedOp.ArtifactTechID"
               :artifact-version="codeCompareSelectedOp.ArtifactVersion"
@@ -619,7 +619,7 @@ import CpiTransportFlowView from './CpiTransportFlowView.vue'
 import ArtifactOpTag from '@/components/ArtifactOpTag.vue'
 import CodeCompareSelectionBar from '@/components/CodeCompareSelectionBar.vue'
 import ConfirmDeleteDialog from '@/components/ConfirmDeleteDialog.vue'
-import CodeCompareViewer from '@/components/CodeCompareViewer.vue'
+import CodeCompareView from '@/views/CodeCompareView.vue'
 import { nextTick } from 'vue'
 import { aggregateStatusToUi5Design, conditionTypeToDesign } from '@/service/statuses'
 import { wsClient } from '@/service/ws'
@@ -689,7 +689,7 @@ export default {
     ConfirmDeleteDialog,
     ArtifactOpTag,
     CodeCompareSelectionBar,
-    CodeCompareViewer,
+    CodeCompareView,
   },
   props: { id: { required: true, type: Number } },
   data() {
