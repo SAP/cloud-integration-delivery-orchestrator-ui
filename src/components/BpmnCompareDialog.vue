@@ -505,11 +505,6 @@ onBeforeUnmount(() => {
           :checked="hideLayoutOnly"
           @change="handleLayoutToggle"
         />
-        <ui5-toolbar-button
-          :icon="changePanelOpen ? 'decline' : 'menu'"
-          :text="`Semantic Changes (${visibleChanges.length})`"
-          @click="changePanelOpen = !changePanelOpen"
-        />
       </ui5-toolbar>
 
       <div
@@ -598,110 +593,67 @@ onBeforeUnmount(() => {
           </section>
         </div>
 
-        <aside
-          v-show="changePanelOpen"
-          id="change-panel"
-          class="change-panel"
-          aria-labelledby="change-panel-title"
-        >
-          <header class="change-panel__header">
-            <div>
-              <span class="change-panel__eyebrow">NAVIGATION INDEX</span>
-              <h3 id="change-panel-title">Changed elements</h3>
-            </div>
-            <span class="change-panel__count">
-              {{
-                file.status === 'modified'
-                  ? visibleChanges.length
-                  : 1
-              }}
-            </span>
-          </header>
-
-          <ul
-            v-if="failures.length > 0"
-            class="failure-list"
-            aria-label="Visual comparison errors"
+        <section class="change-strip">
+          <button
+            class="change-strip__toggle"
+            type="button"
+            @click="changePanelOpen = !changePanelOpen"
           >
-            <li v-for="failure in failures" :key="failure.key">
-              <strong>{{ failure.side }}</strong>
-              <span>{{ failure.text }}</span>
-            </li>
-          </ul>
+            <span>Changes ({{ file.status === 'modified' ? visibleChanges.length : 1 }})</span>
+            <span class="change-strip__arrow">{{ changePanelOpen ? '▼' : '▲' }}</span>
+          </button>
 
-          <div v-if="phase === 'idle'" class="change-state">
-            Waiting for the dialog to finish opening.
-          </div>
-          <div v-else-if="phase === 'loading'" class="change-state" role="status">
-            Computing semantic BPMN changes…
-          </div>
-
-          <div v-else class="change-panel__body">
-            <div
-              v-if="file.status !== 'modified'"
-              class="change-item change-item--file"
-              :class="`change-item--${file.status === 'added' ? 'added' : 'removed'}`"
-              role="status"
+          <div v-show="changePanelOpen" class="change-strip__body">
+            <ul
+              v-if="failures.length > 0"
+              class="failure-list"
+              aria-label="Visual comparison errors"
             >
-              <span class="change-item__status">
-                {{ file.status === 'added' ? 'ADDED' : 'REMOVED' }}
-              </span>
-              <strong>
-                {{
-                  file.status === 'added'
-                    ? 'Entire iFlow added'
-                    : 'Entire iFlow removed'
-                }}
-              </strong>
-              <small>File-level change · no BPMN element to focus</small>
+              <li v-for="failure in failures" :key="failure.key">
+                <strong>{{ failure.side }}</strong>
+                <span>{{ failure.text }}</span>
+              </li>
+            </ul>
+
+            <div v-if="phase === 'loading'" class="change-strip__status" role="status">
+              Computing changes…
             </div>
 
-            <button
-              v-for="change in visibleChanges"
-              v-else
-              :key="change.id"
-              class="change-item"
-              :class="`change-item--${change.status}`"
-              type="button"
-              @click="focusChange(change)"
-            >
-              <span class="change-item__status">
-                {{ change.status }}
-              </span>
-              <strong>{{ change.name || change.id }}</strong>
-              <small>{{ change.type }} · {{ change.id }}</small>
-              <span
-                v-if="change.status !== 'layout-only' && change.alsoLayoutChanged"
-                class="change-item__layout-note"
+            <div v-else class="change-strip__scroll">
+              <div
+                v-if="file.status !== 'modified'"
+                class="change-chip"
+                :class="`change-chip--${file.status === 'added' ? 'added' : 'removed'}`"
               >
-                Layout also changed
-              </span>
-            </button>
+                <span class="change-chip__status">
+                  {{ file.status === 'added' ? 'ADDED' : 'REMOVED' }}
+                </span>
+                <strong>Entire iFlow</strong>
+              </div>
 
-            <div
-              v-if="
-                file.status === 'modified'
-                  && changes.length === 0
-                  && visibleChanges.length === 0
-                  && failures.length === 0
-              "
-              class="change-state change-state--empty"
-            >
-              No BPMN element changes
-            </div>
+              <button
+                v-for="change in visibleChanges"
+                v-else
+                :key="change.id"
+                class="change-chip"
+                :class="`change-chip--${change.status}`"
+                type="button"
+                @click="focusChange(change)"
+              >
+                <span class="change-chip__status">{{ change.status }}</span>
+                <strong>{{ change.name || change.id }}</strong>
+                <small>{{ change.type }}</small>
+              </button>
 
-            <div
-              v-else-if="
-                file.status === 'modified'
-                  && visibleChanges.length === 0
-                  && failures.length > 0
-              "
-              class="change-state change-state--error"
-            >
-              Visual comparison is incomplete. Use the text diff fallback.
+              <div
+                v-if="file.status === 'modified' && visibleChanges.length === 0 && failures.length === 0"
+                class="change-strip__status"
+              >
+                No BPMN element changes
+              </div>
             </div>
           </div>
-        </aside>
+        </section>
       </main>
     </div>
 
@@ -774,9 +726,10 @@ onBeforeUnmount(() => {
 }
 
 .bpmn-dialog__layout {
-  position: relative;
   display: flex;
+  flex-direction: column;
   flex: 1 1 auto;
+  gap: 0.75rem;
   min-height: 70vh;
   padding: 0.75rem;
   background: var(--sapBackgroundColor);
@@ -790,20 +743,6 @@ onBeforeUnmount(() => {
   min-width: 0;
 }
 
-.change-panel {
-  position: absolute;
-  right: 0.75rem;
-  top: 2.5rem;
-  z-index: 10;
-  width: 18rem;
-  max-height: calc(100% - 3.5rem);
-  min-width: 0;
-  background: var(--sapGroup_ContentBackground);
-  border: 1px solid var(--sapGroup_ContentBorderColor);
-  border-radius: var(--sapElement_BorderCornerRadius);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-}
-
 .canvas-panel {
   display: flex;
   flex-direction: column;
@@ -813,8 +752,7 @@ onBeforeUnmount(() => {
   border-radius: var(--sapElement_BorderCornerRadius);
 }
 
-.canvas-panel__header,
-.change-panel__header {
+.canvas-panel__header {
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -824,38 +762,17 @@ onBeforeUnmount(() => {
   border-bottom: 1px solid var(--sapList_BorderColor);
 }
 
-.canvas-panel__eyebrow,
-.change-panel__eyebrow {
+.canvas-panel__eyebrow {
   color: var(--sapContent_LabelColor);
   font-size: var(--sapFontSmallSize);
   font-weight: 700;
   letter-spacing: 0.06em;
 }
 
-.canvas-panel__header h3,
-.change-panel__header h3 {
+.canvas-panel__header h3 {
   margin: 0;
   font-size: var(--sapFontSize);
   line-height: 1.25rem;
-}
-
-.change-panel__header {
-  justify-content: space-between;
-}
-
-.change-panel__count {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 1.5rem;
-  min-height: 1.25rem;
-  padding: 0 0.25rem;
-  color: var(--sapContent_LabelColor);
-  font-size: var(--sapFontSmallSize);
-  font-weight: 700;
-  background: var(--sapList_AlternatingBackground);
-  border: 1px solid var(--sapList_BorderColor);
-  border-radius: var(--sapElement_BorderCornerRadius);
 }
 
 .canvas-panel__viewport {
@@ -875,8 +792,7 @@ onBeforeUnmount(() => {
 
 .canvas-placeholder,
 .canvas-state,
-.dialog-state,
-.change-state {
+.dialog-state {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -920,11 +836,107 @@ onBeforeUnmount(() => {
   font-size: var(--sapFontSmallSize);
 }
 
-.change-panel {
+.change-strip {
   display: flex;
   flex-direction: column;
-  width: 18rem;
-  max-height: calc(100vh - 13rem);
+  align-items: center;
+  background: var(--sapGroup_ContentBackground);
+  border: 1px solid var(--sapGroup_ContentBorderColor);
+  border-radius: var(--sapElement_BorderCornerRadius);
+}
+
+.change-strip__toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.375rem 1rem;
+  color: var(--sapLinkColor, #0064d9);
+  font: inherit;
+  font-size: var(--sapFontSize);
+  font-weight: 600;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+.change-strip__toggle:hover {
+  text-decoration: underline;
+}
+
+.change-strip__arrow {
+  font-size: 0.625rem;
+}
+
+.change-strip__body {
+  width: 100%;
+  border-top: 1px solid var(--sapGroup_ContentBorderColor);
+}
+
+.change-strip__scroll {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  overflow-x: auto;
+}
+
+.change-strip__status {
+  padding: 0.5rem 1rem;
+  color: var(--sapContent_LabelColor);
+  font-size: var(--sapFontSize);
+  text-align: center;
+}
+
+.change-chip {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  padding: 0.375rem 0.625rem;
+  min-width: 6rem;
+  max-width: 12rem;
+  color: var(--sapTextColor);
+  font: inherit;
+  text-align: left;
+  background: var(--sapList_Background);
+  border: 1px solid var(--sapList_BorderColor);
+  border-left-width: 0.25rem;
+  border-radius: var(--sapElement_BorderCornerRadius);
+  cursor: pointer;
+}
+
+.change-chip:hover {
+  background: var(--sapList_Hover_Background);
+}
+
+.change-chip:focus-visible {
+  outline: 0.125rem solid var(--sapContent_FocusColor);
+  outline-offset: 0.125rem;
+}
+
+.change-chip--added { border-left-color: var(--sapPositiveColor); }
+.change-chip--removed { border-left-color: var(--sapNegativeColor); }
+.change-chip--changed { border-left-color: var(--sapCriticalColor); }
+.change-chip--layout-only { border-left-color: var(--sapInformationColor); border-left-style: dotted; }
+
+.change-chip__status {
+  color: var(--sapContent_LabelColor);
+  font-size: var(--sapFontSmallSize);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.change-chip strong {
+  font-size: var(--sapFontSize);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.change-chip small {
+  color: var(--sapContent_LabelColor);
+  font-size: var(--sapFontSmallSize);
+  white-space: nowrap;
 }
 
 .failure-list {
@@ -952,113 +964,8 @@ onBeforeUnmount(() => {
   overflow-wrap: anywhere;
 }
 
-.change-panel__body {
-  display: flex;
-  flex: 1 1 auto;
-  flex-direction: column;
-  gap: 0.375rem;
-  min-height: 0;
-  padding: 0.5rem;
-  overflow: auto;
-}
-
-.change-item {
-  display: grid;
-  width: 100%;
-  gap: 0.1875rem;
-  padding: 0.625rem 0.75rem;
-  color: var(--sapTextColor);
-  font: inherit;
-  text-align: left;
-  background: var(--sapList_Background);
-  border: 1px solid var(--sapList_BorderColor);
-  border-left-width: 0.25rem;
-  border-radius: var(--sapElement_BorderCornerRadius);
-  cursor: pointer;
-}
-
-.change-item:not(.change-item--file):hover {
-  background: var(--sapList_Hover_Background);
-}
-
-.change-item:focus-visible {
-  outline: 0.125rem solid var(--sapContent_FocusColor);
-  outline-offset: 0.125rem;
-}
-
-.change-item--file {
-  cursor: default;
-}
-
-.change-item--added {
-  border-left-color: var(--sapPositiveColor);
-}
-
-.change-item--removed {
-  border-left-color: var(--sapNegativeColor);
-}
-
-.change-item--changed {
-  border-left-color: var(--sapCriticalColor);
-}
-
-.change-item--layout-only {
-  border-left-color: var(--sapInformationColor);
-  border-left-style: dotted;
-}
-
-.change-item__status {
-  color: var(--sapContent_LabelColor);
-  font-size: var(--sapFontSmallSize);
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
-
-.change-item strong {
-  overflow-wrap: anywhere;
-  font-size: var(--sapFontSize);
-}
-
-.change-item small {
-  overflow-wrap: anywhere;
-  color: var(--sapContent_LabelColor);
-  font-size: var(--sapFontSmallSize);
-}
-
-.change-item__layout-note {
-  width: fit-content;
-  margin-top: 0.125rem;
-  padding: 0.0625rem 0.25rem;
-  color: var(--sapInformationTextColor);
-  font-size: var(--sapFontSmallSize);
-  background: var(--sapInformationBackground);
-  border: 1px dotted var(--sapInformationBorderColor);
-}
-
-.change-state {
-  flex: 1 1 auto;
-  min-height: 8rem;
-}
-
-.change-state--error {
-  color: var(--sapNegativeTextColor);
-  background: var(--sapNegativeBackground);
-}
-
 .dialog-state {
   min-height: 60vh;
-}
-
-@media (max-width: 80rem) {
-  .bpmn-dialog__layout {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  }
-
-  .change-panel {
-    grid-column: 1 / -1;
-    max-height: 20rem;
-  }
 }
 
 @media (max-width: 64rem) {
@@ -1066,17 +973,13 @@ onBeforeUnmount(() => {
     flex-basis: 100%;
   }
 
-  .bpmn-dialog__layout {
+  .canvas-grid {
     grid-template-columns: minmax(0, 1fr);
   }
 
   .bpmn-dialog__canvas,
   .canvas-placeholder {
     min-height: 42vh;
-  }
-
-  .change-panel {
-    grid-column: auto;
   }
 }
 

@@ -25,76 +25,76 @@
 }
 
 .bpmn-diff-badge--added {
-  background-color: #107e3e;
+  background-color: var(--sapPositiveColor, #107e3e);
 }
 
 .bpmn-diff-badge--removed {
-  background-color: #bb0000;
+  background-color: var(--sapNegativeColor, #bb0000);
 }
 
 .bpmn-diff-badge--changed {
-  background-color: #c35500;
+  background-color: var(--sapCriticalColor, #c35500);
 }
 
 .bpmn-diff-badge--layout {
-  background-color: #0a6ed1;
+  background-color: var(--sapInformationColor, #0a6ed1);
 }
 
 /* Diff markers — shapes */
 .djs-shape.bpmn-diff-added .djs-visual > .cpi-shape-outline,
 .djs-shape.bpmn-diff-added .djs-visual > :first-child:not(.cpi-shape-icon):not(.cpi-icon-symbol):not(.djs-label) {
-  stroke: #107e3e !important;
+  stroke: var(--sapPositiveColor, #107e3e) !important;
   stroke-width: 2.5px !important;
   stroke-dasharray: none !important;
-  fill: #e8f5e9 !important;
+  fill: var(--sapSuccessBackground, #e8f5e9) !important;
 }
 
 .djs-shape.bpmn-diff-removed .djs-visual > .cpi-shape-outline,
 .djs-shape.bpmn-diff-removed .djs-visual > :first-child:not(.cpi-shape-icon):not(.cpi-icon-symbol):not(.djs-label) {
-  stroke: #bb0000 !important;
+  stroke: var(--sapNegativeColor, #bb0000) !important;
   stroke-width: 2.5px !important;
   stroke-dasharray: 8 4 !important;
-  fill: #ffebee !important;
+  fill: var(--sapErrorBackground, #ffebee) !important;
 }
 
 .djs-shape.bpmn-diff-changed .djs-visual > .cpi-shape-outline,
 .djs-shape.bpmn-diff-changed .djs-visual > :first-child:not(.cpi-shape-icon):not(.cpi-icon-symbol):not(.djs-label) {
-  stroke: #c35500 !important;
+  stroke: var(--sapCriticalColor, #c35500) !important;
   stroke-width: 2.5px !important;
   stroke-dasharray: 4 3 !important;
-  fill: #fff3e0 !important;
+  fill: var(--sapWarningBackground, #fff3e0) !important;
 }
 
 .djs-shape.bpmn-diff-layout .djs-visual > .cpi-shape-outline,
 .djs-shape.bpmn-diff-layout .djs-visual > :first-child:not(.cpi-shape-icon):not(.cpi-icon-symbol):not(.djs-label) {
-  stroke: #0a6ed1 !important;
+  stroke: var(--sapInformationColor, #0a6ed1) !important;
   stroke-width: 2.5px !important;
   stroke-dasharray: 1 4 !important;
   stroke-linecap: round !important;
-  fill: #eaf3fc !important;
+  fill: var(--sapInformationBackground, #eaf3fc) !important;
 }
 
 /* Diff markers — connections */
 .djs-connection.bpmn-diff-added .djs-visual > path {
-  stroke: #107e3e !important;
+  stroke: var(--sapPositiveColor, #107e3e) !important;
   stroke-width: 2.5px !important;
   stroke-dasharray: none !important;
 }
 
 .djs-connection.bpmn-diff-removed .djs-visual > path {
-  stroke: #bb0000 !important;
+  stroke: var(--sapNegativeColor, #bb0000) !important;
   stroke-width: 2.5px !important;
   stroke-dasharray: 8 4 !important;
 }
 
 .djs-connection.bpmn-diff-changed .djs-visual > path {
-  stroke: #c35500 !important;
+  stroke: var(--sapCriticalColor, #c35500) !important;
   stroke-width: 2.5px !important;
   stroke-dasharray: 4 3 !important;
 }
 
 .djs-connection.bpmn-diff-layout .djs-visual > path {
-  stroke: #0a6ed1 !important;
+  stroke: var(--sapInformationColor, #0a6ed1) !important;
   stroke-width: 2.5px !important;
   stroke-dasharray: 1 4 !important;
   stroke-linecap: round !important;
