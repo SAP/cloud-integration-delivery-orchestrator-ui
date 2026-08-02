@@ -156,16 +156,52 @@ export function createBpmnViewer(
       if (!imported || destroyed) return
 
       const { canvas, registry } = services()
-      if (!registry.get(elementId)) return
+      const element = registry.get(elementId)
+      if (!element) return
 
-      canvas.scrollToElement(elementId, 120)
+      // Determine element center — shapes have x/y/width/height, connections have waypoints
+      const shape = element as unknown as {
+        x?: number; y?: number; width?: number; height?: number
+        waypoints?: Array<{ x: number; y: number }>
+      }
+
+      let centerX: number
+      let centerY: number
+
+      if (shape.waypoints && shape.waypoints.length > 0) {
+        const mid = shape.waypoints[Math.floor(shape.waypoints.length / 2)]
+        centerX = mid.x
+        centerY = mid.y
+      } else if (
+        typeof shape.x === 'number' && typeof shape.y === 'number'
+        && typeof shape.width === 'number' && typeof shape.height === 'number'
+      ) {
+        centerX = shape.x + shape.width / 2
+        centerY = shape.y + shape.height / 2
+      } else {
+        return
+      }
+
+      if (!isFinite(centerX) || !isFinite(centerY)) return
+
+      const currentViewbox = canvas.viewbox() as {
+        x: number; y: number; width: number; height: number
+      }
+      if (!isFinite(currentViewbox.width) || !isFinite(currentViewbox.height)) return
+
+      canvas.viewbox({
+        x: centerX - currentViewbox.width / 2,
+        y: centerY - currentViewbox.height / 2,
+        width: currentViewbox.width,
+        height: currentViewbox.height,
+      })
     },
 
     onViewboxChanged(callback: (viewbox: unknown) => void): () => void {
       if (destroyed) return () => {}
 
       const { eventBus } = services()
-      const handler = (e: { viewbox: unknown }) => callback(e.viewbox)
+      const handler = (e: any) => callback(e.viewbox)
       eventBus.on('canvas.viewbox.changed', handler)
       return () => eventBus.off('canvas.viewbox.changed', handler)
     },
