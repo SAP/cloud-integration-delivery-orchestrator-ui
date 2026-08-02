@@ -469,7 +469,6 @@ onBeforeUnmount(() => {
 <template>
   <ui5-dialog
     class="bpmn-dialog"
-    data-testid="bpmn-dialog"
     header-text="BPMN Visual Diff"
     :open="open"
     @open="handleDialogOpen"
@@ -484,25 +483,24 @@ onBeforeUnmount(() => {
           {{ file.status }}
         </ui5-tag>
         <ui5-toolbar-separator />
-        <span class="toolbar-legend toolbar-legend--added" data-testid="legend-added">
+        <span class="toolbar-legend toolbar-legend--added">
           <svg viewBox="0 0 20 4" aria-hidden="true"><line x1="0" y1="2" x2="20" y2="2" /></svg>
           Added
         </span>
-        <span class="toolbar-legend toolbar-legend--removed" data-testid="legend-removed">
+        <span class="toolbar-legend toolbar-legend--removed">
           <svg viewBox="0 0 20 4" aria-hidden="true"><line x1="0" y1="2" x2="20" y2="2" stroke-dasharray="8 4" /></svg>
           Removed
         </span>
-        <span class="toolbar-legend toolbar-legend--changed" data-testid="legend-changed">
+        <span class="toolbar-legend toolbar-legend--changed">
           <svg viewBox="0 0 20 4" aria-hidden="true"><line x1="0" y1="2" x2="20" y2="2" stroke-dasharray="4 3" /></svg>
           Changed
         </span>
-        <span class="toolbar-legend toolbar-legend--layout" data-testid="legend-layout-only">
+        <span class="toolbar-legend toolbar-legend--layout">
           <svg viewBox="0 0 20 4" aria-hidden="true"><line x1="0" y1="2" x2="20" y2="2" stroke-dasharray="1 4" stroke-linecap="round" /></svg>
           Layout-only
         </span>
         <ui5-toolbar-spacer />
         <ui5-checkbox
-          data-testid="hide-layout-only"
           text="Hide layout-only"
           :checked="hideLayoutOnly"
           @change="handleLayoutToggle"
@@ -517,7 +515,6 @@ onBeforeUnmount(() => {
       <div
         v-if="warnings.length > 0"
         class="warning-summary"
-        data-testid="warning-summary"
         role="status"
       >
         <strong>
@@ -541,7 +538,6 @@ onBeforeUnmount(() => {
                 v-if="hasLeftSide"
                 ref="leftCanvas"
                 class="bpmn-dialog__canvas"
-                data-testid="left-canvas"
               />
               <div v-else class="canvas-placeholder">
                 <strong>Not present in target</strong>
@@ -550,7 +546,6 @@ onBeforeUnmount(() => {
               <div
                 v-if="leftCanvasFailure"
                 class="canvas-state canvas-state--error"
-                data-testid="canvas-error-left"
                 role="alert"
               >
                 <strong>Target rendering incomplete</strong>
@@ -578,7 +573,6 @@ onBeforeUnmount(() => {
                 v-if="hasRightSide"
                 ref="rightCanvas"
                 class="bpmn-dialog__canvas"
-                data-testid="right-canvas"
               />
               <div v-else class="canvas-placeholder">
                 <strong>Not present in source</strong>
@@ -587,7 +581,6 @@ onBeforeUnmount(() => {
               <div
                 v-if="rightCanvasFailure"
                 class="canvas-state canvas-state--error"
-                data-testid="canvas-error-right"
                 role="alert"
               >
                 <strong>Source rendering incomplete</strong>
@@ -628,7 +621,6 @@ onBeforeUnmount(() => {
           <ul
             v-if="failures.length > 0"
             class="failure-list"
-            data-testid="error-list"
             aria-label="Visual comparison errors"
           >
             <li v-for="failure in failures" :key="failure.key">
@@ -649,7 +641,6 @@ onBeforeUnmount(() => {
               v-if="file.status !== 'modified'"
               class="change-item change-item--file"
               :class="`change-item--${file.status === 'added' ? 'added' : 'removed'}`"
-              data-testid="file-change"
               role="status"
             >
               <span class="change-item__status">
@@ -671,7 +662,6 @@ onBeforeUnmount(() => {
               :key="change.id"
               class="change-item"
               :class="`change-item--${change.status}`"
-              :data-testid="`change-${change.id}`"
               type="button"
               @click="focusChange(change)"
             >
@@ -696,7 +686,6 @@ onBeforeUnmount(() => {
                   && failures.length === 0
               "
               class="change-state change-state--empty"
-              data-testid="no-changes"
             >
               No BPMN element changes
             </div>
@@ -720,7 +709,6 @@ onBeforeUnmount(() => {
     <!-- eslint-disable-next-line vue/no-deprecated-slot-attribute -->
     <ui5-toolbar slot="footer" align-content="End">
       <ui5-toolbar-button
-        data-testid="close-dialog"
         design="Emphasized"
         text="Close"
         @click="requestClose"

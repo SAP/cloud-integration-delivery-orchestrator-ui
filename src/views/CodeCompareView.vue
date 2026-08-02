@@ -478,11 +478,15 @@ onUnmounted(() => {
       <template v-if="hasDiff || patchesCache.length">
         <!-- Compare info line -->
         <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px; font-size: 0.85rem;">
-          <ui5-link v-if="compareInfo.sourceCommitUrl" :href="compareInfo.sourceCommitUrl" target="_blank" icon="chain-link" design="Emphasized" style="font-size: 1rem;">{{ compareInfo.sourceTenant }} v{{ compareInfo.sourceVersion }}</ui5-link>
-          <span v-else style="font-weight: 500; font-size: 1rem;">{{ compareInfo.sourceTenant }} v{{ compareInfo.sourceVersion }}</span>
-          <ui5-icon name="arrow-right" style="color: #656d76; font-size: 0.85rem;" />
-          <ui5-link v-if="compareInfo.targetCommitUrl" :href="compareInfo.targetCommitUrl" target="_blank" icon="chain-link" design="Emphasized" style="font-size: 1rem;">{{ compareInfo.targetTenant }} v{{ compareInfo.targetVersion }}</ui5-link>
-          <span v-else style="font-weight: 500; font-size: 1rem;">{{ compareInfo.targetTenant }} v{{ compareInfo.targetVersion }}</span>
+          <span style="font-weight: 700; font-size: 1rem;">{{ props.artifactName }}:</span>
+          <ui5-link v-if="compareInfo.sourceCommitUrl" :href="compareInfo.sourceCommitUrl" target="_blank" icon="chain-link" design="Emphasized" style="font-size: 1rem;">{{ compareInfo.sourceVersion }}</ui5-link>
+          <span v-else style="font-weight: 500; font-size: 1rem;">{{ compareInfo.sourceVersion }}</span>
+          <ui5-icon name="arrow-right" style="width: 0.85rem; height: 0.85rem; color: #656d76;" />
+          <template v-if="compareInfo.targetVersion && compareInfo.targetVersion !== '—'">
+            <ui5-link v-if="compareInfo.targetCommitUrl" :href="compareInfo.targetCommitUrl" target="_blank" icon="chain-link" design="Emphasized" style="font-size: 1rem;">{{ compareInfo.targetVersion }}</ui5-link>
+            <span v-else style="font-weight: 500; font-size: 1rem;">{{ compareInfo.targetVersion }}</span>
+          </template>
+          <span v-else style="font-style: italic; color: #656d76; font-size: 1rem;">(new)</span>
 
           <span style="margin-left: auto; display: flex; gap: 5px; font-size: 0.78rem;">
             <span v-if="fileStats.added" style="padding: 1px 5px; border-radius: 3px; background: #dafbe1; color: #1a7f37;">+{{ fileStats.added }}</span>

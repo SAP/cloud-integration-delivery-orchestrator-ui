@@ -2,7 +2,6 @@
 import type { ArtifactTenantOperation, CpiTenant } from '@/service/model'
 
 import '@ui5/webcomponents/dist/Icon.js'
-import '@ui5/webcomponents/dist/Input.js'
 import '@ui5/webcomponents/dist/Label.js'
 import '@ui5/webcomponents/dist/Option.js'
 import '@ui5/webcomponents/dist/Select.js'
@@ -50,75 +49,55 @@ function onTargetChange(event: Event) {
     aria-label="Code compare selection"
   >
     <div class="compare-selection-bar">
-      <div
-        class="compare-selection-field compare-selection-field--source"
-        data-testid="compare-field-source"
-      >
-        <ui5-label for="code-compare-source">Source tenant</ui5-label>
-        <ui5-input
-          id="code-compare-source"
-          data-testid="source-tenant"
-          accessible-name="Source tenant"
-          readonly
-          :value="sourceTenantName || ''"
-          placeholder="—"
+      <div class="compare-source">
+        <ui5-label class="compare-label-bold">Source</ui5-label>
+        <span class="compare-source-value">{{ sourceTenantName || '—' }}</span>
+      </div>
+
+      <div class="compare-selects">
+        <div class="compare-field">
+          <ui5-label for="code-compare-artifact">Artifact</ui5-label>
+          <ui5-select id="code-compare-artifact" accessible-name="Artifact" @change="onArtifactChange">
+            <ui5-option
+              v-for="(artifact, index) in artifacts"
+              :key="artifact.ID"
+              :value="artifact.ArtifactTechID"
+              :selected="
+                artifact.ArtifactTechID === selectedArtifactId
+                  || (!selectedArtifactId && index === 0)
+              "
+            >
+              {{ artifact.ArtifactTechID }} - {{ artifact.ArtifactVersion }}
+            </ui5-option>
+          </ui5-select>
+        </div>
+
+        <ui5-icon
+          class="compare-arrow"
+          name="arrow-right"
+          accessible-name="delivers to"
         />
-      </div>
 
-      <div
-        class="compare-selection-field compare-selection-field--artifact"
-        data-testid="compare-field-artifact"
-      >
-        <ui5-label for="code-compare-artifact">Artifact</ui5-label>
-        <ui5-select
-          id="code-compare-artifact"
-          accessible-name="Artifact"
-          @change="onArtifactChange"
-        >
-          <ui5-option
-            v-for="(artifact, index) in artifacts"
-            :key="artifact.ID"
-            :value="artifact.ArtifactTechID"
-            :selected="
-              artifact.ArtifactTechID === selectedArtifactId
-                || (!selectedArtifactId && index === 0)
-            "
+        <div class="compare-field compare-field--target">
+          <ui5-label class="compare-label-bold" for="code-compare-target">Target</ui5-label>
+          <ui5-select
+            id="code-compare-target"
+            accessible-name="Target CPI Tenant"
+            @change="onTargetChange"
           >
-            {{ artifact.ArtifactName || artifact.ArtifactTechID }}
-            (v{{ artifact.ArtifactVersion }})
-          </ui5-option>
-        </ui5-select>
-      </div>
-
-      <ui5-icon
-        class="compare-selection-direction"
-        data-testid="compare-direction"
-        name="arrow-right"
-        accessible-name="delivers to"
-      />
-
-      <div
-        class="compare-selection-field compare-selection-field--target"
-        data-testid="compare-field-target"
-      >
-        <ui5-label for="code-compare-target">Target tenant</ui5-label>
-        <ui5-select
-          id="code-compare-target"
-          accessible-name="Target tenant"
-          @change="onTargetChange"
-        >
-          <ui5-option
-            v-for="(tenant, index) in targetTenants"
-            :key="tenant.ID"
-            :value="String(tenant.ID)"
-            :selected="
-              tenant.ID === selectedTargetTenantId
-                || (!selectedTargetTenantId && index === 0)
-            "
-          >
-            {{ tenant.Name }}
-          </ui5-option>
-        </ui5-select>
+            <ui5-option
+              v-for="(tenant, index) in targetTenants"
+              :key="tenant.ID"
+              :value="String(tenant.ID)"
+              :selected="
+                tenant.ID === selectedTargetTenantId
+                  || (!selectedTargetTenantId && index === 0)
+              "
+            >
+              {{ tenant.Name }}
+            </ui5-option>
+          </ui5-select>
+        </div>
       </div>
     </div>
   </div>
@@ -134,35 +113,54 @@ function onTargetChange(event: Event) {
 }
 
 .compare-selection-bar {
-  display: grid;
-  grid-template-columns:
-    minmax(8rem, max-content)
-    minmax(16rem, 1fr)
-    1.5rem
-    minmax(10rem, 14rem);
-  gap: 0.75rem;
-  align-items: end;
-  min-width: 42rem;
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+  /* max-width: 36rem; */
+  width: 60%;
   padding: 0.75rem 1rem;
 }
 
-.compare-selection-field {
+.compare-source {
+  flex: 0 0 auto;
   display: flex;
-  min-width: 0;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: 0.5rem;
 }
 
-.compare-selection-field ui5-input,
-.compare-selection-field ui5-select {
+.compare-source-value {
+  font-size: var(--sapFontSize, 0.875rem);
+  color: var(--sapTextColor, #32363a);
+}
+
+.compare-selects {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 2fr auto 1fr;
+  gap: 0.75rem;
+  align-items: end;
+}
+
+.compare-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+.compare-field ui5-select {
   width: 100%;
 }
 
-.compare-selection-direction {
-  align-self: end;
+.compare-label-bold {
+  font-weight: 700;
+}
+
+.compare-arrow {
+  align-self: center;
   justify-self: center;
-  margin-bottom: 0.625rem;
+  width: 1rem;
+  height: 1rem;
   color: var(--sapContent_IconColor, #0a6ed1);
-  font-size: 1rem;
 }
 </style>
