@@ -203,288 +203,288 @@
     <!-- Tab Container: Delivery Flow | Code Compare | Logs -->
     <ui5-tabcontainer fixed>
       <ui5-tab text="Delivery Flow" selected>
-    <!-- Generate Delivery Request -->
-    <ui5-wizard id="wiz">
-      <!-- Step 1: Prepare -->
-      <ui5-wizard-step id="step1" title-text="Select Packages & Artifacts">
-        <div style="display: flex; min-height: 200px; flex-direction: column;">
-          <ui5-title>Select Packages & Artifacts</ui5-title><br />
+        <!-- Generate Delivery Request -->
+        <ui5-wizard id="wiz">
+          <!-- Step 1: Prepare -->
+          <ui5-wizard-step id="step1" title-text="Select Packages & Artifacts">
+            <div style="display: flex; min-height: 200px; flex-direction: column;">
+              <ui5-title>Select Packages & Artifacts</ui5-title><br />
 
-          <ui5-busy-indicator v-if="!deliveryRequest.SourceTenant"
-            active :delay="0" style="display:flex; justify-content:center; align-items:center; width:100%; height: 70px;">
-          </ui5-busy-indicator>
+              <ui5-busy-indicator v-if="!deliveryRequest.SourceTenant"
+                active :delay="0" style="display:flex; justify-content:center; align-items:center; width:100%; height: 70px;">
+              </ui5-busy-indicator>
 
-          <div v-else style="display: flex; flex-direction: column; gap:10px">
-            <!-- cpi tenants selection -->
-            <ui5-title size="H6"> Source CPI Tenant </ui5-title>
-            <div style="display: flex; flex-direction: row; gap:12px; align-items: center;">
-              <ui5-label style="display:flex; align-items:center; justify-content:center;">
-                {{ deliveryRequest.SourceTenant.Name }} #{{ deliveryRequest.SourceTenant.ID }}
-              </ui5-label>
-              <div style="width: 1px; height: 20px; background: #ccc;"></div>
-              <ui5-link :href="cpiTenantLink" target="_blank" rel="noopener noreferrer">
-                {{ cpiTenantLink }}
-              </ui5-link>
-            </div>
-
-            <!-- separator between tenant info and artifact selection -->
-            <div style="border-top: 1px solid var(--sapList_BorderColor); margin: 4px 0;"></div>
-
-            <!-- artifact selection — two parallel methods -->
-            <div style="margin-top: 2px;">
-              <ui5-label style="display: block; margin-top: 4px;">Choose artifacts using either method below. Selections are shared between both methods.</ui5-label>
-            </div>
-
-            <div style="display: flex; flex-direction: row; gap: 24px; align-items: flex-start; margin-top: 4px;">
-
-              <!-- Left column: Search All Artifacts -->
-              <div style="flex: 0 0 50%; min-width: 0; display: flex; flex-direction: column; gap: 8px;">
-                <ui5-title size="H5">Search All Artifacts</ui5-title>
-                <ui5-input
-                  :value="globalArtifactSearch"
-                  @input="globalArtifactSearch = ($event.target as HTMLInputElement).value"
-                  placeholder="Search by name / version across all packages"
-                  show-clear-icon
-                  :disabled="packagesLoading"
-                  style="width: 60%;"
-                />
-                <div v-if="globalArtifactSearch && globalArtifactResults.length" style="display: flex; flex-wrap: wrap; gap: 6px; max-height: 300px; overflow-y: auto; padding: 4px 0;">
-                  <ui5-segmented-button
-                    v-for="item in globalArtifactResults"
-                    :key="item.pkg.Id + '-' + item.artifact.TechID + '@' + item.artifact.Version"
-                    items-fit-content selection-mode="Multiple">
-                    <ui5-segmented-button-item
-                      :selected="isArtifactSelected(item.pkg.Id, item.artifact)"
-                      @click="toggleArtifact(item.pkg.Id, item.artifact)">
-                      {{ item.artifact.TechID }}@{{ item.artifact.Version }}
-                    </ui5-segmented-button-item>
-                    <ui5-segmented-button-item icon="italic-text" @click="openArtifactDetails(item.artifact)" tooltip="Show Details" />
-                  </ui5-segmented-button>
+              <div v-else style="display: flex; flex-direction: column; gap:10px">
+                <!-- cpi tenants selection -->
+                <ui5-title size="H6"> Source CPI Tenant </ui5-title>
+                <div style="display: flex; flex-direction: row; gap:12px; align-items: center;">
+                  <ui5-label style="display:flex; align-items:center; justify-content:center;">
+                    {{ deliveryRequest.SourceTenant.Name }} #{{ deliveryRequest.SourceTenant.ID }}
+                  </ui5-label>
+                  <div style="width: 1px; height: 20px; background: #ccc;"></div>
+                  <ui5-link :href="cpiTenantLink" target="_blank" rel="noopener noreferrer">
+                    {{ cpiTenantLink }}
+                  </ui5-link>
                 </div>
-                <ui5-busy-indicator
-                  v-if="globalArtifactSearch && globalArtifactSearching"
-                  active :delay="0"
-                  style="display:flex; justify-content:center; align-items:center; width:100%; height: 40px;">
-                </ui5-busy-indicator>
-                <ui5-illustrated-message
-                  v-else-if="globalArtifactSearch && !globalArtifactResults.length && !globalArtifactSearching"
-                  name="NoData" design="Dot"
-                  title-text="No artifacts found"
-                  :subtitle-text="`No artifacts match '${globalArtifactSearch}'`"
-                  style="height: 80px;" />
-              </div>
 
-              <!-- Right column: Browse by Package -->
-              <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 8px;">
-                <ui5-title size="H5">Browse by Package ({{ selectedPackages.length }})</ui5-title>
+                <!-- separator between tenant info and artifact selection -->
+                <div style="border-top: 1px solid var(--sapList_BorderColor); margin: 4px 0;"></div>
 
-                <!-- Loading Skeleton -->
-                <ui5-busy-indicator v-if="packagesLoading" active :delay="0"
-                  style="display:flex; justify-content:center; align-items:center; width:100%; height: 70px;">
-                </ui5-busy-indicator>
-                <!-- Packages Select -->
-                <div v-else>
-                  <div v-if="!packageOptions || !packageOptions.length" style="margin-top:6px">
-                    <ui5-illustrated-message name="NoData" design="Dot"
-                      :title-text="`No Packages found in Tenant(${deliveryRequest.SourceTenant.Name})`"
-                      :subtitle-text="`Please Retry...`" />
+                <!-- artifact selection — two parallel methods -->
+                <div style="margin-top: 2px;">
+                  <ui5-label style="display: block; margin-top: 4px;">Choose artifacts using either method below. Selections are shared between both methods.</ui5-label>
+                </div>
+
+                <div style="display: flex; flex-direction: row; gap: 24px; align-items: flex-start; margin-top: 4px;">
+
+                  <!-- Left column: Search All Artifacts -->
+                  <div style="flex: 0 0 50%; min-width: 0; display: flex; flex-direction: column; gap: 8px;">
+                    <ui5-title size="H5">Search All Artifacts</ui5-title>
+                    <ui5-input
+                      :value="globalArtifactSearch"
+                      @input="globalArtifactSearch = ($event.target as HTMLInputElement).value"
+                      placeholder="Search by name / version across all packages"
+                      show-clear-icon
+                      :disabled="packagesLoading"
+                      style="width: 60%;"
+                    />
+                    <div v-if="globalArtifactSearch && globalArtifactResults.length" style="display: flex; flex-wrap: wrap; gap: 6px; max-height: 300px; overflow-y: auto; padding: 4px 0;">
+                      <ui5-segmented-button
+                        v-for="item in globalArtifactResults"
+                        :key="item.pkg.Id + '-' + item.artifact.TechID + '@' + item.artifact.Version"
+                        items-fit-content selection-mode="Multiple">
+                        <ui5-segmented-button-item
+                          :selected="isArtifactSelected(item.pkg.Id, item.artifact)"
+                          @click="toggleArtifact(item.pkg.Id, item.artifact)">
+                          {{ item.artifact.TechID }}@{{ item.artifact.Version }}
+                        </ui5-segmented-button-item>
+                        <ui5-segmented-button-item icon="italic-text" @click="openArtifactDetails(item.artifact)" tooltip="Show Details" />
+                      </ui5-segmented-button>
+                    </div>
+                    <ui5-busy-indicator
+                      v-if="globalArtifactSearch && globalArtifactSearching"
+                      active :delay="0"
+                      style="display:flex; justify-content:center; align-items:center; width:100%; height: 40px;">
+                    </ui5-busy-indicator>
+                    <ui5-illustrated-message
+                      v-else-if="globalArtifactSearch && !globalArtifactResults.length && !globalArtifactSearching"
+                      name="NoData" design="Dot"
+                      title-text="No artifacts found"
+                      :subtitle-text="`No artifacts match '${globalArtifactSearch}'`"
+                      style="height: 80px;" />
                   </div>
 
-                  <ui5-multi-combobox v-else show-clear-icon show-select-all filter="Contains" @selection-change="handleSelectPackage"
-                    style="width: 100%;">
-                    <ui5-mcb-item v-for="pkg in packageOptions" :id="pkg.value.Id" :key="pkg.value.Id"
-                      :text="pkg.value.Name" :additional-text="`${pkg.value.Version}`"
-                      :selected="selectedPackages.some(p => p.Id === pkg.value.Id)" />
-                  </ui5-multi-combobox>
+                  <!-- Right column: Browse by Package -->
+                  <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 8px;">
+                    <ui5-title size="H5">Browse by Package ({{ selectedPackages.length }})</ui5-title>
+
+                    <!-- Loading Skeleton -->
+                    <ui5-busy-indicator v-if="packagesLoading" active :delay="0"
+                      style="display:flex; justify-content:center; align-items:center; width:100%; height: 70px;">
+                    </ui5-busy-indicator>
+                    <!-- Packages Select -->
+                    <div v-else>
+                      <div v-if="!packageOptions || !packageOptions.length" style="margin-top:6px">
+                        <ui5-illustrated-message name="NoData" design="Dot"
+                          :title-text="`No Packages found in Tenant(${deliveryRequest.SourceTenant.Name})`"
+                          :subtitle-text="`Please Retry...`" />
+                      </div>
+
+                      <ui5-multi-combobox v-else show-clear-icon show-select-all filter="Contains" @selection-change="handleSelectPackage"
+                        style="width: 100%;">
+                        <ui5-mcb-item v-for="pkg in packageOptions" :id="pkg.value.Id" :key="pkg.value.Id"
+                          :text="pkg.value.Name" :additional-text="`${pkg.value.Version}`"
+                          :selected="selectedPackages.some(p => p.Id === pkg.value.Id)" />
+                      </ui5-multi-combobox>
+                    </div>
+
+                    <!-- Package & Artifacts panels -->
+                    <div v-if="selectedPackages.length">
+                      <ui5-panel v-for="pkg in selectedPackages" :key="pkg.Id" :header-text="`${pkg.Name} - ${pkg.Version}`"
+                        collapsed style="margin-bottom: 10px;">
+                        <ui5-busy-indicator v-if="packagesLoading" active :delay="0"
+                          style="display:flex; justify-content:center; align-items:center; width:100%; height: 80px;">
+                        </ui5-busy-indicator>
+                        <div v-else>
+                          <div v-if="(packageArtifacts[pkg.Id] || []).length === 0">
+                            <ui5-illustrated-message name="NoData" design="Dot" />
+                          </div>
+                          <div v-else>
+                            <div style="display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0;">
+                              <ui5-input :id="`input-filter-artifacts-${pkg.Id}`" @input="handleFilterArtifacts(pkg.Id, $event)"
+                                placeholder="Filter artifacts (id/version/type)"
+                                show-clear-icon
+                                style="width: 40%;"/>
+
+                              <ui5-button design="Transparent" @click="selectAllFiltered(pkg.Id)"
+                                :disabled="!filteredArtifacts(pkg.Id).length">Select All Filtered
+                              </ui5-button>
+                              <ui5-button design="Transparent" @click="clearSelections(pkg.Id)"
+                                :disabled="!(selPkgArtifacts[pkg.Id] || []).length">Clear Selected
+                              </ui5-button>
+                            </div>
+
+                            <!-- Artifact list section -->
+                            <div style="max-height:240px; overflow:auto; padding:6px; display:flex; flex-wrap:wrap; gap:6px;">
+                              <ui5-segmented-button v-for="a in filteredArtifacts(pkg.Id)"
+                                :key="pkg.Id + '-' + a.TechID + '@' + a.Version" items-fit-content selection-mode="Multiple">
+                                <ui5-segmented-button-item :selected="isArtifactSelected(pkg.Id, a)" @click="toggleArtifact(pkg.Id, a)">
+                                  {{ a.TechID }}@{{ a.Version }}
+                                </ui5-segmented-button-item>
+                                <ui5-segmented-button-item icon="italic-text" @click="openArtifactDetails(a)" tooltip="Show Details" />
+                              </ui5-segmented-button>
+                            </div>
+                          </div>
+                        </div>
+                      </ui5-panel>
+                    </div>
+                  </div>
+
                 </div>
 
-                <!-- Package & Artifacts panels -->
-                <div v-if="selectedPackages.length">
-                  <ui5-panel v-for="pkg in selectedPackages" :key="pkg.Id" :header-text="`${pkg.Name} - ${pkg.Version}`"
-                    collapsed style="margin-bottom: 10px;">
-                    <ui5-busy-indicator v-if="packagesLoading" active :delay="0"
-                      style="display:flex; justify-content:center; align-items:center; width:100%; height: 80px;">
-                    </ui5-busy-indicator>
-                    <div v-else>
-                      <div v-if="(packageArtifacts[pkg.Id] || []).length === 0">
-                        <ui5-illustrated-message name="NoData" design="Dot" />
-                      </div>
-                      <div v-else>
-                        <div style="display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0;">
-                          <ui5-input :id="`input-filter-artifacts-${pkg.Id}`" @input="handleFilterArtifacts(pkg.Id, $event)"
-                            placeholder="Filter artifacts (id/version/type)"
-                            show-clear-icon
-                            style="width: 40%;"/>
-
-                          <ui5-button design="Transparent" @click="selectAllFiltered(pkg.Id)"
-                            :disabled="!filteredArtifacts(pkg.Id).length">Select All Filtered
-                          </ui5-button>
-                          <ui5-button design="Transparent" @click="clearSelections(pkg.Id)"
-                            :disabled="!(selPkgArtifacts[pkg.Id] || []).length">Clear Selected
-                          </ui5-button>
-                        </div>
-
-                        <!-- Artifact list section -->
-                        <div style="max-height:240px; overflow:auto; padding:6px; display:flex; flex-wrap:wrap; gap:6px;">
-                          <ui5-segmented-button v-for="a in filteredArtifacts(pkg.Id)"
-                            :key="pkg.Id + '-' + a.TechID + '@' + a.Version" items-fit-content selection-mode="Multiple">
-                            <ui5-segmented-button-item :selected="isArtifactSelected(pkg.Id, a)" @click="toggleArtifact(pkg.Id, a)">
-                              {{ a.TechID }}@{{ a.Version }}
-                            </ui5-segmented-button-item>
-                            <ui5-segmented-button-item icon="italic-text" @click="openArtifactDetails(a)" tooltip="Show Details" />
-                          </ui5-segmented-button>
-                        </div>
+                  <!-- Selected Artifacts list -->
+                <div v-if="selArtifactOps.length || deleteOps.length" style="margin-top:18px; display: flex; flex-direction: column; gap:10px">
+                  <div style="display: flex; align-items: center; gap: 8px;">
+                    <ui5-title size="H6">Selected Artifacts ({{ selArtifactOps.length }})</ui5-title>
+                    <ui5-button icon="refresh" design="Transparent" tooltip="Refresh TR status" :disabled="refreshingOps" @click="refreshOps" />
+                  </div>
+                  <div style="display: flex; flex-direction: column; gap:10px">
+                    <!-- old(source) artifacts + draft source artifacts -->
+                    <div style="display: flex; flex-direction: row; gap: 8px; flex-wrap: wrap;">
+                      <ArtifactOpTag v-for="(op, i) in sourceOps" :key="op.ID" :i="i" :art-op="op" :stage-type="stateType(op)"
+                        @open-artifact-details="openArtifactDetails" 
+                        style="margin: 0 5px;"
+                      />
+                    </div>
+                    <!-- artifacts to be added -->
+                    <div v-if="addOps && addOps.length > 0" style="display: flex; flex-direction: column; margin-top: 10px; gap: 8px;">
+                      <ui5-title size="H6">
+                        <span style="color: var(--sapPositiveColor);">New ({{ addOps.length }})</span>
+                      </ui5-title>
+                      <div style="display: flex; flex-direction: row; gap: 8px; flex-wrap: wrap;">
+                        <ArtifactOpTag v-for="(op, i) in addOps" :key="`add-${op.ArtifactTechID}@${op.ArtifactVersion}`"
+                          :i="i" :art-op="op" :stage-type="stateType(op)"
+                          @open-artifact-details="openArtifactDetails" />
                       </div>
                     </div>
-                  </ui5-panel>
-                </div>
-              </div>
-
-            </div>
-
-              <!-- Selected Artifacts list -->
-            <div v-if="selArtifactOps.length || deleteOps.length" style="margin-top:18px; display: flex; flex-direction: column; gap:10px">
-              <div style="display: flex; align-items: center; gap: 8px;">
-                <ui5-title size="H6">Selected Artifacts ({{ selArtifactOps.length }})</ui5-title>
-                <ui5-button icon="refresh" design="Transparent" tooltip="Refresh TR status" :disabled="refreshingOps" @click="refreshOps" />
-              </div>
-              <div style="display: flex; flex-direction: column; gap:10px">
-                <!-- old(source) artifacts + draft source artifacts -->
-                <div style="display: flex; flex-direction: row; gap: 8px; flex-wrap: wrap;">
-                  <ArtifactOpTag v-for="(op, i) in sourceOps" :key="op.ID" :i="i" :art-op="op" :stage-type="stateType(op)"
-                    @open-artifact-details="openArtifactDetails" 
-                    style="margin: 0 5px;"
-                  />
-                </div>
-                <!-- artifacts to be added -->
-                <div v-if="addOps && addOps.length > 0" style="display: flex; flex-direction: column; margin-top: 10px; gap: 8px;">
-                  <ui5-title size="H6">
-                    <span style="color: var(--sapPositiveColor);">New ({{ addOps.length }})</span>
-                  </ui5-title>
-                  <div style="display: flex; flex-direction: row; gap: 8px; flex-wrap: wrap;">
-                    <ArtifactOpTag v-for="(op, i) in addOps" :key="`add-${op.ArtifactTechID}@${op.ArtifactVersion}`"
-                      :i="i" :art-op="op" :stage-type="stateType(op)"
-                      @open-artifact-details="openArtifactDetails" />
+                    <!-- artifacts to be deleted -->
+                    <div v-if="deleteOps && deleteOps.length > 0" style="display: flex; flex-direction: column;">
+                      <ui5-title size="H6" style="margin-bottom: 4px;">
+                        <span style="color: var(--sapNegativeColor);">To be Deleted ({{ deleteOps.length }})</span>
+                      </ui5-title>
+                      <div style="display: flex; flex-direction: row; gap: 8px; flex-wrap: wrap;">
+                        <ArtifactOpTag v-for="(op, i) in deleteOps" :key="op.ID" :i="i" :art-op="op" :stage-type="stateType(op)"
+                          @open-artifact-details="openArtifactDetails" />
+                      </div>
+                    </div>
                   </div>
-                </div>
-                <!-- artifacts to be deleted -->
-                <div v-if="deleteOps && deleteOps.length > 0" style="display: flex; flex-direction: column;">
-                  <ui5-title size="H6" style="margin-bottom: 4px;">
-                    <span style="color: var(--sapNegativeColor);">To be Deleted ({{ deleteOps.length }})</span>
-                  </ui5-title>
-                  <div style="display: flex; flex-direction: row; gap: 8px; flex-wrap: wrap;">
-                    <ArtifactOpTag v-for="(op, i) in deleteOps" :key="op.ID" :i="i" :art-op="op" :stage-type="stateType(op)"
-                      @open-artifact-details="openArtifactDetails" />
-                  </div>
+                  <ui5-button
+                    v-if="addOps.length > 0 || deleteOps.length > 0 || draftSourceOps.length > 0"
+                    design="Emphasized" 
+                    @click="updateDr" 
+                    style="width:10%; margin-top: 10px;" 
+                    :loading="updatingOps" 
+                    :loading-delay="0"> 
+                    Confirm 
+                  </ui5-button>
+                  <ui5-message-strip
+                    v-if="step1Message"
+                    :design="step1Message.type"
+                    :hide-close-button="false"
+                    style="margin-top: 8px; white-space: pre-line; width: fit-content;"
+                    @close="step1Message = null">
+                    {{ step1Message.text }}
+                  </ui5-message-strip>
                 </div>
               </div>
-              <ui5-button
-                v-if="addOps.length > 0 || deleteOps.length > 0 || draftSourceOps.length > 0"
-                design="Emphasized" 
-                @click="updateDr" 
-                style="width:10%; margin-top: 10px;" 
-                :loading="updatingOps" 
-                :loading-delay="0"> 
-                Confirm 
-              </ui5-button>
-              <ui5-message-strip
-                v-if="step1Message"
-                :design="step1Message.type"
-                :hide-close-button="false"
-                style="margin-top: 8px; white-space: pre-line; width: fit-content;"
-                @close="step1Message = null">
-                {{ step1Message.text }}
-              </ui5-message-strip>
             </div>
-          </div>
-        </div>
-      </ui5-wizard-step>
+          </ui5-wizard-step>
 
-      <!-- Step 2: Approve -->
-      <ui5-wizard-step id="step2" title-text="Request Approval">
-        <div style="display: flex;flex-direction: column">
-          <ui5-title>Request Approval</ui5-title><br />
-          <ui5-busy-indicator v-if="approveInfo.loading" active :delay="0" />
-          <div style="display: flex; flex-direction: column" v-else-if="!deliveryRequest.ApprovedBy">
-            <div style="position: relative; width: 40%;">
-              <ui5-input style="width: 100%;" placeholder="Search Approvers"
-                @input="(e: any) => handleSearchArrover(e.target.value)" />
-              <ui5-busy-indicator v-if="searchApproverLoading" active :delay="0" size="S"
-                style="position: absolute; right: 0.5rem; top: 50%; transform: translateY(-50%);" />
-              <ui5-list v-if="approverOptions.length" class="approver-dropdown"
-                @item-click="(e: any) => onApproverClick(e)">
-                <ui5-li v-for="(opt, idx) in approverOptions" :key="idx"
-                  :data-index="idx">{{ opt.label }}</ui5-li>
-              </ui5-list>
+          <!-- Step 2: Approve -->
+          <ui5-wizard-step id="step2" title-text="Request Approval">
+            <div style="display: flex;flex-direction: column">
+              <ui5-title>Request Approval</ui5-title><br />
+              <ui5-busy-indicator v-if="approveInfo.loading" active :delay="0" />
+              <div style="display: flex; flex-direction: column" v-else-if="!deliveryRequest.ApprovedBy">
+                <div style="position: relative; width: 40%;">
+                  <ui5-input style="width: 100%;" placeholder="Search Approvers"
+                    @input="(e: any) => handleSearchArrover(e.target.value)" />
+                  <ui5-busy-indicator v-if="searchApproverLoading" active :delay="0" size="S"
+                    style="position: absolute; right: 0.5rem; top: 50%; transform: translateY(-50%);" />
+                  <ui5-list v-if="approverOptions.length" class="approver-dropdown"
+                    @item-click="(e: any) => onApproverClick(e)">
+                    <ui5-li v-for="(opt, idx) in approverOptions" :key="idx"
+                      :data-index="idx">{{ opt.label }}</ui5-li>
+                  </ui5-list>
+                </div>
+                <ui5-label>Approvers:</ui5-label>
+                <div style="display: flex; gap: 10px;">
+                  <span v-for="user_id in deliveryRequest.Approvers" :key="user_id">
+                    <ui5-busy-indicator v-if="!(uaaUsers[user_id]?.email ?? (uaaUserInfo(user_id), ''))" active :delay="0" size="M" />
+                    <ui5-tag v-else @close="handleUnselectApprover(user_id)">
+                      {{ uaaUsers[user_id]?.email }}
+                    </ui5-tag>
+                  </span>
+                </div>
+
+                <div style="display: flex; margin-top:20px">
+                  <!-- Approve/Skip Approval button -->
+                  <ui5-button
+                    v-if="hasScope('DeliveryRequest.Operate')"
+                    :disabled="approveInfo.disable"
+                    :design="approveInfo.disable ? 'Attention' : 'Positive'"
+                    :loading="approveStepLoading"
+                    :loading-delay="0"
+                    @click="handleApprove"
+                    :tooltip="approveInfo.tooltip">
+                    {{ approveInfo.display }}
+                  </ui5-button>
+
+                  <ui5-button
+                    v-if="deliveryRequest.Approvers && hasScope('DeliveryRequest.Operate')"
+                    design="Transparent"
+                    :disabled="missingTrOps.length > 0"
+                    :loading="approveStepLoading" 
+                    :loading-delay="0"
+                    @click="handleRequestApprove"
+                    :tooltip="missingTrOps.length > 0 ? 'Generate all Transport Requests before sending approval' : ''">
+                    Send To Approvers
+                  </ui5-button>
+
+                </div>
+              </div>
+              <div style="display: flex; flex-direction: column" v-else>
+                <ui5-label>
+                  Approved By
+                  {{ uaaUsers[deliveryRequest.ApprovedBy]?.email ?? (uaaUserInfo(deliveryRequest.ApprovedBy), '') }}
+                </ui5-label>
+              </div>
             </div>
-            <ui5-label>Approvers:</ui5-label>
-            <div style="display: flex; gap: 10px;">
-              <span v-for="user_id in deliveryRequest.Approvers" :key="user_id">
-                <ui5-busy-indicator v-if="!(uaaUsers[user_id]?.email ?? (uaaUserInfo(user_id), ''))" active :delay="0" size="M" />
-                <ui5-tag v-else @close="handleUnselectApprover(user_id)">
-                  {{ uaaUsers[user_id]?.email }}
-                </ui5-tag>
-              </span>
+          </ui5-wizard-step>
+
+          <!-- Step 3: Delivery Flow -->
+          <ui5-wizard-step id="step3" title-text="Delivery Flow">
+            <div style="display: flex; flex-direction: row; margin-bottom: 15px;">
+              <ui5-title>Delivery Flow</ui5-title><br />
+              <ui5-segmented-button style="margin-left: 12px;">
+                <ui5-segmented-button-item @click="onSyncDrStatus" icon="synchronize" tooltip="Sync Status" />
+                <ui5-segmented-button-item @click="showFlowModal = true" :disabled="loadingCpiTenants" icon="show" tooltip="Show Detail" />
+              </ui5-segmented-button>
             </div>
-
-            <div style="display: flex; margin-top:20px">
-              <!-- Approve/Skip Approval button -->
-              <ui5-button
-                v-if="hasScope('DeliveryRequest.Operate')"
-                :disabled="approveInfo.disable"
-                :design="approveInfo.disable ? 'Attention' : 'Positive'"
-                :loading="approveStepLoading"
-                :loading-delay="0"
-                @click="handleApprove"
-                :tooltip="approveInfo.tooltip">
-                {{ approveInfo.display }}
-              </ui5-button>
-
-              <ui5-button
-                v-if="deliveryRequest.Approvers && hasScope('DeliveryRequest.Operate')"
-                design="Transparent"
-                :disabled="missingTrOps.length > 0"
-                :loading="approveStepLoading" 
-                :loading-delay="0"
-                @click="handleRequestApprove"
-                :tooltip="missingTrOps.length > 0 ? 'Generate all Transport Requests before sending approval' : ''">
-                Send To Approvers
-              </ui5-button>
-
+            <div style="display: flex; flex-direction: column;">
+              <div v-if="loadingCpiTenants" style="display: flex; flex-direction: column">
+                <ui5-busy-indicator active :delay="0" />
+              </div>
+              <div v-else class="delivery-flow-container">
+                <DeliveryFlowView :delivery-request="deliveryRequest" :cpi-tenants="cpiTenants"
+                  :tenant-to-ops="tenantToOps" />
+                <div v-if="syncingStatus" class="sync-overlay">
+                  <ui5-busy-indicator active :delay="0" />
+                </div>
+              </div>
             </div>
-          </div>
-          <div style="display: flex; flex-direction: column" v-else>
-            <ui5-label>
-              Approved By
-              {{ uaaUsers[deliveryRequest.ApprovedBy]?.email ?? (uaaUserInfo(deliveryRequest.ApprovedBy), '') }}
-            </ui5-label>
-          </div>
-        </div>
-      </ui5-wizard-step>
-
-      <!-- Step 3: Delivery Flow -->
-      <ui5-wizard-step id="step3" title-text="Delivery Flow">
-        <div style="display: flex; flex-direction: row; margin-bottom: 15px;">
-          <ui5-title>Delivery Flow</ui5-title><br />
-          <ui5-segmented-button style="margin-left: 12px;">
-            <ui5-segmented-button-item @click="onSyncDrStatus" icon="synchronize" tooltip="Sync Status" />
-            <ui5-segmented-button-item @click="showFlowModal = true" :disabled="loadingCpiTenants" icon="show" tooltip="Show Detail" />
-          </ui5-segmented-button>
-        </div>
-        <div style="display: flex; flex-direction: column;">
-          <div v-if="loadingCpiTenants" style="display: flex; flex-direction: column">
-            <ui5-busy-indicator active :delay="0" />
-          </div>
-          <div v-else class="delivery-flow-container">
-            <DeliveryFlowView :delivery-request="deliveryRequest" :cpi-tenants="cpiTenants"
-              :tenant-to-ops="tenantToOps" />
-            <div v-if="syncingStatus" class="sync-overlay">
-              <ui5-busy-indicator active :delay="0" />
-            </div>
-          </div>
-        </div>
-      </ui5-wizard-step>
-    </ui5-wizard>
+          </ui5-wizard-step>
+        </ui5-wizard>
       </ui5-tab>
 
       <!-- Tab 2: Code Compare -->
