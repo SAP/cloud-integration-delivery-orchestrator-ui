@@ -513,6 +513,7 @@
             <CodeCompareView
               v-if="codeCompareSelectedOp && effectiveTargetTenantId"
               :artifact-id="codeCompareSelectedOp.ArtifactTechID"
+              :artifact-name="codeCompareSelectedOp.ArtifactTechID"
               :artifact-version="codeCompareSelectedOp.ArtifactVersion"
               :package-id="codeCompareSelectedOp.PackageID"
               :artifact-type="codeCompareSelectedOp.ArtifactType"

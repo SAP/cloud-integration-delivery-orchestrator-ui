@@ -26,6 +26,7 @@ const POLL_TIMEOUT_MS = 5 * 60 * 1000 // 5 minutes — give up polling after thi
 
 const props = defineProps<{
   artifactId: string
+  artifactName: string
   artifactVersion: string
   packageId: string
   artifactType: string
@@ -530,8 +531,8 @@ onUnmounted(() => {
     <BpmnCompareDialog
       :open="bpmnDialogOpen"
       :file="selectedIflow"
-      :left-label="`${compareInfo.targetTenant} v${compareInfo.targetVersion}`"
-      :right-label="`${compareInfo.sourceTenant} v${compareInfo.sourceVersion}`"
+      :left-label="`${props.artifactName} - ${compareInfo.targetVersion}`"
+      :right-label="`${props.artifactName} - ${compareInfo.sourceVersion}`"
       @close="closeBpmnDiff"
     />
   </div>

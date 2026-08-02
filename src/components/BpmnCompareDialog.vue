@@ -10,8 +10,11 @@ import {
 import '@ui5/webcomponents/dist/BusyIndicator.js'
 import '@ui5/webcomponents/dist/CheckBox.js'
 import '@ui5/webcomponents/dist/Dialog.js'
+import '@ui5/webcomponents/dist/Tag.js'
 import '@ui5/webcomponents/dist/Toolbar.js'
 import '@ui5/webcomponents/dist/ToolbarButton.js'
+import '@ui5/webcomponents/dist/ToolbarSeparator.js'
+import '@ui5/webcomponents/dist/ToolbarSpacer.js'
 
 import type {
   BpmnDiffSide,
@@ -473,119 +476,43 @@ onBeforeUnmount(() => {
     @close="handleDialogClose"
   >
     <div class="bpmn-dialog__surface">
-      <header class="compare-header">
-        <div class="file-identity">
-          <span class="file-identity__kind">BPMN / IFLW</span>
-          <strong class="file-identity__path">
-            {{ file?.path ?? 'No BPMN file selected' }}
-          </strong>
-          <span
-            v-if="file"
-            class="file-identity__status"
-            :class="`file-identity__status--${file.status}`"
-          >
-            {{ file.status }}
-          </span>
-        </div>
-
-        <div class="compare-direction" aria-label="Comparison direction">
-          <span class="compare-direction__endpoint">
-            Target · {{ leftLabel }}
-          </span>
-          <span class="compare-direction__arrow" aria-hidden="true">→</span>
-          <span class="compare-direction__endpoint">
-            Source · {{ rightLabel }}
-          </span>
-        </div>
-      </header>
-
-      <div class="compare-controls">
-        <ul class="diff-legend" aria-label="BPMN difference legend">
-          <li data-testid="legend-added" class="legend-item legend-item--added">
-            <svg
-              class="legend-line"
-              viewBox="0 0 24 4"
-              aria-hidden="true"
-              focusable="false"
-            >
-              <line x1="0" y1="2" x2="24" y2="2" />
-            </svg>
-            <span>Added</span>
-            <small>solid</small>
-          </li>
-          <li
-            data-testid="legend-removed"
-            class="legend-item legend-item--removed"
-          >
-            <svg
-              class="legend-line"
-              viewBox="0 0 24 4"
-              aria-hidden="true"
-              focusable="false"
-            >
-              <line
-                x1="0"
-                y1="2"
-                x2="24"
-                y2="2"
-                stroke-dasharray="8 4"
-              />
-            </svg>
-            <span>Removed</span>
-            <small>dashed</small>
-          </li>
-          <li
-            data-testid="legend-changed"
-            class="legend-item legend-item--changed"
-          >
-            <svg
-              class="legend-line"
-              viewBox="0 0 24 4"
-              aria-hidden="true"
-              focusable="false"
-            >
-              <line
-                x1="0"
-                y1="2"
-                x2="24"
-                y2="2"
-                stroke-dasharray="4 3"
-              />
-            </svg>
-            <span>Changed</span>
-            <small>short dashed</small>
-          </li>
-          <li
-            data-testid="legend-layout-only"
-            class="legend-item legend-item--layout"
-          >
-            <svg
-              class="legend-line"
-              viewBox="0 0 24 4"
-              aria-hidden="true"
-              focusable="false"
-            >
-              <line
-                x1="0"
-                y1="2"
-                x2="24"
-                y2="2"
-                stroke-dasharray="1 4"
-                stroke-linecap="round"
-              />
-            </svg>
-            <span>Layout-only</span>
-            <small>dotted</small>
-          </li>
-        </ul>
-
+      <ui5-toolbar>
+        <ui5-tag
+          v-if="file"
+          :design="file.status === 'added' ? 'Positive' : file.status === 'deleted' ? 'Negative' : 'Critical'"
+        >
+          {{ file.status }}
+        </ui5-tag>
+        <ui5-toolbar-separator />
+        <span class="toolbar-legend toolbar-legend--added" data-testid="legend-added">
+          <svg viewBox="0 0 20 4" aria-hidden="true"><line x1="0" y1="2" x2="20" y2="2" /></svg>
+          Added
+        </span>
+        <span class="toolbar-legend toolbar-legend--removed" data-testid="legend-removed">
+          <svg viewBox="0 0 20 4" aria-hidden="true"><line x1="0" y1="2" x2="20" y2="2" stroke-dasharray="8 4" /></svg>
+          Removed
+        </span>
+        <span class="toolbar-legend toolbar-legend--changed" data-testid="legend-changed">
+          <svg viewBox="0 0 20 4" aria-hidden="true"><line x1="0" y1="2" x2="20" y2="2" stroke-dasharray="4 3" /></svg>
+          Changed
+        </span>
+        <span class="toolbar-legend toolbar-legend--layout" data-testid="legend-layout-only">
+          <svg viewBox="0 0 20 4" aria-hidden="true"><line x1="0" y1="2" x2="20" y2="2" stroke-dasharray="1 4" stroke-linecap="round" /></svg>
+          Layout-only
+        </span>
+        <ui5-toolbar-spacer />
         <ui5-checkbox
           data-testid="hide-layout-only"
           text="Hide layout-only"
           :checked="hideLayoutOnly"
           @change="handleLayoutToggle"
         />
-      </div>
+        <ui5-toolbar-button
+          :icon="changePanelOpen ? 'decline' : 'menu'"
+          :text="`Semantic Changes (${visibleChanges.length})`"
+          @click="changePanelOpen = !changePanelOpen"
+        />
+      </ui5-toolbar>
 
       <div
         v-if="warnings.length > 0"
@@ -601,18 +528,12 @@ onBeforeUnmount(() => {
         </span>
       </div>
 
-      <div v-if="!file" class="dialog-state dialog-state--empty">
-        Select a BPMN file to start a visual comparison.
-      </div>
-
-      <main v-else class="bpmn-dialog__layout" :class="{ 'panel-collapsed': !changePanelOpen }">
+      <main v-if="file" class="bpmn-dialog__layout">
         <div class="canvas-grid">
           <section class="canvas-panel" aria-labelledby="target-canvas-title">
             <header class="canvas-panel__header">
-              <div>
-                <span class="canvas-panel__eyebrow">TARGET</span>
-                <h3 id="target-canvas-title">{{ leftLabel }}</h3>
-              </div>
+              <span class="canvas-panel__eyebrow">OLD</span>
+              <h3 id="target-canvas-title">{{ leftLabel }}</h3>
             </header>
 
             <div class="canvas-panel__viewport">
@@ -624,7 +545,6 @@ onBeforeUnmount(() => {
               />
               <div v-else class="canvas-placeholder">
                 <strong>Not present in target</strong>
-                <span>This iFlow exists only in the source snapshot.</span>
               </div>
 
               <div
@@ -649,10 +569,8 @@ onBeforeUnmount(() => {
 
           <section class="canvas-panel" aria-labelledby="source-canvas-title">
             <header class="canvas-panel__header">
-              <div>
-                <span class="canvas-panel__eyebrow">SOURCE</span>
-                <h3 id="source-canvas-title">{{ rightLabel }}</h3>
-              </div>
+              <span class="canvas-panel__eyebrow">NEW</span>
+              <h3 id="source-canvas-title">{{ rightLabel }}</h3>
             </header>
 
             <div class="canvas-panel__viewport">
@@ -664,7 +582,6 @@ onBeforeUnmount(() => {
               />
               <div v-else class="canvas-placeholder">
                 <strong>Not present in source</strong>
-                <span>This iFlow exists only in the target snapshot.</span>
               </div>
 
               <div
@@ -687,16 +604,6 @@ onBeforeUnmount(() => {
             </div>
           </section>
         </div>
-
-        <button
-          class="panel-toggle"
-          type="button"
-          :aria-expanded="changePanelOpen"
-          aria-controls="change-panel"
-          @click="changePanelOpen = !changePanelOpen"
-        >
-          {{ changePanelOpen ? '›' : '‹' }}
-        </button>
 
         <aside
           v-show="changePanelOpen"
@@ -797,19 +704,6 @@ onBeforeUnmount(() => {
             <div
               v-else-if="
                 file.status === 'modified'
-                  && changes.length > 0
-                  && visibleChanges.length === 0
-                  && failures.length === 0
-              "
-              class="change-state change-state--empty"
-              data-testid="all-layout-hidden"
-            >
-              All layout-only changes are hidden
-            </div>
-
-            <div
-              v-else-if="
-                file.status === 'modified'
                   && visibleChanges.length === 0
                   && failures.length > 0
               "
@@ -849,158 +743,30 @@ onBeforeUnmount(() => {
   background: var(--sapGroup_ContentBackground);
 }
 
-.compare-header {
-  display: flex;
-  flex-wrap: wrap;
+.toolbar-legend {
+  display: inline-flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem 1.5rem;
-  padding: 0.75rem 1rem;
-  background: var(--sapPageHeader_Background);
-  border-top: 0.1875rem solid var(--sapSelectedColor);
-  border-bottom: 1px solid var(--sapGroup_ContentBorderColor);
-}
-
-.file-identity {
-  display: flex;
-  flex: 1 1 28rem;
-  align-items: center;
-  min-width: 0;
-  gap: 0.625rem;
-}
-
-.file-identity__kind,
-.canvas-panel__eyebrow,
-.change-panel__eyebrow {
-  color: var(--sapContent_LabelColor);
-  font-size: var(--sapFontSmallSize);
-  font-weight: 700;
-  letter-spacing: 0.06em;
-}
-
-.file-identity__kind {
-  flex: 0 0 auto;
-  padding: 0.125rem 0.375rem;
-  background: var(--sapList_AlternatingBackground);
-  border: 1px solid var(--sapList_BorderColor);
-  border-radius: var(--sapElement_BorderCornerRadius);
-}
-
-.file-identity__path {
-  min-width: 0;
-  overflow-wrap: anywhere;
-  font-family: var(--sapFontSemiboldDuplexFamily);
-  font-size: var(--sapFontSize);
-}
-
-.file-identity__status {
-  flex: 0 0 auto;
-  padding: 0.125rem 0.4375rem;
-  font-size: var(--sapFontSmallSize);
-  font-weight: 700;
-  text-transform: uppercase;
-  border: 1px solid currentColor;
-  border-radius: var(--sapElement_BorderCornerRadius);
-}
-
-.file-identity__status--added {
-  color: var(--sapPositiveColor);
-  background: var(--sapPositiveBackground);
-}
-
-.file-identity__status--deleted {
-  color: var(--sapNegativeColor);
-  background: var(--sapNegativeBackground);
-}
-
-.file-identity__status--modified {
-  color: var(--sapCriticalColor);
-  background: var(--sapCriticalBackground);
-}
-
-.compare-direction {
-  display: flex;
-  flex: 0 1 auto;
-  align-items: center;
-  gap: 0.625rem;
-  color: var(--sapContent_LabelColor);
+  gap: 0.25rem;
+  margin: 0 0.375rem;
   font-size: var(--sapFontSmallSize);
   font-weight: 600;
 }
 
-.compare-direction__endpoint {
-  padding: 0.25rem 0.5rem;
-  background: var(--sapList_Background);
-  border: 1px solid var(--sapList_BorderColor);
-  border-radius: var(--sapElement_BorderCornerRadius);
-}
-
-.compare-direction__arrow {
-  color: var(--sapSelectedColor);
-  font-size: var(--sapFontHeader4Size);
-}
-
-.compare-controls {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem 1rem;
-  padding: 0.5rem 1rem;
-  background: var(--sapList_HeaderBackground);
-  border-bottom: 1px solid var(--sapList_BorderColor);
-}
-
-.diff-legend {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem 1rem;
-  padding: 0;
-  margin: 0;
-  list-style: none;
-}
-
-.legend-item {
-  display: inline-grid;
-  grid-template-columns: 1.5rem auto auto;
-  align-items: center;
-  gap: 0.375rem;
-  font-size: var(--sapFontSmallSize);
-  font-weight: 600;
-}
-
-.legend-item small {
-  color: var(--sapContent_LabelColor);
-  font-size: var(--sapFontSmallSize);
-  font-weight: 400;
-}
-
-.legend-line {
-  width: 1.5rem;
+.toolbar-legend svg {
+  width: 1.25rem;
   height: 0.25rem;
   overflow: visible;
 }
 
-.legend-line line {
+.toolbar-legend svg line {
   stroke: currentColor;
   stroke-width: 2.5;
 }
 
-.legend-item--added {
-  color: var(--sapPositiveColor);
-}
-
-.legend-item--removed {
-  color: var(--sapNegativeColor);
-}
-
-.legend-item--changed {
-  color: var(--sapCriticalColor);
-}
-
-.legend-item--layout {
-  color: var(--sapInformationColor);
-}
+.toolbar-legend--added { color: var(--sapPositiveColor); }
+.toolbar-legend--removed { color: var(--sapNegativeColor); }
+.toolbar-legend--changed { color: var(--sapCriticalColor); }
+.toolbar-legend--layout { color: var(--sapInformationColor); }
 
 .warning-summary {
   display: flex;
@@ -1020,84 +786,82 @@ onBeforeUnmount(() => {
 }
 
 .bpmn-dialog__layout {
-  display: grid;
-  grid-template-columns: 1fr auto auto;
+  position: relative;
+  display: flex;
+  flex: 1 1 auto;
   min-height: 70vh;
-  gap: 0;
   padding: 0.75rem;
   background: var(--sapBackgroundColor);
-}
-
-.bpmn-dialog__layout.panel-collapsed {
-  grid-template-columns: 1fr auto;
 }
 
 .canvas-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 0.75rem;
+  flex: 1 1 auto;
   min-width: 0;
 }
 
-.panel-toggle {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 1.25rem;
-  margin: 0 0.25rem;
-  padding: 0;
-  color: var(--sapContent_LabelColor);
-  font-size: 1.25rem;
-  font-weight: bold;
-  background: var(--sapList_HeaderBackground);
-  border: 1px solid var(--sapList_BorderColor);
-  border-radius: var(--sapElement_BorderCornerRadius);
-  cursor: pointer;
-}
-
-.panel-toggle:hover {
-  background: var(--sapList_Hover_Background);
-}
-
-.canvas-panel,
 .change-panel {
+  position: absolute;
+  right: 0.75rem;
+  top: 2.5rem;
+  z-index: 10;
+  width: 18rem;
+  max-height: calc(100% - 3.5rem);
+  min-width: 0;
+  background: var(--sapGroup_ContentBackground);
+  border: 1px solid var(--sapGroup_ContentBorderColor);
+  border-radius: var(--sapElement_BorderCornerRadius);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.canvas-panel {
+  display: flex;
+  flex-direction: column;
   min-width: 0;
   background: var(--sapGroup_ContentBackground);
   border: 1px solid var(--sapGroup_ContentBorderColor);
   border-radius: var(--sapElement_BorderCornerRadius);
 }
 
-.canvas-panel {
-  display: flex;
-  flex-direction: column;
-}
-
 .canvas-panel__header,
 .change-panel__header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  min-height: 3rem;
-  gap: 0.75rem;
-  padding: 0.5rem 0.75rem;
+  gap: 0.5rem;
+  min-height: 2rem;
+  padding: 0.375rem 0.75rem;
   background: var(--sapList_HeaderBackground);
   border-bottom: 1px solid var(--sapList_BorderColor);
 }
 
+.canvas-panel__eyebrow,
+.change-panel__eyebrow {
+  color: var(--sapContent_LabelColor);
+  font-size: var(--sapFontSmallSize);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+
 .canvas-panel__header h3,
 .change-panel__header h3 {
-  margin: 0.125rem 0 0;
-  font-size: var(--sapFontHeader6Size);
+  margin: 0;
+  font-size: var(--sapFontSize);
   line-height: 1.25rem;
+}
+
+.change-panel__header {
+  justify-content: space-between;
 }
 
 .change-panel__count {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 2rem;
-  min-height: 1.375rem;
-  padding: 0 0.375rem;
+  min-width: 1.5rem;
+  min-height: 1.25rem;
+  padding: 0 0.25rem;
   color: var(--sapContent_LabelColor);
   font-size: var(--sapFontSmallSize);
   font-weight: 700;

@@ -70,12 +70,11 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <ui5-card class="iflow-card">
+  <ui5-card>
     <ui5-card-header
       slot="header"
       :title-text="file.path"
       :subtitle-text="file.status.toUpperCase()"
-      interactive
       @click="emit('open-visual', file)"
     >
       <ui5-button
