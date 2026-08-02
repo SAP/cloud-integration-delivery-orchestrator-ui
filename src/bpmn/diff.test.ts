@@ -2,7 +2,7 @@
 
 import { describe, expect, it } from 'vitest'
 import type { BpmnDiffElement, BpmnDiffResult } from 'bpmn-js-differ'
-import { buildBpmnFixture } from './diff.fixtures'
+import { buildBpmnFixture } from '@/test/bpmnDiffFixtures'
 import {
   BpmnParseError,
   classifyBpmnDiff,

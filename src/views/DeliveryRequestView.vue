@@ -501,20 +501,15 @@
               subtitle-text="Add artifacts to this delivery request to compare code." />
           </div>
           <div v-else class="code-compare-content">
-            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px; flex-wrap: wrap;">
-              <ui5-label>Artifact:</ui5-label>
-              <ui5-select @change="onCodeCompareArtifactChange($event)">
-                <ui5-option v-for="op in sourceOps" :key="op.ID" :value="op.ArtifactTechID">
-                  {{ op.ArtifactName || op.ArtifactTechID }} (v{{ op.ArtifactVersion }})
-                </ui5-option>
-              </ui5-select>
-              <ui5-label>Compare with:</ui5-label>
-              <ui5-select @change="onCodeCompareTargetChange($event)">
-                <ui5-option v-for="t in targetTenants" :key="t.ID" :value="String(t.ID)">
-                  {{ t.Name }}
-                </ui5-option>
-              </ui5-select>
-            </div>
+            <CodeCompareSelectionBar
+              :source-tenant-name="deliveryRequest.SourceTenant?.Name || ''"
+              :artifacts="sourceOps"
+              :target-tenants="targetTenants"
+              :selected-artifact-id="codeCompareSelectedOp?.ArtifactTechID || ''"
+              :selected-target-tenant-id="effectiveTargetTenantId"
+              @artifact-change="codeCompareArtifactId = $event"
+              @target-change="codeCompareTargetTenantId = $event"
+            />
             <CodeCompareViewer
               v-if="codeCompareSelectedOp && effectiveTargetTenantId"
               :artifact-id="codeCompareSelectedOp.ArtifactTechID"
@@ -622,6 +617,7 @@ import type { DeliveryRequest, CpiTenant, Package, Artifact, ArtifactTenantOpera
 import DeliveryFlowView from './DeliveryFlowView.vue'
 import CpiTransportFlowView from './CpiTransportFlowView.vue'
 import ArtifactOpTag from '@/components/ArtifactOpTag.vue'
+import CodeCompareSelectionBar from '@/components/CodeCompareSelectionBar.vue'
 import ConfirmDeleteDialog from '@/components/ConfirmDeleteDialog.vue'
 import CodeCompareViewer from '@/components/CodeCompareViewer.vue'
 import { nextTick } from 'vue'
@@ -692,6 +688,7 @@ export default {
     CpiTransportFlowView,
     ConfirmDeleteDialog,
     ArtifactOpTag,
+    CodeCompareSelectionBar,
     CodeCompareViewer,
   },
   props: { id: { required: true, type: Number } },
@@ -1075,12 +1072,6 @@ export default {
       } catch {
         this.gitSyncEnabled = false
       }
-    },
-    onCodeCompareArtifactChange(event: any) {
-      this.codeCompareArtifactId = event.detail?.selectedOption?.value || ''
-    },
-    onCodeCompareTargetChange(event: any) {
-      this.codeCompareTargetTenantId = Number(event.detail?.selectedOption?.value) || 0
     },
     scheduleWSRefresh() {
       if (this.wsRefreshTimer) return
