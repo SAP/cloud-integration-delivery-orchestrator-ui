@@ -19,17 +19,22 @@
     style="width: 40%;" draggable @before-close="showArtifactDetails = false">
     <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
       <ui5-label>Status: </ui5-label>
-      <ui5-tag 
+      <ui5-tag
         design="Critical"
         v-show="draftSourceOps.find(d => d.op.ID === artifactOpDetial.ID)">
         DRAFT
       </ui5-tag>
-      <ui5-tag 
+      <ui5-tag
         design="Positive"
         v-show="addOps.find(a => a.ArtifactTechID === artifactOpDetial.ArtifactTechID && a.ArtifactVersion === artifactOpDetial.ArtifactVersion)">
         NEW
       </ui5-tag>
     </div>
+    <ui5-message-strip
+      v-if="isDraftVersion(artifactDetail.Version)"
+      design="Critical" :hide-close-button="true" style="margin-bottom: 12px;">
+      This artifact has a draft version (Active). Only formally versioned artifacts can be delivered — saving will be rejected by the server.
+    </ui5-message-strip>
 
 
     <div style="display: flex; flex-direction: column; gap:12px">
@@ -1118,6 +1123,9 @@ export default {
     handleFilterArtifacts(pkgId: string, event: Event) {
       const input = event.target as HTMLInputElement;
       if (input) this.artifactSearch[pkgId] = input.value;
+    },
+    isDraftVersion(version: string): boolean {
+      return version?.toLowerCase() === 'active'
     },
     conditionTypeToDesign,
     async runGlobalArtifactSearch(kw: string) {
