@@ -1,11 +1,31 @@
 const BPMN_MODEL_NS = 'http://www.omg.org/spec/BPMN/20100524/MODEL'
 const BPMN_DI_NS = 'http://www.omg.org/spec/BPMN/20100524/DI'
 
-function parserErrorElement(document: XMLDocument): Element | null {
-  if (document.documentElement.localName === 'parsererror') {
-    return document.documentElement
+// Cached result of the malformed-XML capability probe.
+// undefined = not yet probed; null = browser does not expose parsererror elements.
+// string = parsererror namespace URI (may be empty string).
+// Browser capabilities are stable within a session, so we probe once and cache.
+let cachedParserErrorNamespace: string | null | undefined = undefined
+
+function probeParserErrorNamespace(): string | null {
+  if (cachedParserErrorNamespace !== undefined) return cachedParserErrorNamespace
+
+  try {
+    const doc = new DOMParser().parseFromString('<invalid', 'application/xml')
+    const err = doc.documentElement.localName === 'parsererror'
+      ? doc.documentElement
+      : (Array.from(doc.getElementsByTagNameNS('*', 'parsererror'))[0] ?? null)
+    cachedParserErrorNamespace = err !== null ? (err.namespaceURI ?? null) : null
+  } catch {
+    cachedParserErrorNamespace = null
   }
-  return Array.from(document.getElementsByTagNameNS('*', 'parsererror'))[0] ?? null
+
+  return cachedParserErrorNamespace
+}
+
+/** Reset the probe cache. Only for use in tests. */
+export function _resetProbeCache(): void {
+  cachedParserErrorNamespace = undefined
 }
 
 function isParserError(
@@ -116,16 +136,14 @@ function expandableSubprocessIds(
 }
 
 export function prepareIflowXmlForRendering(xml: string): string {
+  const parserErrorNamespace = probeParserErrorNamespace()
+  if (parserErrorNamespace === null) return xml
+
   let document: XMLDocument
 
   try {
-    const parser = new DOMParser()
-    const probeDocument = parser.parseFromString('<invalid', 'application/xml')
-    const probeError = parserErrorElement(probeDocument)
-    if (probeError === null) return xml
-
-    document = parser.parseFromString(xml, 'application/xml')
-    if (isParserError(document, probeError.namespaceURI)) return xml
+    document = new DOMParser().parseFromString(xml, 'application/xml')
+    if (isParserError(document, parserErrorNamespace)) return xml
   } catch {
     return xml
   }

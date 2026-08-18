@@ -2,7 +2,9 @@ import { BpmnModdle } from 'bpmn-moddle'
 import { describe, expect, it } from 'vitest'
 import {
   classifyCpiElement,
+  familyOfElement,
   type CpiVisualKind,
+  type ShapeFamily,
 } from './cpiMetadata'
 
 function property(key: unknown, value: unknown) {
@@ -36,6 +38,7 @@ describe('classifyCpiElement', () => {
     ['Router', 'Router'],
     ['Send', 'Send'],
     ['ExternalCall', 'RequestReply'],
+    ['Decoder', 'Decoder'],
     ['IntegrationProcess', 'IntegrationProcess'],
   ] satisfies Array<[string, CpiVisualKind]>)(
     'maps activityType %s to %s',
@@ -95,6 +98,15 @@ describe('classifyCpiElement', () => {
         'odc://component/path/CNAME::  groovyscript  /version::1.0',
       ),
     ))).toBe('Script')
+  })
+
+  it('classifies a Decoder from its cmdVariant cname when activityType is absent', () => {
+    expect(classifyCpiElement(withValues(
+      property(
+        'cmdVariantUri',
+        'ctype::FlowstepVariant/cname::Base64 Decode/version::1.0.1',
+      ),
+    ))).toBe('Decoder')
   })
 
   it('reads subActivityType from generic key/value child objects', () => {
@@ -267,5 +279,140 @@ describe('classifyCpiElement', () => {
     const { elementsById } = await new BpmnModdle().fromXML(xml)
 
     expect(classifyCpiElement(elementsById.Receiver_1)).toBe('Receiver')
+  })
+})
+
+describe('familyOfElement', () => {
+  it.each([
+    ['bpmn:startEvent', 'event'],
+    ['bpmn:endEvent', 'event'],
+    ['bpmn:intermediateCatchEvent', 'event'],
+    ['bpmn:intermediateThrowEvent', 'event'],
+    ['bpmn:boundaryEvent', 'event'],
+    ['bpmn:exclusiveGateway', 'gateway'],
+    ['bpmn:parallelGateway', 'gateway'],
+    ['bpmn:inclusiveGateway', 'gateway'],
+    ['bpmn:eventBasedGateway', 'gateway'],
+    ['bpmn:task', 'activity'],
+    ['bpmn:serviceTask', 'activity'],
+    ['bpmn:callActivity', 'activity'],
+    ['bpmn:scriptTask', 'activity'],
+    ['bpmn:subProcess', 'container'],
+    ['bpmn:transaction', 'container'],
+    ['bpmn:adHocSubProcess', 'container'],
+  ] satisfies Array<[string, ShapeFamily]>)(
+    'maps element type %s to family %s from the element type alone',
+    ($type, expected) => {
+      expect(familyOfElement({ $type })).toBe(expected)
+    },
+  )
+
+  it.each([
+    ['EndpointSender', 'endpoint'],
+    ['EndpointReceiver', 'endpoint'],
+    ['EndpointRecevier', 'endpoint'],
+    ['IntegrationProcess', 'pool'],
+  ] satisfies Array<[string, ShapeFamily]>)(
+    'splits participant ifl:type %s into family %s',
+    (participantType, expected) => {
+      expect(familyOfElement({
+        $type: 'bpmn:participant',
+        $attrs: { 'ifl:type': participantType },
+      })).toBe(expected)
+    },
+  )
+
+  it('classifies an event from CPI metadata nested under its eventDefinition', () => {
+    const errorStartEvent = {
+      $type: 'bpmn:startEvent',
+      eventDefinitions: [{
+        $type: 'bpmn:errorEventDefinition',
+        extensionElements: {
+          values: [property('activityType', 'StartErrorEvent')],
+        },
+      }],
+    }
+
+    // family is authoritative from the element type; the member is now refined
+    // from the nested eventDefinition extensionElements (RFC 010 doc 07 §3.5).
+    expect(familyOfElement(errorStartEvent)).toBe('event')
+    expect(classifyCpiElement(errorStartEvent)).toBe('ErrorStartEvent')
+  })
+
+  it.each([
+    ['MessageStartEvent', 'MessageStartEvent'],
+    ['StartEvent', 'StartEvent'],
+    ['MessageEndEvent', 'MessageEndEvent'],
+    ['EndEvent', 'EndEvent'],
+  ] satisfies Array<[string, CpiVisualKind]>)(
+    'classifies event %s from direct extensionElements',
+    (activityType, expected) => {
+      expect(classifyCpiElement(
+        withValues(property('activityType', activityType)),
+      )).toBe(expected)
+    },
+  )
+
+  it('classifies a timer start event from its nested activityType', () => {
+    expect(classifyCpiElement({
+      $type: 'bpmn:startEvent',
+      eventDefinitions: [{
+        $type: 'bpmn:timerEventDefinition',
+        extensionElements: {
+          values: [property('activityType', 'StartTimerEvent')],
+        },
+      }],
+    })).toBe('StartTimerEvent')
+  })
+
+  it.each([
+    null,
+    undefined,
+    {},
+    { $type: 'bpmn:sequenceFlow' },
+    { $type: 'bpmn:participant' },
+    { $type: 'bpmn:participant', $attrs: { 'ifl:type': 'Something' } },
+  ])('returns undefined for unknown element types %#', (businessObject) => {
+    expect(familyOfElement(businessObject)).toBeUndefined()
+  })
+
+  it('maps real bpmn-moddle $type (bpmn2 prefix, PascalCase) to families', async () => {
+    // .iflw files use the bpmn2: prefix, but bpmn-moddle normalizes $type to the
+    // package prefix bpmn: with PascalCase local names (bpmn:StartEvent, etc.).
+    // familyOfElement must handle both — this proves the prefix/case wiring.
+    const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<bpmn2:definitions
+  xmlns:bpmn2="http://www.omg.org/spec/BPMN/20100524/MODEL"
+  xmlns:ifl="http://example.com/ifl">
+  <bpmn2:collaboration id="Collaboration_1">
+    <bpmn2:participant id="Sender_1" ifl:type="EndpointSender" />
+    <bpmn2:participant id="Process_Pool" ifl:type="IntegrationProcess" />
+  </bpmn2:collaboration>
+  <bpmn2:process id="Proc_1">
+    <bpmn2:startEvent id="Start_1"><bpmn2:errorEventDefinition id="Err_1" /></bpmn2:startEvent>
+    <bpmn2:endEvent id="End_1" />
+    <bpmn2:exclusiveGateway id="Gate_1" />
+    <bpmn2:parallelGateway id="Gate_2" />
+    <bpmn2:callActivity id="Call_1" />
+    <bpmn2:serviceTask id="Svc_1" />
+    <bpmn2:subProcess id="Sub_1" />
+  </bpmn2:process>
+</bpmn2:definitions>`
+    const { elementsById } = await new BpmnModdle().fromXML(xml)
+
+    const expected: Array<[string, ShapeFamily | undefined]> = [
+      ['Start_1', 'event'],
+      ['End_1', 'event'],
+      ['Gate_1', 'gateway'],
+      ['Gate_2', 'gateway'],
+      ['Call_1', 'activity'],
+      ['Svc_1', 'activity'],
+      ['Sub_1', 'container'],
+      ['Sender_1', 'endpoint'],
+      ['Process_Pool', 'pool'],
+    ]
+    for (const [id, family] of expected) {
+      expect(familyOfElement(elementsById[id])).toBe(family)
+    }
   })
 })

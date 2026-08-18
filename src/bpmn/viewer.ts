@@ -108,7 +108,7 @@ export function createBpmnViewer(
       imported = false
       clearMarkers()
       clearOverlays()
-      const result = await viewer.importXML(prepareIflowXmlForRendering(xml))
+      const result = await viewer.importXML(prepareIflowXmlForRendering(xml)) // NOTE: entry point for generation businessObject
       if (!destroyed) imported = true
       return result
     },
@@ -169,9 +169,13 @@ export function createBpmnViewer(
       let centerY: number
 
       if (shape.waypoints && shape.waypoints.length > 0) {
-        const mid = shape.waypoints[Math.floor(shape.waypoints.length / 2)]
-        centerX = mid.x
-        centerY = mid.y
+        // Center on the midpoint of the connection span (first→last), not the
+        // middle array element — for a 2-point connection the latter is the
+        // endpoint, not the center.
+        const first = shape.waypoints[0]
+        const last = shape.waypoints[shape.waypoints.length - 1]
+        centerX = (first.x + last.x) / 2
+        centerY = (first.y + last.y) / 2
       } else if (
         typeof shape.x === 'number' && typeof shape.y === 'number'
         && typeof shape.width === 'number' && typeof shape.height === 'number'

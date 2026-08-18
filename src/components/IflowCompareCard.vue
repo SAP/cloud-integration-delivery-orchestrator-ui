@@ -91,7 +91,7 @@ onBeforeUnmount(() => {
         </ui5-button>
       </div>
 
-      <ui5-label>Large diffs are not rendered by default.</ui5-label>
+      <ui5-label>IFlow comparisons load on demand - Choose Text Diff or Visual Diff.</ui5-label>
     </div>
 
     <div v-else 

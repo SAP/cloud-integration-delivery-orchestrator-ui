@@ -42,7 +42,7 @@
 
 /* Diff markers — shapes */
 .djs-shape.bpmn-diff-added .djs-visual > .cpi-shape-outline,
-.djs-shape.bpmn-diff-added .djs-visual > :first-child:not(.cpi-shape-icon):not(.cpi-icon-symbol):not(.djs-label) {
+.djs-shape.bpmn-diff-added .djs-visual > :first-child:not(.cpi-shape-icon):not(.djs-label) {
   stroke: var(--sapPositiveColor, #107e3e) !important;
   stroke-width: 2.5px !important;
   stroke-dasharray: none !important;
@@ -50,7 +50,7 @@
 }
 
 .djs-shape.bpmn-diff-removed .djs-visual > .cpi-shape-outline,
-.djs-shape.bpmn-diff-removed .djs-visual > :first-child:not(.cpi-shape-icon):not(.cpi-icon-symbol):not(.djs-label) {
+.djs-shape.bpmn-diff-removed .djs-visual > :first-child:not(.cpi-shape-icon):not(.djs-label) {
   stroke: var(--sapNegativeColor, #bb0000) !important;
   stroke-width: 2.5px !important;
   stroke-dasharray: 8 4 !important;
@@ -58,7 +58,7 @@
 }
 
 .djs-shape.bpmn-diff-changed .djs-visual > .cpi-shape-outline,
-.djs-shape.bpmn-diff-changed .djs-visual > :first-child:not(.cpi-shape-icon):not(.cpi-icon-symbol):not(.djs-label) {
+.djs-shape.bpmn-diff-changed .djs-visual > :first-child:not(.cpi-shape-icon):not(.djs-label) {
   stroke: var(--sapCriticalColor, #c35500) !important;
   stroke-width: 2.5px !important;
   stroke-dasharray: 4 3 !important;
@@ -66,7 +66,7 @@
 }
 
 .djs-shape.bpmn-diff-layout .djs-visual > .cpi-shape-outline,
-.djs-shape.bpmn-diff-layout .djs-visual > :first-child:not(.cpi-shape-icon):not(.cpi-icon-symbol):not(.djs-label) {
+.djs-shape.bpmn-diff-layout .djs-visual > :first-child:not(.cpi-shape-icon):not(.djs-label) {
   stroke: var(--sapInformationColor, #0a6ed1) !important;
   stroke-width: 2.5px !important;
   stroke-dasharray: 1 4 !important;

@@ -1,57 +1,50 @@
-import type { CpiVisualKind } from './cpiMetadata'
-import { create } from 'tiny-svg'
-
-import javascriptIcon from '@/assets/JavaScript.gif'
-import sendIcon from '@/assets/Send.gif'
-import processIcon from '@/assets/Process.gif'
+import { iconOf, type CpiVisualKind } from './cpiCatalog'
+import { append, create } from 'tiny-svg'
 
 /**
- * Maps CPI visual kinds to their icon image URLs.
- * Router has no icon. Sender/Receiver have no icon (until gif files are provided).
+ * Creates an SVG <image> for a CPI icon at absolute coordinates, matching how
+ * SAP CPI itself renders icons: a plain <image> at a fixed position/size, no
+ * scaling.
  */
-const iconImageUrl: Partial<Record<CpiVisualKind, string>> = {
-  ContentModifier: javascriptIcon, // placeholder until Enricher.gif
-  Script: javascriptIcon,
-  Send: sendIcon,
-  RequestReply: sendIcon, // placeholder until ExternalCall.gif
-  IntegrationProcess: processIcon,
+function createIconImage(
+  url: string,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+): SVGImageElement {
+  const image = create('image', { href: url, x, y, width, height }) as SVGImageElement
+  image.setAttribute('preserveAspectRatio', 'xMidYMid meet')
+  return image
 }
 
-export const CPI_ICON_KINDS = [
-  'ContentModifier',
-  'Script',
-  'Router',
-  'Send',
-  'RequestReply',
-  'Sender',
-  'Receiver',
-  'IntegrationProcess',
-] as const satisfies readonly CpiVisualKind[]
+/**
+ * Builds an icon badge group at absolute coordinates. Returns null when the
+ * kind is unknown (unrecognized member) or has no dedicated asset
+ * (ContentModifier / RequestReply / Router), so the shape renders with no
+ * misleading borrowed icon. Callers own the geometry — activity badges use
+ * 16×16 at (2,3), participant endpoints use 16×14 at (5,10) — exactly as in
+ * CPI's own DOM.
+ */
+export function createIconGroup(
+  kind: CpiVisualKind | undefined,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+): SVGGElement | null {
+  if (kind === undefined) return null
 
-export function createCpiIconSymbol(kind: CpiVisualKind): SVGGElement | null {
-  if (kind === 'Router' || kind === 'Sender' || kind === 'Receiver') return null
-
-  const url = iconImageUrl[kind]
+  const url = iconOf(kind)
   if (!url) return null
 
-  return createImageIcon(url)
-}
-
-function createImageIcon(url: string): SVGGElement {
   const group = create('g', {
-    class: 'cpi-icon-symbol',
+    class: 'cpi-shape-icon',
+    'data-cpi-kind': kind,
     'aria-hidden': 'true',
+    focusable: 'false',
   })
-
-  const image = create('image', {
-    href: url,
-    x: 0,
-    y: 0,
-    width: 16,
-    height: 16,
-  })
-  image.setAttribute('preserveAspectRatio', 'xMidYMid meet')
-  group.appendChild(image)
-
+  group.setAttribute('pointer-events', 'none')
+  append(group, createIconImage(url, x, y, width, height))
   return group
 }

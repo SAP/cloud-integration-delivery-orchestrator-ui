@@ -50,7 +50,7 @@ interface ViewerWarning {
 }
 
 const FALLBACK_MESSAGE =
-  'Close this dialog and use Show text diff.'
+  'Close this dialog and use Text Diff.'
 
 const leftCanvas = ref<HTMLElement | null>(null)
 const rightCanvas = ref<HTMLElement | null>(null)
@@ -249,7 +249,7 @@ function applyCurrentChanges() {
   })
 }
 
-function scheduleFit(token: number, file: CompareFileItem) {
+function scheduleFit(token: number, file: CompareFileItem, enableSync = false) {
   if (fitScheduled) return
 
   fitScheduled = true
@@ -257,8 +257,14 @@ function scheduleFit(token: number, file: CompareFileItem) {
     fitScheduled = false
     resizeFrame = null
     if (!isCurrent(token, file)) return
+    // Fitting is an independent per-side operation. Pause viewbox sync while both
+    // sides fit, otherwise an asymmetric diff (e.g. an added lane on one side) would
+    // couple both canvases onto whichever side fitted last. Restore sync afterwards.
+    const hadSync = viewboxSyncCleanup !== null
+    stopViewboxSync()
     runViewerAction('left', viewer => viewer.fit())
     runViewerAction('right', viewer => viewer.fit())
+    if (hadSync || enableSync) startViewboxSync()
   })
   if (fitScheduled) resizeFrame = frame
 }
@@ -393,8 +399,7 @@ async function initialize() {
 
     if (!isCurrent(token, file)) return
     phase.value = 'ready'
-    startViewboxSync()
-    scheduleFit(token, file)
+    scheduleFit(token, file, true)
   } catch (error) {
     if (!isCurrent(token, file)) return
     addFailure('general', error, file.path)
@@ -791,8 +796,7 @@ onBeforeUnmount(() => {
 }
 
 .canvas-placeholder,
-.canvas-state,
-.dialog-state {
+.canvas-state {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -964,15 +968,7 @@ onBeforeUnmount(() => {
   overflow-wrap: anywhere;
 }
 
-.dialog-state {
-  min-height: 60vh;
-}
-
 @media (max-width: 64rem) {
-  .compare-direction {
-    flex-basis: 100%;
-  }
-
   .canvas-grid {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -987,20 +983,6 @@ onBeforeUnmount(() => {
   .bpmn-dialog {
     width: calc(100vw - 1rem);
     height: calc(100vh - 1rem);
-  }
-
-  .compare-header,
-  .compare-controls {
-    align-items: stretch;
-  }
-
-  .compare-direction {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .compare-direction__arrow {
-    display: none;
   }
 }
 </style>

@@ -1,5 +1,5 @@
-import { describe, expect, it, vi } from 'vitest'
-import { prepareIflowXmlForRendering } from './iflowRenderXml'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { _resetProbeCache, prepareIflowXmlForRendering } from './iflowRenderXml'
 
 const BPMN_NS = 'http://www.omg.org/spec/BPMN/20100524/MODEL'
 const BPMNDI_NS = 'http://www.omg.org/spec/BPMN/20100524/DI'
@@ -72,6 +72,10 @@ function geometry(xml: string): string[] {
 }
 
 describe('prepareIflowXmlForRendering', () => {
+  beforeEach(() => {
+    _resetProbeCache()
+  })
+
   it('expands only subprocesses whose semantic descendants have diagram references', () => {
     const result = prepareIflowXmlForRendering(subprocessFixture)
 

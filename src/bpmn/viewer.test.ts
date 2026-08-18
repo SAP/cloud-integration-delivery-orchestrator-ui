@@ -88,6 +88,7 @@ const rendererIntegrationXml = `<?xml version="1.0" encoding="UTF-8"?>
         </ifl:property>
       </bpmn:extensionElements>
     </bpmn:task>
+    <bpmn:group id="Delegated_1" />
   </bpmn:process>
   <bpmndi:BPMNDiagram id="Diagram_1">
     <bpmndi:BPMNPlane id="Plane_1" bpmnElement="Process_1">
@@ -97,6 +98,9 @@ const rendererIntegrationXml = `<?xml version="1.0" encoding="UTF-8"?>
       <bpmndi:BPMNShape id="Unknown_1_di" bpmnElement="Unknown_1">
         <dc:Bounds x="240" y="80" width="100" height="80" />
       </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Delegated_1_di" bpmnElement="Delegated_1">
+        <dc:Bounds x="400" y="80" width="120" height="100" />
+      </bpmndi:BPMNShape>
     </bpmndi:BPMNPlane>
   </bpmndi:BPMNDiagram>
 </bpmn:definitions>`
@@ -104,26 +108,26 @@ const rendererIntegrationXml = `<?xml version="1.0" encoding="UTF-8"?>
 const diffStyles = {
   added: {
     marker: 'bpmn-diff-added',
-    stroke: '#107e3e',
-    fill: '#e8f5e9',
+    stroke: 'var(--sapPositiveColor, #107e3e)',
+    fill: 'var(--sapSuccessBackground, #e8f5e9)',
     dash: 'none',
   },
   removed: {
     marker: 'bpmn-diff-removed',
-    stroke: '#bb0000',
-    fill: '#ffebee',
+    stroke: 'var(--sapNegativeColor, #bb0000)',
+    fill: 'var(--sapErrorBackground, #ffebee)',
     dash: '8 4',
   },
   changed: {
     marker: 'bpmn-diff-changed',
-    stroke: '#c35500',
-    fill: '#fff3e0',
+    stroke: 'var(--sapCriticalColor, #c35500)',
+    fill: 'var(--sapWarningBackground, #fff3e0)',
     dash: '4 3',
   },
   'layout-only': {
     marker: 'bpmn-diff-layout',
-    stroke: '#0a6ed1',
-    fill: '#eaf3fc',
+    stroke: 'var(--sapInformationColor, #0a6ed1)',
+    fill: 'var(--sapInformationBackground, #eaf3fc)',
     dash: '1 4',
   },
 } as const satisfies Record<
@@ -239,7 +243,7 @@ function createHarness(elementIds: string[] = []) {
     removeMarker: vi.fn(),
     resized: vi.fn(),
     zoom: vi.fn(),
-    scrollToElement: vi.fn()
+    viewbox: vi.fn(),
   }
   const registry = {
     get: vi.fn((id: string) => elements.get(id))
@@ -345,12 +349,19 @@ describe('createBpmnViewer', () => {
           '[data-element-id="Unknown_1"] .djs-visual',
         )!
 
-        expect(recognizedVisual.querySelectorAll(':scope > .cpi-shape-icon')).toHaveLength(1)
+        // Recognized_1 is a ContentModifier (Enricher): self-drawn activity with
+        // outline + label but no badge — its dedicated icon asset does not exist yet,
+        // so no misleading borrowed icon is rendered.
+        expect(recognizedVisual.querySelectorAll(':scope > .cpi-shape-icon')).toHaveLength(0)
         expect(recognizedVisual.querySelectorAll(':scope > .cpi-shape-outline')).toHaveLength(1)
         expect(recognizedVisual.querySelectorAll('.djs-label')).toHaveLength(1)
         expect(recognizedVisual.textContent).toContain('Recognized label')
+        // Unknown_1 is a bpmn:task with an unrecognized activityType. Full-flip
+        // dispatch derives its family (activity) from the element type, so it is
+        // drawn as a generic activity box (outline + label, no badge) rather than
+        // delegated — member recognition only controls the badge.
         expect(unknownVisual.querySelector('.cpi-shape-icon')).toBeNull()
-        expect(unknownVisual.querySelector('.cpi-shape-outline')).toBeNull()
+        expect(unknownVisual.querySelectorAll(':scope > .cpi-shape-outline')).toHaveLength(1)
         expect(unknownVisual.querySelectorAll(':scope > rect')).toHaveLength(1)
         expect(unknownVisual.querySelectorAll('.djs-label')).toHaveLength(1)
         expect(unknownVisual.textContent).toContain('Unknown label')
@@ -364,13 +375,234 @@ describe('createBpmnViewer', () => {
         )!
 
         expect(reimportedRecognizedVisual.querySelectorAll(':scope > .cpi-shape-icon'))
-          .toHaveLength(1)
+          .toHaveLength(0)
         expect(reimportedRecognizedVisual.querySelectorAll(':scope > .cpi-shape-outline'))
           .toHaveLength(1)
         expect(reimportedRecognizedVisual.querySelectorAll('.djs-label')).toHaveLength(1)
         expect(reimportedUnknownVisual.querySelector('.cpi-shape-icon')).toBeNull()
-        expect(reimportedUnknownVisual.querySelector('.cpi-shape-outline')).toBeNull()
+        expect(reimportedUnknownVisual.querySelectorAll(':scope > .cpi-shape-outline'))
+          .toHaveLength(1)
         expect(reimportedUnknownVisual.querySelectorAll('.djs-label')).toHaveLength(1)
+      },
+    )
+  })
+
+  it('renders an icon badge for a CPI kind that has a dedicated asset', async () => {
+    const sendActivityXml = `<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions
+  xmlns:bpmn="${BPMN_NS}"
+  xmlns:bpmndi="${BPMNDI_NS}"
+  xmlns:dc="${DC_NS}"
+  xmlns:ifl="http://example.com/ifl"
+  targetNamespace="http://example.com/cpi-renderer">
+  <bpmn:process id="Process_1">
+    <bpmn:task id="Send_1" name="Send label">
+      <bpmn:extensionElements>
+        <ifl:property>
+          <ifl:key>activityType</ifl:key>
+          <ifl:value>Send</ifl:value>
+        </ifl:property>
+      </bpmn:extensionElements>
+    </bpmn:task>
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="Diagram_1">
+    <bpmndi:BPMNPlane id="Plane_1" bpmnElement="Process_1">
+      <bpmndi:BPMNShape id="Send_1_di" bpmnElement="Send_1">
+        <dc:Bounds x="80" y="80" width="100" height="80" />
+      </bpmndi:BPMNShape>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>`
+
+    await withBpmnJsdomViewer(
+      container => createBpmnViewer(container),
+      async (handle, container) => {
+        await handle.importXml(sendActivityXml)
+        const visual = container.querySelector<SVGGElement>(
+          '[data-element-id="Send_1"] .djs-visual',
+        )!
+
+        expect(visual.querySelectorAll(':scope > .cpi-shape-icon')).toHaveLength(1)
+        expect(visual.querySelectorAll(':scope > .cpi-shape-outline')).toHaveLength(1)
+        expect(visual.querySelectorAll('.djs-label')).toHaveLength(1)
+      },
+    )
+  })
+
+  it('renders a Decoder callActivity as a self-drawn activity box with its badge', async () => {
+    const decoderXml = `<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions
+  xmlns:bpmn="${BPMN_NS}"
+  xmlns:bpmndi="${BPMNDI_NS}"
+  xmlns:dc="${DC_NS}"
+  xmlns:ifl="http://example.com/ifl"
+  targetNamespace="http://example.com/cpi-renderer">
+  <bpmn:process id="Process_1">
+    <bpmn:callActivity id="Decoder_1" name="Base64 Decoder 1">
+      <bpmn:extensionElements>
+        <ifl:property>
+          <ifl:key>activityType</ifl:key>
+          <ifl:value>Decoder</ifl:value>
+        </ifl:property>
+        <ifl:property>
+          <ifl:key>cmdVariantUri</ifl:key>
+          <ifl:value>ctype::FlowstepVariant/cname::Base64 Decode/version::1.0.1</ifl:value>
+        </ifl:property>
+      </bpmn:extensionElements>
+    </bpmn:callActivity>
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="Diagram_1">
+    <bpmndi:BPMNPlane id="Plane_1" bpmnElement="Process_1">
+      <bpmndi:BPMNShape id="Decoder_1_di" bpmnElement="Decoder_1">
+        <dc:Bounds x="80" y="80" width="100" height="60" />
+      </bpmndi:BPMNShape>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>`
+
+    await withBpmnJsdomViewer(
+      container => createBpmnViewer(container),
+      async (handle, container) => {
+        await handle.importXml(decoderXml)
+        const visual = container.querySelector<SVGGElement>(
+          '[data-element-id="Decoder_1"] .djs-visual',
+        )!
+
+        // callActivity → activity family: self-drawn rounded rect + Decoder badge
+        // + label, not the delegated BPMN callActivity glyph.
+        expect(visual.querySelectorAll(':scope > rect')).toHaveLength(1)
+        expect(visual.querySelectorAll(':scope > .cpi-shape-outline')).toHaveLength(1)
+        expect(visual.querySelectorAll(':scope > .cpi-shape-icon')).toHaveLength(1)
+        expect(visual.querySelector('.cpi-shape-icon image')).not.toBeNull()
+        expect(
+          visual.querySelector(':scope > .cpi-shape-outline')!.getAttribute('data-cpi-kind'),
+        ).toBe('Decoder')
+        expect(visual.querySelectorAll('.djs-label')).toHaveLength(1)
+        expect(visual.textContent).toContain('Base64 Decoder 1')
+      },
+    )
+  })
+
+  it('renders Sender and Receiver participants as CPI system-endpoint boxes', async () => {
+    const endpointsXml = `<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions
+  xmlns:bpmn="${BPMN_NS}"
+  xmlns:bpmndi="${BPMNDI_NS}"
+  xmlns:dc="${DC_NS}"
+  xmlns:ifl="http://example.com/ifl"
+  targetNamespace="http://example.com/cpi-renderer">
+  <bpmn:collaboration id="Collaboration_1">
+    <bpmn:participant id="Sender_1" name="Sender" ifl:type="EndpointSender">
+      <bpmn:extensionElements>
+        <ifl:property>
+          <ifl:key>ifl:type</ifl:key>
+          <ifl:value>EndpointSender</ifl:value>
+        </ifl:property>
+      </bpmn:extensionElements>
+    </bpmn:participant>
+    <bpmn:participant id="Receiver_1" name="Receiver1" ifl:type="EndpointRecevier">
+      <bpmn:extensionElements>
+        <ifl:property>
+          <ifl:key>ifl:type</ifl:key>
+          <ifl:value>EndpointRecevier</ifl:value>
+        </ifl:property>
+      </bpmn:extensionElements>
+    </bpmn:participant>
+  </bpmn:collaboration>
+  <bpmndi:BPMNDiagram id="Diagram_1">
+    <bpmndi:BPMNPlane id="Plane_1" bpmnElement="Collaboration_1">
+      <bpmndi:BPMNShape id="Sender_1_di" bpmnElement="Sender_1">
+        <dc:Bounds x="40" y="100" width="100" height="140" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Receiver_1_di" bpmnElement="Receiver_1">
+        <dc:Bounds x="600" y="100" width="100" height="140" />
+      </bpmndi:BPMNShape>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>`
+
+    await withBpmnJsdomViewer(
+      container => createBpmnViewer(container),
+      async (handle, container) => {
+        await handle.importXml(endpointsXml)
+
+        for (const id of ['Sender_1', 'Receiver_1']) {
+          const visual = container.querySelector<SVGGElement>(
+            `[data-element-id="${id}"] .djs-visual`,
+          )!
+          // Two white outlined rects (body + header band), one system icon,
+          // and the left-aligned name label — matching CPI's own DOM.
+          expect(visual.querySelectorAll(':scope > .cpi-shape-outline')).toHaveLength(1)
+          expect(visual.querySelectorAll(':scope > .cpi-shape-icon')).toHaveLength(1)
+          expect(visual.querySelector('.cpi-shape-icon image')).not.toBeNull()
+          expect(visual.querySelectorAll('.djs-label')).toHaveLength(1)
+        }
+      },
+    )
+  })
+
+  it('outlines delegated families (event / gateway) and labels recognized events', async () => {
+    const delegatedXml = `<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions
+  xmlns:bpmn="${BPMN_NS}"
+  xmlns:bpmndi="${BPMNDI_NS}"
+  xmlns:dc="${DC_NS}"
+  xmlns:ifl="http://example.com/ifl"
+  targetNamespace="http://example.com/cpi-renderer">
+  <bpmn:process id="Process_1">
+    <bpmn:startEvent id="Start_1" name="Start">
+      <bpmn:extensionElements>
+        <ifl:property>
+          <ifl:key>activityType</ifl:key>
+          <ifl:value>MessageStartEvent</ifl:value>
+        </ifl:property>
+      </bpmn:extensionElements>
+      <bpmn:messageEventDefinition id="MsgDef_1" />
+    </bpmn:startEvent>
+    <bpmn:exclusiveGateway id="Gate_1" name="Router" />
+    <bpmn:parallelGateway id="Gate_2" name="Join" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="Diagram_1">
+    <bpmndi:BPMNPlane id="Plane_1" bpmnElement="Process_1">
+      <bpmndi:BPMNShape id="Start_1_di" bpmnElement="Start_1">
+        <dc:Bounds x="80" y="80" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gate_1_di" bpmnElement="Gate_1">
+        <dc:Bounds x="200" y="80" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gate_2_di" bpmnElement="Gate_2">
+        <dc:Bounds x="320" y="80" width="50" height="50" />
+      </bpmndi:BPMNShape>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>`
+
+    await withBpmnJsdomViewer(
+      container => createBpmnViewer(container),
+      async (handle, container) => {
+        await handle.importXml(delegatedXml)
+
+        // Every delegated-family element gets a CPI outline on its default glyph
+        // so diff markers can target it, even the unrecognized Join gateway.
+        for (const id of ['Start_1', 'Gate_1', 'Gate_2']) {
+          const visual = container.querySelector<SVGGElement>(
+            `[data-element-id="${id}"] .djs-visual`,
+          )!
+          expect(visual.querySelector(':scope > .cpi-shape-outline')).not.toBeNull()
+          // Delegated families never draw a self-managed badge.
+          expect(visual.querySelector('.cpi-shape-icon')).toBeNull()
+        }
+
+        // The recognized message start event carries its member kind for the
+        // change strip; the metadata-less gateways carry no data-cpi-kind.
+        const startOutline = container.querySelector(
+          '[data-element-id="Start_1"] .djs-visual > .cpi-shape-outline',
+        )!
+        expect(startOutline.getAttribute('data-cpi-kind')).toBe('MessageStartEvent')
+        const joinOutline = container.querySelector(
+          '[data-element-id="Gate_2"] .djs-visual > .cpi-shape-outline',
+        )!
+        expect(joinOutline.getAttribute('data-cpi-kind')).toBeNull()
       },
     )
   })
@@ -387,7 +619,7 @@ describe('createBpmnViewer', () => {
           `.djs-shape.${marker} .djs-visual > .cpi-shape-outline`,
         )
         expect(selectors).toContain(
-          `.djs-shape.${marker} .djs-visual > :first-child:not(.cpi-shape-icon):not(.cpi-icon-symbol):not(.djs-label)`,
+          `.djs-shape.${marker} .djs-visual > :first-child:not(.cpi-shape-icon):not(.djs-label)`,
         )
         expect(selectors).toContain(
           `.djs-connection.${marker} .djs-visual > path`,
@@ -463,18 +695,21 @@ describe('createBpmnViewer', () => {
     })
   })
 
-  it('styles unknown BPMN shapes through the guarded default-geometry fallback', async () => {
+  it('styles delegated BPMN shapes through the guarded default-geometry fallback', async () => {
     await withRenderedDiffViewer(async (handle, container, style) => {
-      const element = renderedElement(container, 'Unknown_1')
+      // Delegated_1 is a bpmn:group — an element type that maps to no family, so
+      // CpiRenderer.canRender is false and the default renderer draws it with no
+      // CPI outline. The marker CSS must still reach its default geometry.
+      const element = renderedElement(container, 'Delegated_1')
       const visual = directVisual(element)
       const geometry = visual.querySelector<SVGElement>(':scope > :first-child')!
       removeSvgPresentationPaint(geometry)
 
       expect(geometry.matches('.cpi-shape-outline')).toBe(false)
-      expect(geometry.matches('.cpi-shape-icon, .cpi-icon-symbol, .cpi-icon-badge, .djs-label'))
+      expect(geometry.matches('.cpi-shape-icon, .djs-label'))
         .toBe(false)
 
-      handle.applyChanges([change('Unknown_1', 'changed')], 'right', false)
+      handle.applyChanges([change('Delegated_1', 'changed')], 'right', false)
 
       expect(element.classList.contains(diffStyles.changed.marker)).toBe(true)
       expect(
@@ -591,13 +826,18 @@ describe('createBpmnViewer', () => {
 
     expect(registry.get).toHaveBeenCalledWith('Missing_1')
     expect(canvas.addMarker).not.toHaveBeenCalled()
-    expect(canvas.scrollToElement).not.toHaveBeenCalled()
+    expect(canvas.viewbox).not.toHaveBeenCalled()
   })
 
-  it('resizes before fitting and focuses an existing element by id', async () => {
-    const { canvas, handle } = createHarness(['Present_1'])
-    await handle.importXml('<xml/>')
+  it('resizes before fitting and focuses an existing shape by centering its viewbox', async () => {
+    const { canvas, handle, registry } = createHarness([])
+    // Provide a shape with known geometry: center = (250, 140)
+    const shape = { id: 'Present_1', x: 200, y: 100, width: 100, height: 80 }
+    registry.get.mockImplementation((id: string) => id === 'Present_1' ? shape : undefined)
+    // Mock viewbox getter to return a known current viewport
+    canvas.viewbox.mockReturnValueOnce({ x: 0, y: 0, width: 1000, height: 600 })
 
+    await handle.importXml('<xml/>')
     handle.fit()
     handle.focus('Present_1')
 
@@ -606,7 +846,22 @@ describe('createBpmnViewer', () => {
     expect(canvas.resized.mock.invocationCallOrder[0]).toBeLessThan(
       canvas.zoom.mock.invocationCallOrder[0]
     )
-    expect(canvas.scrollToElement).toHaveBeenCalledWith('Present_1', 120)
+    // focus: center (250, 140), viewport 1000×600 → new origin (-250, -160)
+    expect(canvas.viewbox).toHaveBeenCalledWith({ x: -250, y: -160, width: 1000, height: 600 })
+  })
+
+  it('focuses a connection by centering the midpoint of its waypoint span', async () => {
+    const { canvas, handle, registry } = createHarness([])
+    // Connection spanning (0,0)→(100,100): span midpoint = (50, 50)
+    const connection = { id: 'Flow_1', waypoints: [{ x: 0, y: 0 }, { x: 100, y: 100 }] }
+    registry.get.mockImplementation((id: string) => id === 'Flow_1' ? connection : undefined)
+    canvas.viewbox.mockReturnValueOnce({ x: 0, y: 0, width: 1000, height: 600 })
+
+    await handle.importXml('<xml/>')
+    handle.focus('Flow_1')
+
+    // center (50, 50), viewport 1000×600 → new origin (-450, -250)
+    expect(canvas.viewbox).toHaveBeenCalledWith({ x: -450, y: -250, width: 1000, height: 600 })
   })
 
   it('clears active markers before destroying the viewer', async () => {
@@ -672,7 +927,7 @@ describe('createBpmnViewer', () => {
     }).not.toThrow()
     expect(harness.canvas.removeMarker).toHaveBeenCalledOnce()
     expect(harness.canvas.addMarker).toHaveBeenCalledOnce()
-    expect(harness.canvas.scrollToElement).not.toHaveBeenCalled()
+    expect(harness.canvas.viewbox).not.toHaveBeenCalled()
   })
 
   it('does not access viewer services before a successful import', () => {

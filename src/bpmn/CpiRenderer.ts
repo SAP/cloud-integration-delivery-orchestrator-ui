@@ -5,11 +5,9 @@ import type EventBus from 'diagram-js/lib/core/EventBus'
 import type { ElementLike, ShapeLike } from 'diagram-js/lib/core/Types'
 import BaseRenderer from 'diagram-js/lib/draw/BaseRenderer'
 import { append, classes, create } from 'tiny-svg'
-import { createCpiIconSymbol } from './cpiIcons'
-import {
-  classifyCpiElement,
-  type CpiVisualKind,
-} from './cpiMetadata'
+import { createIconGroup } from './cpiIcons'
+import { classifyCpiElement, familyOfElement } from './cpiMetadata'
+import type { CpiVisualKind, ShapeFamily } from './cpiCatalog'
 
 export const CPI_RENDERER_PRIORITY = 1500
 
@@ -43,27 +41,28 @@ function getName(shape: ShapeLike): string {
   return typeof bo?.name === 'string' ? bo.name : ''
 }
 
-function createIconBadge(
-  shape: ShapeLike,
-  kind: CpiVisualKind,
-): SVGGElement | null {
-  const symbol = createCpiIconSymbol(kind)
-  if (!symbol) return null
+/**
+ * Tags an element as the shape's CPI outline: adds the `.cpi-shape-outline`
+ * class (diff markers target it) and, when the member kind is known, the
+ * `data-cpi-kind` label (change strip / diff category). The kind is optional so
+ * unrecognized members still get an outline without a spurious label.
+ */
+function markCpiOutline(element: SVGElement, kind: CpiVisualKind | undefined,): void {
+  classes(element).add('cpi-shape-outline')
+  if (kind !== undefined) element.setAttribute('data-cpi-kind', kind)
+}
 
-  // All CPI icons go in the top-left corner at (4, 4)
-  // IntegrationProcess slightly lower to center in header
-  const y = kind === 'IntegrationProcess' ? 7 : 4
-  const icon = create('g', {
-    class: 'cpi-shape-icon',
-    'data-cpi-kind': kind,
-    'aria-hidden': 'true',
-    focusable: 'false',
-    transform: `translate(4 ${y}) scale(0.667)`,
-  })
-  icon.setAttribute('pointer-events', 'none')
-
-  append(icon, symbol)
-  return icon
+/**
+ * Adapts a diagram-js render element to the semantic Level-1 family: guards that
+ * it is a shape, then delegates to `familyOfElement` (the authority, which reads
+ * the businessObject). Returns undefined for non-shapes or non-CPI types. Shared
+ * by `canRender` (the dispatch gate) and `drawShape` so the two can never
+ * disagree: if canRender returns true, drawShape is guaranteed a defined family.
+ */
+function resolveShapeFamily(element: ElementLike): ShapeFamily | undefined {
+  return isShapeElement(element)
+    ? familyOfElement(element.businessObject)
+    : undefined
 }
 
 export default class CpiRenderer extends BaseRenderer {
@@ -77,54 +76,52 @@ export default class CpiRenderer extends BaseRenderer {
   }
 
   canRender(element: ElementLike): boolean {
-    return isShapeElement(element)
-      && classifyCpiElement(element.businessObject) !== undefined
+    return resolveShapeFamily(element) !== undefined
   }
 
-  drawShape(
-    parentGfx: SVGElement,
-    shape: ShapeLike,
-    attrs?: Attrs,
-  ): SVGElement {
-    const kind = isShapeElement(shape)
-      ? classifyCpiElement(shape.businessObject)
-      : undefined
+  drawShape(parentGfx: SVGElement, shape: ShapeLike, attrs?: Attrs,): SVGElement {
+    const family = resolveShapeFamily(shape)
 
-    if (kind === 'IntegrationProcess') {
-      return this.drawIntegrationProcess(parentGfx, shape)
+    // canRender gates drawShape to elements whose type maps to a family; an
+    // undefined family here is defensive and delegates to the default renderer.
+    if (family === undefined) {
+      return this.bpmnRenderer.drawShape(parentGfx, shape as BpmnShape, attrs)
     }
 
-    if (kind === 'ContentModifier'
-      || kind === 'Script'
-      || kind === 'Send'
-      || kind === 'RequestReply') {
-      return this.drawCpiActivity(parentGfx, shape, kind)
+    // Member kind refines icon/label within the family. It may be undefined when
+    // the CPI metadata is unrecognized — the family still renders (a generic box
+    // for self-drawn families, an outlined default glyph for delegated ones).
+    const kind = classifyCpiElement(shape.businessObject)
+
+    switch (family) {
+      case 'activity':
+        return this.drawActivity(parentGfx, shape, kind)
+      case 'endpoint':
+        return this.drawEndpoint(parentGfx, shape, kind)
+      case 'pool':
+        return this.drawPool(parentGfx, shape)
+      default:
+        // gateway / event / container — delegate the glyph (default renderer
+        // draws the diamond / event trigger / container) then add the outline.
+        return this.delegateWithOutline(parentGfx, shape, attrs, kind)
     }
-
-    // Sender, Receiver, Router — use default bpmn-js rendering
-    const mainGfx = this.bpmnRenderer.drawShape(
-      parentGfx,
-      shape as BpmnShape,
-      attrs,
-    )
-
-    if (kind !== undefined) {
-      classes(mainGfx).add('cpi-shape-outline')
-      mainGfx.setAttribute('data-cpi-kind', kind)
-    }
-
-    return mainGfx
   }
 
   getShapePath(shape: ShapeLike): string {
     return this.bpmnRenderer.getShapePath(shape as BpmnShape)
   }
 
-  private drawCpiActivity(
-    parentGfx: SVGElement,
-    shape: ShapeLike,
-    kind: CpiVisualKind,
-  ): SVGElement {
+  private delegateWithOutline(parentGfx: SVGElement, shape: ShapeLike, attrs: Attrs | undefined, kind: CpiVisualKind | undefined,): SVGElement {
+    const mainGfx = this.bpmnRenderer.drawShape(
+      parentGfx,
+      shape as BpmnShape,
+      attrs,
+    )
+    markCpiOutline(mainGfx, kind)
+    return mainGfx
+  }
+
+  private drawActivity(parentGfx: SVGElement, shape: ShapeLike, kind: CpiVisualKind | undefined,): SVGElement {
     const width = safeDimension(shape.width, 100)
     const height = safeDimension(shape.height, 60)
 
@@ -139,8 +136,7 @@ export default class CpiRenderer extends BaseRenderer {
     rect.setAttribute('fill', 'rgb(235, 248, 255)')
     rect.setAttribute('stroke', 'rgb(123, 207, 255)')
     rect.setAttribute('stroke-width', '1')
-    classes(rect).add('cpi-shape-outline')
-    rect.setAttribute('data-cpi-kind', kind)
+    markCpiOutline(rect, kind)
     append(parentGfx, rect)
 
     const name = getName(shape)
@@ -153,19 +149,21 @@ export default class CpiRenderer extends BaseRenderer {
       text.setAttribute('dominant-baseline', 'middle')
       text.setAttribute('font-size', '12')
       text.setAttribute('font-family', 'Arial, Helvetica, sans-serif')
-      text.setAttribute('fill', '#333333')
+      text.setAttribute('fill', 'rgb(19, 30, 41)')
       text.textContent = name
       classes(text).add('djs-label')
       append(parentGfx, text)
     }
 
-    const badge = createIconBadge(shape, kind)
+    // CPI renders the activity icon as a full-size 16×16 image at (2,3). An
+    // unrecognized member has no kind, so createIconGroup returns null (generic box).
+    const badge = createIconGroup(kind, 2, 3, 16, 16)
     if (badge) append(parentGfx, badge)
 
     return rect
   }
 
-  private drawIntegrationProcess(parentGfx: SVGElement, shape: ShapeLike): SVGElement {
+  private drawPool(parentGfx: SVGElement, shape: ShapeLike): SVGElement {
     const width = safeDimension(shape.width, 600)
     const height = safeDimension(shape.height, 200)
     const headerHeight = 30
@@ -181,8 +179,7 @@ export default class CpiRenderer extends BaseRenderer {
     rect.setAttribute('fill', '#ffffff')
     rect.setAttribute('stroke', 'rgb(169, 180, 190)')
     rect.setAttribute('stroke-width', '1')
-    classes(rect).add('cpi-shape-outline')
-    rect.setAttribute('data-cpi-kind', 'IntegrationProcess')
+    markCpiOutline(rect, 'IntegrationProcess')
     append(parentGfx, rect)
 
     const separator = create('line', {
@@ -205,16 +202,72 @@ export default class CpiRenderer extends BaseRenderer {
       text.setAttribute('dominant-baseline', 'middle')
       text.setAttribute('font-size', '14')
       text.setAttribute('font-family', 'Arial, Helvetica, sans-serif')
-      text.setAttribute('fill', '#333333')
+      text.setAttribute('fill', 'rgb(19, 30, 41)')
       text.textContent = name
       classes(text).add('djs-label')
       append(parentGfx, text)
     }
 
-    const badge = createIconBadge(shape, 'IntegrationProcess')
+    // Icon sits in the 30px header, vertically centered: (30-16)/2 = 7
+    const badge = createIconGroup('IntegrationProcess', 5, 7, 16, 16)
     if (badge) append(parentGfx, badge)
 
     return rect
+  }
+
+  /**
+   * Sender / Receiver participant endpoints. Replicates SAP CPI's own rendering:
+   * a white 100×140-ish box with a 32px header band whose bottom border acts as
+   * the separator, a System icon (16×14 at 5,10) and the name left-aligned next
+   * to it. Colors match CPI's computed styles (border rgb(169,180,190),
+   * text rgb(19,30,41)).
+   */
+  private drawEndpoint(parentGfx: SVGElement, shape: ShapeLike, kind: CpiVisualKind | undefined,): SVGElement {
+    const width = safeDimension(shape.width, 100)
+    const height = safeDimension(shape.height, 140)
+    const headerHeight = 32
+
+    const body = create('rect', {
+      x: 0,
+      y: 0,
+      width,
+      height,
+    })
+    body.setAttribute('fill', 'rgb(255, 255, 255)')
+    body.setAttribute('stroke', 'rgb(169, 180, 190)')
+    body.setAttribute('stroke-width', '1')
+    markCpiOutline(body, kind)
+    append(parentGfx, body)
+
+    const header = create('rect', {
+      x: 0,
+      y: 0,
+      width,
+      height: headerHeight,
+    })
+    header.setAttribute('fill', 'rgb(255, 255, 255)')
+    header.setAttribute('stroke', 'rgb(169, 180, 190)')
+    header.setAttribute('stroke-width', '1')
+    append(parentGfx, header)
+
+    const icon = createIconGroup(kind, 5, 10, 16, 14)
+    if (icon) append(parentGfx, icon)
+
+    const name = getName(shape)
+    if (name) {
+      const text = create('text', {
+        x: 31,
+        y: 20,
+      })
+      text.setAttribute('font-size', '12')
+      text.setAttribute('font-family', 'Arial, Helvetica, sans-serif')
+      text.setAttribute('fill', 'rgb(19, 30, 41)')
+      text.textContent = name
+      classes(text).add('djs-label')
+      append(parentGfx, text)
+    }
+
+    return body
   }
 }
 
