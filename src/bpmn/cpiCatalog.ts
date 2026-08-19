@@ -17,6 +17,9 @@ import messageDigestIcon from '@/assets/MessageDigest.gif'
 import splitterIcon from '@/assets/Splitter.gif'
 import persistIcon from '@/assets/Persist.gif'
 import dataStoreOperationIcon from '@/assets/DataStoreOperation.gif'
+import extractorIcon from '@/assets/Extractor.gif'
+import filterIcon from '@/assets/Filter.gif'
+import gatherIcon from '@/assets/Gather.gif'
 /**
  * The six shape families every CPI component renders into. Families are a closed
  * set (framework-defined); members are open (extended over time). See RFC 010
@@ -59,6 +62,8 @@ export type CpiVisualKind =
   | 'MessageEndEvent'
   | 'ErrorEndEvent'
   | 'EndEvent'
+  | 'EscalationEndEvent'
+  | 'TerminateEndEvent'
   | 'ProcessCall'
   | 'Decryptor'
   | 'Encryptor'
@@ -67,6 +72,10 @@ export type CpiVisualKind =
   | 'Persist'
   | 'DataStoreOperation'
   | 'ExceptionSubprocess'
+  | 'Converter'
+  | 'Extractor'
+  | 'Filter'
+  | 'Gather'
 
 /**
  * Single source of truth for one member kind: its family, the metadata aliases
@@ -218,6 +227,36 @@ export const CPI_COMPONENT_CATALOG: readonly CpiComponentSpec[] = [
     aliases: ['exclusivegateway', 'router'],
   },
   {
+    kind: 'Converter',
+    family: 'activity',
+    aliases: ['xmltocsvconverter', 'csvtoxmlconverter', 'ediextractor', 'EDItoXMLConverter', 'JsonToXmlConverter'],
+    icon: extractorIcon,
+  },
+  {
+    kind: 'Gather',
+    family: 'activity',
+    aliases: ['gather'],
+    icon: gatherIcon,
+  },
+  {
+    kind: 'Filter',
+    family: 'activity',
+    aliases: ['filter'],
+    icon: filterIcon,
+  },
+  {
+    kind: 'EscalationEndEvent',
+    family: 'event',
+    aliases: ['escalationendevent'],
+    marker: '\uE017',
+  },
+  {
+    kind: 'TerminateEndEvent',
+    family: 'event',
+    aliases: ['terminateevent'],
+    marker: '\uE027',
+  },
+  {
     kind: 'Multicast',
     family: 'gateway',
     aliases: ['multicast'],
@@ -235,6 +274,17 @@ export const CPI_COMPONENT_CATALOG: readonly CpiComponentSpec[] = [
     aliases: ['join'],
     marker: '\uE030',
   },
+  // Participant members split into two recognition strategies:
+  //
+  // 1. Endpoint participants (Sender/Receiver): identified solely by the `ifl:type`
+  //    attribute on the participant element itself (e.g. EndpointSender). They have
+  //    no extensionElements, no processRef — `participantTypes` is their only signal.
+  //
+  // 2. Pool participants (IntegrationProcess/Local): identified by `aliases` matched
+  //    against activityType or cmdVariantUri cname. The metadata lives on the
+  //    referenced process (via `processRef`), not on the participant element itself.
+  //    `extensionSources()` scans processRef.extensionElements to reach it.
+  //    No `participantTypes` needed — alias resolution handles both variants.
   {
     kind: 'Sender',
     family: 'endpoint',
@@ -251,14 +301,12 @@ export const CPI_COMPONENT_CATALOG: readonly CpiComponentSpec[] = [
     kind: 'IntegrationProcess',
     family: 'pool',
     aliases: ['integrationprocess'],
-    participantTypes: ['integrationprocess'],
     icon: processIcon,
   },
   {
     kind: 'LocalIntegrationProcess',
     family: 'pool',
-    aliases: ['localintegrationprocess'],
-    participantTypes: ['integrationprocess'],
+    aliases: ['LocalIntegrationProcess'],
     icon: processCallIcon,
   },
   {
@@ -291,6 +339,7 @@ export const CPI_COMPONENT_CATALOG: readonly CpiComponentSpec[] = [
     kind: 'StartTimerEvent',
     family: 'event',
     aliases: ['starttimerevent', 'intermediatetimer'],
+    marker: '\uE033',
   },
   {
     kind: 'MessageEndEvent',
@@ -321,7 +370,10 @@ for (const spec of CPI_COMPONENT_CATALOG) {
   familyByKind.set(spec.kind, spec.family)
   if (spec.icon !== undefined) iconByKind.set(spec.kind, spec.icon)
   if (spec.marker !== undefined) markerByKind.set(spec.kind, spec.marker)
-  for (const alias of spec.aliases ?? []) aliasIndex.set(alias, spec.kind)
+  for (const alias of spec.aliases ?? []) {
+    const key = alias.trim().toLowerCase()
+    if (key) aliasIndex.set(key, spec.kind)
+  }
   for (const type of spec.participantTypes ?? []) participantIndex.set(type, spec.kind)
 }
 

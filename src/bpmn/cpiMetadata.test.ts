@@ -59,7 +59,6 @@ describe('classifyCpiElement', () => {
     ['EndpointSender', 'Sender'],
     ['EndpointRecevier', 'Receiver'],
     ['EndpointReceiver', 'Receiver'],
-    ['IntegrationProcess', 'LocalIntegrationProcess'],
   ] satisfies Array<[string, CpiVisualKind]>)(
     'maps participant ifl:type %s to %s',
     (participantType, expected) => {

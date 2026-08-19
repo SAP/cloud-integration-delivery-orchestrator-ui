@@ -100,7 +100,7 @@ export default class CpiRenderer extends BaseRenderer {
       case 'endpoint':
         return this.drawEndpoint(parentGfx, shape, kind)
       case 'pool':
-        return this.drawPool(parentGfx, shape)
+        return this.drawPool(parentGfx, shape, kind)
       case 'gateway':
         return this.drawGateway(parentGfx, shape, kind)
       case 'container':
@@ -324,7 +324,7 @@ export default class CpiRenderer extends BaseRenderer {
     return rect
   }
 
-  private drawPool(parentGfx: SVGElement, shape: ShapeLike): SVGElement {
+  private drawPool(parentGfx: SVGElement, shape: ShapeLike, kind: CpiVisualKind | undefined,): SVGElement {
     const width = safeDimension(shape.width, 600)
     const height = safeDimension(shape.height, 200)
     const headerHeight = 30
@@ -340,7 +340,7 @@ export default class CpiRenderer extends BaseRenderer {
     rect.setAttribute('fill', '#ffffff')
     rect.setAttribute('stroke', 'rgb(169, 180, 190)')
     rect.setAttribute('stroke-width', '1')
-    markCpiOutline(rect, 'IntegrationProcess')
+    markCpiOutline(rect, kind)
     append(parentGfx, rect)
 
     const separator = create('line', {
@@ -370,7 +370,7 @@ export default class CpiRenderer extends BaseRenderer {
     }
 
     // Icon sits in the 30px header, vertically centered: (30-16)/2 = 7
-    const badge = createIconGroup('IntegrationProcess', 5, 7, 16, 16)
+    const badge = createIconGroup(kind, 5, 7, 16, 16)
     if (badge) append(parentGfx, badge)
 
     return rect

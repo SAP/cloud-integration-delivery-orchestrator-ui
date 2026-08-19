@@ -71,13 +71,21 @@ function extensionSources(businessObject: UnknownRecord): UnknownRecord[] {
   // <bpmn2:extensionElements> as direct member
   const direct = asRecord(businessObject.extensionElements)
   if (direct !== undefined) sources.push(direct)
-  
+
   // nested members under <bpmn2:eventDefinitions[*].extensionElements> (RFC 010 doc 07 §3.5)
   if (Array.isArray(businessObject.eventDefinitions)) {
     for (const definition of businessObject.eventDefinitions) {
       const nested = asRecord(asRecord(definition)?.extensionElements)
       if (nested !== undefined) sources.push(nested)
     }
+  }
+
+  // participant processRef: Local Integration Process keeps its metadata on the
+  // referenced process, not on the participant itself (RFC 010 doc 07 §3.1).
+  const processRef = asRecord(businessObject.processRef)
+  if (processRef !== undefined) {
+    const processExt = asRecord(processRef.extensionElements)
+    if (processExt !== undefined) sources.push(processExt)
   }
 
   return sources
