@@ -39,6 +39,8 @@ describe('classifyCpiElement', () => {
     ['Send', 'Send'],
     ['ExternalCall', 'RequestReply'],
     ['Decoder', 'Decoder'],
+    ['Mapping', 'Mapping'],
+    ['contentEnricherWithLookup', 'ContentEnricher'],
     ['IntegrationProcess', 'IntegrationProcess'],
   ] satisfies Array<[string, CpiVisualKind]>)(
     'maps activityType %s to %s',
@@ -107,6 +109,15 @@ describe('classifyCpiElement', () => {
         'ctype::FlowstepVariant/cname::Base64 Decode/version::1.0.1',
       ),
     ))).toBe('Decoder')
+  })
+
+  it('classifies a Mapping from its cmdVariant cname when activityType is absent', () => {
+    expect(classifyCpiElement(withValues(
+      property(
+        'cmdVariantUri',
+        'ctype::FlowstepVariant/cname::MessageMapping/version::1.3.1',
+      ),
+    ))).toBe('Mapping')
   })
 
   it('reads subActivityType from generic key/value child objects', () => {

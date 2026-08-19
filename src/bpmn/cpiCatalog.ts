@@ -3,6 +3,8 @@ import sendIcon from '@/assets/Send.gif'
 import processIcon from '@/assets/Process.gif'
 import systemIcon from '@/assets/System.gif'
 import decoderIcon from '@/assets/Decoder.gif'
+import mappingIcon from '@/assets/Mapping.gif'
+import contentEnricherIcon from '@/assets/ContentEnricher.gif'
 
 /**
  * The six shape families every CPI component renders into. Families are a closed
@@ -25,6 +27,8 @@ export type CpiVisualKind =
   | 'Send'
   | 'RequestReply'
   | 'Decoder'
+  | 'Mapping'
+  | 'ContentEnricher'
   | 'Sender'
   | 'Receiver'
   | 'IntegrationProcess'
@@ -89,6 +93,18 @@ export const CPI_COMPONENT_CATALOG: readonly CpiComponentSpec[] = [
     family: 'activity',
     aliases: ['decoder', 'base64 decode'],
     icon: decoderIcon,
+  },
+  {
+    kind: 'Mapping',
+    family: 'activity',
+    aliases: ['mapping', 'messagemapping'],
+    icon: mappingIcon,
+  },
+  {
+    kind: 'ContentEnricher',
+    family: 'activity',
+    aliases: ['contentenricherwithlookup'],
+    icon: contentEnricherIcon,
   },
   {
     kind: 'Router',
