@@ -51,6 +51,7 @@ export type CpiVisualKind =
   | 'Sender'
   | 'Receiver'
   | 'IntegrationProcess'
+  | 'LocalIntegrationProcess'
   | 'MessageStartEvent'
   | 'StartEvent'
   | 'ErrorStartEvent'
@@ -252,6 +253,13 @@ export const CPI_COMPONENT_CATALOG: readonly CpiComponentSpec[] = [
     aliases: ['integrationprocess'],
     participantTypes: ['integrationprocess'],
     icon: processIcon,
+  },
+  {
+    kind: 'LocalIntegrationProcess',
+    family: 'pool',
+    aliases: ['localintegrationprocess'],
+    participantTypes: ['integrationprocess'],
+    icon: processCallIcon,
   },
   {
     kind: 'ExceptionSubprocess',

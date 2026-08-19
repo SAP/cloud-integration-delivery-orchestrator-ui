@@ -6,16 +6,17 @@
   font-style: normal;
 }
 
-/* CPI connections — match CPI arrow style */
+/* CPI connections — match CPI arrow style (#427CAC) */
 .djs-connection .djs-visual > path {
-  stroke: rgb(6, 114, 163) !important;
+  stroke: #427CAC !important;
   stroke-width: 1px !important;
+  marker-end: url(#cpi-arrow-end) !important;
 }
 
 /* Arrowhead markers — same color as connection line */
 .djs-container svg marker path {
-  fill: rgb(6, 114, 163) !important;
-  stroke: rgb(6, 114, 163) !important;
+  fill: #427CAC !important;
+  stroke: #427CAC !important;
 }
 
 /* Diff overlay badges */

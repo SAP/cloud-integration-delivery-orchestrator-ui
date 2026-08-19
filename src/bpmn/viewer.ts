@@ -5,6 +5,7 @@ import type ElementRegistry from 'diagram-js/lib/core/ElementRegistry'
 import type Overlays from 'diagram-js/lib/features/overlays/Overlays'
 import type EventBus from 'diagram-js/lib/core/EventBus'
 import { cpiRendererModule } from './CpiRenderer'
+import { cpiConnectionMarkersModule } from './cpiConnectionMarkers'
 import importConnectionCropperModule from './importConnectionCropperModule'
 import type { BpmnChangeStatus, BpmnElementChange } from './diff'
 import { prepareIflowXmlForRendering } from './iflowRenderXml'
@@ -64,7 +65,7 @@ export function createBpmnViewer(
 ) {
   const viewer = factory({
     container,
-    additionalModules: [cpiRendererModule, importConnectionCropperModule]
+    additionalModules: [cpiRendererModule, cpiConnectionMarkersModule, importConnectionCropperModule]
   })
   const activeMarkers: Array<{
     elementId: string
