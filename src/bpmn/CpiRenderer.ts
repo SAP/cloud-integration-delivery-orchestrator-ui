@@ -160,6 +160,26 @@ export default class CpiRenderer extends BaseRenderer {
     const badge = createIconGroup(kind, 2, 3, 16, 16)
     if (badge) append(parentGfx, badge)
 
+    // Loop marker: BPMN structural annotation (standardLoopCharacteristics).
+    // Rendered as a SAPBPMN font glyph (U+E009) at bottom center, matching CPI's
+    // own DOM: <text class="activityMarker" font-family="SAPBPMN" x≈45 y≈45>.
+    const bo = asRecord(shape.businessObject)
+    if (bo?.loopCharacteristics !== undefined) {
+      const marker = create('text', {
+        x: width / 2,
+        y: height - 15,
+      })
+      marker.setAttribute('text-anchor', 'middle')
+      marker.setAttribute('font-family', 'SAPBPMN')
+      marker.setAttribute('font-size', '12')
+      marker.setAttribute('fill', 'rgb(0, 0, 0)')
+      marker.setAttribute('stroke', 'rgb(29, 45, 62)')
+      marker.setAttribute('stroke-width', '0.5')
+      marker.textContent = '\uE009'
+      classes(marker).add('cpi-activity-marker')
+      append(parentGfx, marker)
+    }
+
     return rect
   }
 

@@ -1,3 +1,11 @@
+/* SAPBPMN icon font — loop/multi-instance activity markers (extracted from CPI) */
+@font-face {
+  font-family: 'SAPBPMN';
+  src: url('../assets/SAPBPMNRegular.woff') format('woff');
+  font-weight: normal;
+  font-style: normal;
+}
+
 /* CPI connections — match CPI arrow style */
 .djs-connection .djs-visual > path {
   stroke: rgb(6, 114, 163) !important;

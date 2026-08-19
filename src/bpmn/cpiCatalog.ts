@@ -3,6 +3,9 @@ import sendIcon from '@/assets/Send.gif'
 import processIcon from '@/assets/Process.gif'
 import systemIcon from '@/assets/System.gif'
 import decoderIcon from '@/assets/Decoder.gif'
+import externalCallIcon from '@/assets/ExternalCall.gif'
+import encoderIcon from '@/assets/Encoder.gif'
+import processCallIcon from '@/assets/ProcessCall.gif' 
 import mappingIcon from '@/assets/Mapping.gif'
 import contentEnricherIcon from '@/assets/ContentEnricher.gif'
 
@@ -25,8 +28,10 @@ export type CpiVisualKind =
   | 'Script'
   | 'Router'
   | 'Send'
+  | 'ExternalCall'
   | 'RequestReply'
   | 'Decoder'
+  | 'Encoder'
   | 'Mapping'
   | 'ContentEnricher'
   | 'Sender'
@@ -38,6 +43,7 @@ export type CpiVisualKind =
   | 'StartTimerEvent'
   | 'MessageEndEvent'
   | 'EndEvent'
+  | 'ProcessCall'
 
 /**
  * Single source of truth for one member kind: its family, the metadata aliases
@@ -80,9 +86,21 @@ export const CPI_COMPONENT_CATALOG: readonly CpiComponentSpec[] = [
     icon: sendIcon,
   },
   {
+    kind: 'ExternalCall',
+    family: 'activity',
+    aliases: ['externalcall'],
+    icon: externalCallIcon,
+  },
+  {
+    kind: 'ProcessCall',
+    family: 'activity',
+    aliases: ['nonloopingprocess', 'processcallelement', 'idempotentprocesscall'],
+    icon: processCallIcon,
+  },
+  {
     kind: 'RequestReply',
     family: 'activity',
-    aliases: ['externalcall', 'requestreply'],
+    aliases: ['requestreply'],
   },
   {
     // Decoder covers all decoder variants (Base64 Decode, GZIP Decompress, …):
@@ -95,6 +113,12 @@ export const CPI_COMPONENT_CATALOG: readonly CpiComponentSpec[] = [
     icon: decoderIcon,
   },
   {
+    kind: 'Encoder',
+    family: 'activity',
+    aliases: ['encoder'],
+    icon: encoderIcon,
+  },
+  {
     kind: 'Mapping',
     family: 'activity',
     aliases: ['mapping', 'messagemapping'],
@@ -103,7 +127,7 @@ export const CPI_COMPONENT_CATALOG: readonly CpiComponentSpec[] = [
   {
     kind: 'ContentEnricher',
     family: 'activity',
-    aliases: ['contentenricherwithlookup'],
+    aliases: ['contentenricherwithlookup', 'pollenrich'],
     icon: contentEnricherIcon,
   },
   {

@@ -483,6 +483,69 @@ describe('createBpmnViewer', () => {
     )
   })
 
+  it('renders a loop marker for activities with standardLoopCharacteristics', async () => {
+    const loopingXml = `<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions
+  xmlns:bpmn="${BPMN_NS}"
+  xmlns:bpmndi="${BPMNDI_NS}"
+  xmlns:dc="${DC_NS}"
+  xmlns:ifl="http://example.com/ifl"
+  targetNamespace="http://example.com/cpi-renderer">
+  <bpmn:process id="Process_1">
+    <bpmn:callActivity id="Loop_1" name="Looping Process Call 1">
+      <bpmn:extensionElements>
+        <ifl:property>
+          <ifl:key>activityType</ifl:key>
+          <ifl:value>ProcessCallElement</ifl:value>
+        </ifl:property>
+      </bpmn:extensionElements>
+      <bpmn:standardLoopCharacteristics id="Loop_Char_1" />
+    </bpmn:callActivity>
+    <bpmn:callActivity id="NoLoop_1" name="Process Call 1">
+      <bpmn:extensionElements>
+        <ifl:property>
+          <ifl:key>activityType</ifl:key>
+          <ifl:value>ProcessCallElement</ifl:value>
+        </ifl:property>
+      </bpmn:extensionElements>
+    </bpmn:callActivity>
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="Diagram_1">
+    <bpmndi:BPMNPlane id="Plane_1" bpmnElement="Process_1">
+      <bpmndi:BPMNShape id="Loop_1_di" bpmnElement="Loop_1">
+        <dc:Bounds x="80" y="80" width="100" height="60" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="NoLoop_1_di" bpmnElement="NoLoop_1">
+        <dc:Bounds x="240" y="80" width="100" height="60" />
+      </bpmndi:BPMNShape>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>`
+
+    await withBpmnJsdomViewer(
+      container => createBpmnViewer(container),
+      async (handle, container) => {
+        await handle.importXml(loopingXml)
+
+        const loopVisual = container.querySelector<SVGGElement>(
+          '[data-element-id="Loop_1"] .djs-visual',
+        )!
+        const noLoopVisual = container.querySelector<SVGGElement>(
+          '[data-element-id="NoLoop_1"] .djs-visual',
+        )!
+
+        // Looping activity gets the SAPBPMN marker glyph
+        const marker = loopVisual.querySelector('.cpi-activity-marker')
+        expect(marker).not.toBeNull()
+        expect(marker!.getAttribute('font-family')).toBe('SAPBPMN')
+        expect(marker!.textContent).toBe('\uE009')
+
+        // Non-looping activity has no marker
+        expect(noLoopVisual.querySelector('.cpi-activity-marker')).toBeNull()
+      },
+    )
+  })
+
   it('renders Sender and Receiver participants as CPI system-endpoint boxes', async () => {
     const endpointsXml = `<?xml version="1.0" encoding="UTF-8"?>
 <bpmn:definitions

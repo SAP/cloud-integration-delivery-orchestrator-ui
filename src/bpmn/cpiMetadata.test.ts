@@ -37,7 +37,7 @@ describe('classifyCpiElement', () => {
     ['ExclusiveGateway', 'Router'],
     ['Router', 'Router'],
     ['Send', 'Send'],
-    ['ExternalCall', 'RequestReply'],
+    ['ExternalCall', 'ExternalCall'],
     ['Decoder', 'Decoder'],
     ['Mapping', 'Mapping'],
     ['contentEnricherWithLookup', 'ContentEnricher'],
@@ -127,7 +127,7 @@ describe('classifyCpiElement', () => {
         { $type: 'ifl:key', value: 'subActivityType' },
         { $type: 'ifl:value', $body: 'ExternalCall' },
       ],
-    }))).toBe('RequestReply')
+    }))).toBe('ExternalCall')
   })
 
   it('uses metadata sources in priority order when recognized values conflict', () => {
