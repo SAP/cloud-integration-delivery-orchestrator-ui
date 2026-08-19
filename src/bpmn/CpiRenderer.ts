@@ -8,6 +8,7 @@ import { append, classes, create } from 'tiny-svg'
 import { createIconGroup } from './cpiIcons'
 import { classifyCpiElement, familyOfElement } from './cpiMetadata'
 import type { CpiVisualKind, ShapeFamily } from './cpiCatalog'
+import { markerOf } from './cpiCatalog'
 
 export const CPI_RENDERER_PRIORITY = 1500
 
@@ -100,9 +101,11 @@ export default class CpiRenderer extends BaseRenderer {
         return this.drawEndpoint(parentGfx, shape, kind)
       case 'pool':
         return this.drawPool(parentGfx, shape)
+      case 'gateway':
+        return this.drawGateway(parentGfx, shape, kind)
       default:
-        // gateway / event / container — delegate the glyph (default renderer
-        // draws the diamond / event trigger / container) then add the outline.
+        // event / container — delegate the glyph (default renderer draws the
+        // event trigger / container) then add the outline.
         return this.delegateWithOutline(parentGfx, shape, attrs, kind)
     }
   }
@@ -119,6 +122,47 @@ export default class CpiRenderer extends BaseRenderer {
     )
     markCpiOutline(mainGfx, kind)
     return mainGfx
+  }
+
+  /**
+   * CPI renders gateways as a white-filled diamond with a gray border — the same
+   * color scheme as endpoints (white fill, stroke rgb(169,180,190), 1px). The DOM
+   * attribute fill="#000" is overridden by CPI's global CSS to white; computed
+   * styles are authoritative. getShapePath still delegates to bpmnRenderer for
+   * connection cropping.
+   */
+  private drawGateway(parentGfx: SVGElement, shape: ShapeLike, kind: CpiVisualKind | undefined,): SVGElement {
+    const width = safeDimension(shape.width, 40)
+    const height = safeDimension(shape.height, 40)
+
+    const path = create('path')
+    path.setAttribute('d', `M${width / 2},0 L${width},${height / 2} L${width / 2},${height} L0,${height / 2} Z`)
+    path.setAttribute('fill', 'rgb(255, 255, 255)')
+    path.setAttribute('stroke', 'rgb(169, 180, 190)')
+    path.setAttribute('stroke-width', '1')
+    markCpiOutline(path, kind)
+    append(parentGfx, path)
+
+    // Internal SAPBPMN marker glyph (e.g. U+E030 for parallel gateways).
+    // Catalog-driven: only kinds with a `marker` field get the glyph.
+    const marker = kind !== undefined ? markerOf(kind) : undefined
+    if (marker) {
+      const text = create('text', {
+        x: width / 2,
+        y: height / 2,
+      })
+      text.setAttribute('text-anchor', 'middle')
+      text.setAttribute('dominant-baseline', 'middle')
+      text.setAttribute('font-family', 'SAPBPMN')
+      text.setAttribute('font-size', '16')
+      text.setAttribute('fill', 'rgb(0, 0, 0)')
+      text.setAttribute('stroke', 'rgb(29, 45, 62)')
+      text.textContent = marker
+      classes(text).add('cpi-gateway-marker')
+      append(parentGfx, text)
+    }
+
+    return path
   }
 
   private drawActivity(parentGfx: SVGElement, shape: ShapeLike, kind: CpiVisualKind | undefined,): SVGElement {

@@ -604,6 +604,69 @@ describe('createBpmnViewer', () => {
     )
   })
 
+  it('self-draws gateways as white diamonds with marker glyph for parallel kinds', async () => {
+    const gatewayXml = `<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions
+  xmlns:bpmn="${BPMN_NS}"
+  xmlns:bpmndi="${BPMNDI_NS}"
+  xmlns:dc="${DC_NS}"
+  xmlns:ifl="http://example.com/ifl"
+  targetNamespace="http://example.com/cpi-renderer">
+  <bpmn:process id="Process_1">
+    <bpmn:exclusiveGateway id="Router_1" name="Router 1">
+      <bpmn:extensionElements>
+        <ifl:property>
+          <ifl:key>activityType</ifl:key>
+          <ifl:value>Router</ifl:value>
+        </ifl:property>
+      </bpmn:extensionElements>
+    </bpmn:exclusiveGateway>
+    <bpmn:parallelGateway id="Multicast_1" name="Parallel Multicast 1">
+      <bpmn:extensionElements>
+        <ifl:property>
+          <ifl:key>activityType</ifl:key>
+          <ifl:value>Multicast</ifl:value>
+        </ifl:property>
+      </bpmn:extensionElements>
+    </bpmn:parallelGateway>
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="Diagram_1">
+    <bpmndi:BPMNPlane id="Plane_1" bpmnElement="Process_1">
+      <bpmndi:BPMNShape id="Router_1_di" bpmnElement="Router_1">
+        <dc:Bounds x="80" y="80" width="40" height="40" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Multicast_1_di" bpmnElement="Multicast_1">
+        <dc:Bounds x="200" y="80" width="40" height="40" />
+      </bpmndi:BPMNShape>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>`
+
+    await withBpmnJsdomViewer(
+      container => createBpmnViewer(container),
+      async (handle, container) => {
+        await handle.importXml(gatewayXml)
+
+        // Router: white diamond, no internal marker
+        const routerVisual = container.querySelector<SVGGElement>(
+          '[data-element-id="Router_1"] .djs-visual',
+        )!
+        expect(routerVisual.querySelector(':scope > path.cpi-shape-outline')).not.toBeNull()
+        expect(routerVisual.querySelector('.cpi-gateway-marker')).toBeNull()
+
+        // Multicast: white diamond + SAPBPMN marker glyph (U+E030)
+        const multicastVisual = container.querySelector<SVGGElement>(
+          '[data-element-id="Multicast_1"] .djs-visual',
+        )!
+        expect(multicastVisual.querySelector(':scope > path.cpi-shape-outline')).not.toBeNull()
+        const marker = multicastVisual.querySelector('.cpi-gateway-marker')
+        expect(marker).not.toBeNull()
+        expect(marker!.getAttribute('font-family')).toBe('SAPBPMN')
+        expect(marker!.textContent).toBe('\uE030')
+      },
+    )
+  })
+
   it('outlines delegated families (event / gateway) and labels recognized events', async () => {
     const delegatedXml = `<?xml version="1.0" encoding="UTF-8"?>
 <bpmn:definitions

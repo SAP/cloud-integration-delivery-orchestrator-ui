@@ -8,7 +8,15 @@ import encoderIcon from '@/assets/Encoder.gif'
 import processCallIcon from '@/assets/ProcessCall.gif' 
 import mappingIcon from '@/assets/Mapping.gif'
 import contentEnricherIcon from '@/assets/ContentEnricher.gif'
-
+import signerIcon from '@/assets/Signer.gif'
+import decryptorIcon from '@/assets/Decryptor.gif'
+import verifierIcon from '@/assets/Verifier.gif'
+import xmlDigitalVerifySignIcon from '@/assets/XMLDigitalVerifySign.gif'
+import encryptorIcon from '@/assets/Encryptor.gif'
+import messageDigestIcon from '@/assets/MessageDigest.gif'
+import splitterIcon from '@/assets/Splitter.gif'
+import persistIcon from '@/assets/Persist.gif'
+import dataStoreOperationIcon from '@/assets/DataStoreOperation.gif'
 /**
  * The six shape families every CPI component renders into. Families are a closed
  * set (framework-defined); members are open (extended over time). See RFC 010
@@ -32,8 +40,14 @@ export type CpiVisualKind =
   | 'RequestReply'
   | 'Decoder'
   | 'Encoder'
+  | 'Signer'
+  | 'Verifier'
+  | 'XMLDigitalVerifySign'
   | 'Mapping'
   | 'ContentEnricher'
+  | 'Multicast'
+  | 'SequentialMulticast'
+  | 'Join'
   | 'Sender'
   | 'Receiver'
   | 'IntegrationProcess'
@@ -44,6 +58,12 @@ export type CpiVisualKind =
   | 'MessageEndEvent'
   | 'EndEvent'
   | 'ProcessCall'
+  | 'Decryptor'
+  | 'Encryptor'
+  | 'MessageDigest'
+  | 'Splitter'
+  | 'Persist'
+  | 'DataStoreOperation'
 
 /**
  * Single source of truth for one member kind: its family, the metadata aliases
@@ -65,6 +85,11 @@ export interface CpiComponentSpec {
   participantTypes?: string[]
   /** Icon asset URL; absent means no badge is drawn for this kind. */
   icon?: string
+  /**
+   * SAPBPMN font glyph character for gateway internal markers. Rendered at
+   * the diamond center when present. Absent means no internal marker.
+   */
+  marker?: string
 }
 
 export const CPI_COMPONENT_CATALOG: readonly CpiComponentSpec[] = [
@@ -119,6 +144,60 @@ export const CPI_COMPONENT_CATALOG: readonly CpiComponentSpec[] = [
     icon: encoderIcon,
   },
   {
+    kind: 'Signer',
+    family: 'activity',
+    aliases: ['simplesignmessage', 'signmessage'],
+    icon: signerIcon,
+  },
+  {
+    kind: 'Verifier',
+    family: 'activity',
+    aliases: ['verifysign'],
+    icon: verifierIcon,
+  },
+  {
+    kind: 'XMLDigitalVerifySign',
+    family: 'activity',
+    aliases: ['xmldigitalverifysign'],
+    icon: xmlDigitalVerifySignIcon,
+  },
+  {
+    kind: 'Decryptor',
+    family: 'activity',
+    aliases: ['decrypt', 'pgpdecrypt'],
+    icon: decryptorIcon,
+  },
+  {
+    kind: 'Encryptor',
+    family: 'activity',
+    aliases: ['pgpencrypt', 'encrypt'],
+    icon: encryptorIcon,
+  },
+  {
+    kind: 'MessageDigest',
+    family: 'activity',
+    aliases: ['messagedigest'],
+    icon: messageDigestIcon,
+  },
+  {
+    kind: 'Splitter',
+    family: 'activity',
+    aliases: ['splitter'],
+    icon: splitterIcon,
+  },
+  {
+    kind: 'Persist',
+    family: 'activity',
+    aliases: ['persist'],
+    icon: persistIcon,
+  },
+  {
+    kind: 'DataStoreOperation',
+    family: 'activity',
+    aliases: ['dbstorage', 'variables'],
+    icon: dataStoreOperationIcon,
+  },
+  {
     kind: 'Mapping',
     family: 'activity',
     aliases: ['mapping', 'messagemapping'],
@@ -134,6 +213,24 @@ export const CPI_COMPONENT_CATALOG: readonly CpiComponentSpec[] = [
     kind: 'Router',
     family: 'gateway',
     aliases: ['exclusivegateway', 'router'],
+  },
+  {
+    kind: 'Multicast',
+    family: 'gateway',
+    aliases: ['multicast'],
+    marker: '\uE030',
+  },
+  {
+    kind: 'SequentialMulticast',
+    family: 'gateway',
+    aliases: ['sequentialmulticast'],
+    marker: '\uE030',
+  },
+  {
+    kind: 'Join',
+    family: 'gateway',
+    aliases: ['join'],
+    marker: '\uE030',
   },
   {
     kind: 'Sender',
@@ -195,10 +292,12 @@ const aliasIndex = new Map<string, CpiVisualKind>()
 const participantIndex = new Map<string, CpiVisualKind>()
 const familyByKind = new Map<CpiVisualKind, ShapeFamily>()
 const iconByKind = new Map<CpiVisualKind, string>()
+const markerByKind = new Map<CpiVisualKind, string>()
 
 for (const spec of CPI_COMPONENT_CATALOG) {
   familyByKind.set(spec.kind, spec.family)
   if (spec.icon !== undefined) iconByKind.set(spec.kind, spec.icon)
+  if (spec.marker !== undefined) markerByKind.set(spec.kind, spec.marker)
   for (const alias of spec.aliases ?? []) aliasIndex.set(alias, spec.kind)
   for (const type of spec.participantTypes ?? []) participantIndex.set(type, spec.kind)
 }
@@ -221,4 +320,9 @@ export function familyOf(kind: CpiVisualKind): ShapeFamily {
 /** Icon asset URL for a kind, or undefined when it has no dedicated asset. */
 export function iconOf(kind: CpiVisualKind): string | undefined {
   return iconByKind.get(kind)
+}
+
+/** SAPBPMN marker glyph for a kind, or undefined when it has no internal marker. */
+export function markerOf(kind: CpiVisualKind): string | undefined {
+  return markerByKind.get(kind)
 }
