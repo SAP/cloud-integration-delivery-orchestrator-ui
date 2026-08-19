@@ -105,9 +105,9 @@ export default class CpiRenderer extends BaseRenderer {
         return this.drawGateway(parentGfx, shape, kind)
       case 'container':
         return this.drawContainer(parentGfx, shape, kind)
+      case 'event':
+        return this.drawEvent(parentGfx, shape, kind)
       default:
-        // event — delegate the glyph (default renderer draws the event trigger)
-        // then add the outline.
         return this.delegateWithOutline(parentGfx, shape, attrs, kind)
     }
   }
@@ -165,6 +165,59 @@ export default class CpiRenderer extends BaseRenderer {
     }
 
     return path
+  }
+
+  /**
+   * CPI renders events as white circles with gray stroke. The stroke-width
+   * distinguishes event roles: startEvent=1, endEvent=3 (intermediate/boundary
+   * default to 1 for now). Internal trigger glyphs use SAPBPMN markers driven
+   * by the catalog `marker` field (e.g. U+E001 for message start event).
+   */
+  private drawEvent(parentGfx: SVGElement, shape: ShapeLike, kind: CpiVisualKind | undefined,): SVGElement {
+    const width = safeDimension(shape.width, 32)
+    const height = safeDimension(shape.height, 32)
+    const r = Math.min(width, height) / 2
+
+    // Stroke-width from element type: endEvent=3 (thick), others=1 (thin)
+    const bo = asRecord(shape.businessObject)
+    const type = typeof bo?.$type === 'string' ? bo.$type.split(':').at(-1)?.toLowerCase() : ''
+    const strokeWidth = type === 'endevent' ? '3' : '1'
+
+    const circle = create('circle', {
+      cx: r,
+      cy: r,
+      r,
+    })
+    circle.setAttribute('fill', 'rgb(255, 255, 255)')
+    circle.setAttribute('stroke', 'rgb(169, 180, 190)')
+    circle.setAttribute('stroke-width', strokeWidth)
+    markCpiOutline(circle, kind)
+    append(parentGfx, circle)
+
+    // Internal SAPBPMN trigger marker (e.g. envelope for message events).
+    // All markers use fill rgb(29,45,62). Start events add stroke for outline
+    // weight; end events use fill only (solid, no stroke).
+    // Vertical position uses CPI's baseline offset (y ≈ r*1.375 for 16px font).
+    const marker = kind !== undefined ? markerOf(kind) : undefined
+    if (marker) {
+      const isEnd = type === 'endevent'
+      const text = create('text', {
+        x: r,
+        y: r * 1.375,
+      })
+      text.setAttribute('text-anchor', 'middle')
+      text.setAttribute('font-family', 'SAPBPMN')
+      text.setAttribute('font-size', '16')
+      text.setAttribute('fill', 'rgb(29, 45, 62)')
+      if (!isEnd) {
+        text.setAttribute('stroke', 'rgb(29, 45, 62)')
+      }
+      text.textContent = marker
+      classes(text).add('cpi-event-marker')
+      append(parentGfx, text)
+    }
+
+    return circle
   }
 
   /**

@@ -56,6 +56,7 @@ export type CpiVisualKind =
   | 'ErrorStartEvent'
   | 'StartTimerEvent'
   | 'MessageEndEvent'
+  | 'ErrorEndEvent'
   | 'EndEvent'
   | 'ProcessCall'
   | 'Decryptor'
@@ -257,15 +258,15 @@ export const CPI_COMPONENT_CATALOG: readonly CpiComponentSpec[] = [
     family: 'container',
     aliases: ['erroreventsubprocesstemplate'],
   },
-  // Event members refine the change-strip label / diff category only; the glyph
-  // (envelope / bolt / clock) and start/end border are drawn by the default
-  // bpmn-js renderer, so event kinds carry no icon (RFC 010 doc 07 §3.5). The
-  // recognizable values are CPI activityType / cmdVariant cname; error and timer
-  // events keep them nested under their eventDefinition (scanned by cpiMetadata).
+  // Event members: the `marker` field drives the SAPBPMN trigger glyph inside
+  // the event circle (e.g. envelope for message events). Events without a marker
+  // render as plain circles (e.g. none start/end events). The stroke-width
+  // (start=1, end=3) is determined by element type in drawEvent, not by kind.
   {
     kind: 'MessageStartEvent',
     family: 'event',
     aliases: ['messagestartevent'],
+    marker: '\uE001',
   },
   {
     kind: 'StartEvent',
@@ -276,6 +277,7 @@ export const CPI_COMPONENT_CATALOG: readonly CpiComponentSpec[] = [
     kind: 'ErrorStartEvent',
     family: 'event',
     aliases: ['errorstartevent', 'starterrorevent'],
+    marker: '\uE020',
   },
   {
     kind: 'StartTimerEvent',
@@ -286,6 +288,13 @@ export const CPI_COMPONENT_CATALOG: readonly CpiComponentSpec[] = [
     kind: 'MessageEndEvent',
     family: 'event',
     aliases: ['messageendevent'],
+    marker: '\uE002',
+  },
+  {
+    kind: 'ErrorEndEvent',
+    family: 'event',
+    aliases: ['errorendevent'],
+    marker: '\uE021',
   },
   {
     kind: 'EndEvent',
