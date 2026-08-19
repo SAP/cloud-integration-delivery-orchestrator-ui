@@ -103,9 +103,11 @@ export default class CpiRenderer extends BaseRenderer {
         return this.drawPool(parentGfx, shape)
       case 'gateway':
         return this.drawGateway(parentGfx, shape, kind)
+      case 'container':
+        return this.drawContainer(parentGfx, shape, kind)
       default:
-        // event / container — delegate the glyph (default renderer draws the
-        // event trigger / container) then add the outline.
+        // event — delegate the glyph (default renderer draws the event trigger)
+        // then add the outline.
         return this.delegateWithOutline(parentGfx, shape, attrs, kind)
     }
   }
@@ -163,6 +165,48 @@ export default class CpiRenderer extends BaseRenderer {
     }
 
     return path
+  }
+
+  /**
+   * CPI renders subProcess containers as white rounded rectangles with a dashed
+   * gray border (stroke-dasharray 2,2) and a top-aligned name label. Matches the
+   * computed styles: fill=white, stroke=rgb(169,180,190), rx/ry=3, dasharray=2,2.
+   */
+  private drawContainer(parentGfx: SVGElement, shape: ShapeLike, kind: CpiVisualKind | undefined,): SVGElement {
+    const width = safeDimension(shape.width, 414)
+    const height = safeDimension(shape.height, 140)
+
+    const rect = create('rect', {
+      x: 0,
+      y: 0,
+      width,
+      height,
+      rx: 3,
+      ry: 3,
+    })
+    rect.setAttribute('fill', 'rgb(255, 255, 255)')
+    rect.setAttribute('stroke', 'rgb(169, 180, 190)')
+    rect.setAttribute('stroke-width', '1')
+    rect.setAttribute('stroke-dasharray', '2,2')
+    markCpiOutline(rect, kind)
+    append(parentGfx, rect)
+
+    const name = getName(shape)
+    if (name) {
+      const text = create('text', {
+        x: width / 2,
+        y: 18,
+      })
+      text.setAttribute('text-anchor', 'middle')
+      text.setAttribute('font-size', '12')
+      text.setAttribute('font-family', 'Arial, Helvetica, sans-serif')
+      text.setAttribute('fill', 'rgb(19, 30, 41)')
+      text.textContent = name
+      classes(text).add('djs-label')
+      append(parentGfx, text)
+    }
+
+    return rect
   }
 
   private drawActivity(parentGfx: SVGElement, shape: ShapeLike, kind: CpiVisualKind | undefined,): SVGElement {
@@ -264,9 +308,9 @@ export default class CpiRenderer extends BaseRenderer {
       })
       text.setAttribute('text-anchor', 'middle')
       text.setAttribute('dominant-baseline', 'middle')
-      text.setAttribute('font-size', '14')
+      text.setAttribute('font-size', '12')
       text.setAttribute('font-family', 'Arial, Helvetica, sans-serif')
-      text.setAttribute('fill', 'rgb(19, 30, 41)')
+      text.setAttribute('fill', 'rgb(29, 45, 62)')
       text.textContent = name
       classes(text).add('djs-label')
       append(parentGfx, text)
@@ -325,7 +369,7 @@ export default class CpiRenderer extends BaseRenderer {
       })
       text.setAttribute('font-size', '12')
       text.setAttribute('font-family', 'Arial, Helvetica, sans-serif')
-      text.setAttribute('fill', 'rgb(19, 30, 41)')
+      text.setAttribute('fill', 'rgb(29, 45, 62)')
       text.textContent = name
       classes(text).add('djs-label')
       append(parentGfx, text)

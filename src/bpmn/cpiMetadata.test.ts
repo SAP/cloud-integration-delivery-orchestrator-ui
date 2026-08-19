@@ -39,6 +39,7 @@ describe('classifyCpiElement', () => {
     ['Multicast', 'Multicast'],
     ['SequentialMulticast', 'SequentialMulticast'],
     ['Join', 'Join'],
+    ['ErrorEventSubProcessTemplate', 'ExceptionSubprocess'],
     ['Send', 'Send'],
     ['ExternalCall', 'ExternalCall'],
     ['Decoder', 'Decoder'],

@@ -64,6 +64,7 @@ export type CpiVisualKind =
   | 'Splitter'
   | 'Persist'
   | 'DataStoreOperation'
+  | 'ExceptionSubprocess'
 
 /**
  * Single source of truth for one member kind: its family, the metadata aliases
@@ -250,6 +251,11 @@ export const CPI_COMPONENT_CATALOG: readonly CpiComponentSpec[] = [
     aliases: ['integrationprocess'],
     participantTypes: ['integrationprocess'],
     icon: processIcon,
+  },
+  {
+    kind: 'ExceptionSubprocess',
+    family: 'container',
+    aliases: ['erroreventsubprocesstemplate'],
   },
   // Event members refine the change-strip label / diff category only; the glyph
   // (envelope / bolt / clock) and start/end border are drawn by the default
