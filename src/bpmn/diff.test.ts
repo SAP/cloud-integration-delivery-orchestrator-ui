@@ -92,7 +92,7 @@ describe('computeBpmnDiff', () => {
     ])
   })
 
-  it('surfaces top-level attrs for name changes', async () => {
+  it('surfaces top-level attrs for name changes with corrected old→new direction', async () => {
     const result = await computeBpmnDiff(
       buildBpmnFixture({ taskName: 'Before' }),
       buildBpmnFixture({ taskName: 'After' }),
@@ -101,7 +101,35 @@ describe('computeBpmnDiff', () => {
     const changed = result.changes.find(c => c.id === 'Task_1' && c.status === 'changed')
     expect(changed).toBeDefined()
     expect(changed!.attrs).toBeDefined()
-    expect(changed!.attrs!.name).toBeDefined()
+    // Data layer corrects bpmn-js-differ's inverted oldValue/newValue: left is
+    // old, right is new.
+    expect(changed!.attrs!.name).toEqual({ oldValue: 'Before', newValue: 'After' })
+  })
+
+  it('lists the added element ifl:property with the new side only', async () => {
+    const result = await computeBpmnDiff(
+      buildBpmnFixture(),
+      buildBpmnFixture({ includeExtraTask: true }),
+    )
+
+    const added = result.changes.find(c => c.id === 'Task_2' && c.status === 'added')
+    expect(added).toBeDefined()
+    expect(added!.properties).toEqual([
+      { key: 'retry', oldValue: undefined, newValue: '3' },
+    ])
+  })
+
+  it('lists the removed element ifl:property with the old side only', async () => {
+    const result = await computeBpmnDiff(
+      buildBpmnFixture({ includeExtraTask: true }),
+      buildBpmnFixture(),
+    )
+
+    const removed = result.changes.find(c => c.id === 'Task_2' && c.status === 'removed')
+    expect(removed).toBeDefined()
+    expect(removed!.properties).toEqual([
+      { key: 'retry', oldValue: '3', newValue: undefined },
+    ])
   })
 
   it('does not add properties when ifl:property pairs are unchanged', async () => {

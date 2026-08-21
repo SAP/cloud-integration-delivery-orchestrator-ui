@@ -88,6 +88,28 @@ function compareText(left: string, right: string): number {
   return 0
 }
 
+/**
+ * bpmn-js-differ@3.2.0 stores `_changed[id].attrs[prop]` with oldValue/newValue
+ * INVERTED: its ChangeHandler.changed signature names params (newValue,
+ * oldValue) but the walker passes jsondiffpatch's [old, new] order, so the
+ * stored `oldValue` field actually holds the new value and vice versa. Swap here
+ * so the data layer exposes semantically-correct direction and consumers never
+ * need to re-swap.
+ *
+ * WARNING: this is coupled to the pinned differ version. If bpmn-js-differ is
+ * bumped, re-verify the inversion still holds (an upstream fix would turn this
+ * swap into a double-inversion).
+ */
+function correctAttrDirection(
+  attrs: Record<string, BpmnAttributeChange>,
+): Record<string, BpmnAttributeChange> {
+  const corrected: Record<string, BpmnAttributeChange> = {}
+  for (const [key, change] of Object.entries(attrs)) {
+    corrected[key] = { oldValue: change.newValue, newValue: change.oldValue }
+  }
+  return corrected
+}
+
 export function classifyBpmnDiff(
   raw: BpmnDiffResult,
 ): Pick<BpmnDiffViewModel, 'changes'> {
@@ -114,7 +136,9 @@ export function classifyBpmnDiff(
     if (claimed.has(id)) continue
 
     claimed.add(id)
-    changes.push(toChange(id, changed.model, 'changed', layoutIds, changed.attrs))
+    changes.push(
+      toChange(id, changed.model, 'changed', layoutIds, correctAttrDirection(changed.attrs)),
+    )
   }
 
   append(Object.entries(raw._layoutChanged), 'layout-only')
@@ -151,6 +175,9 @@ function toWarningMessage(warning: unknown): string {
 // --- ifl:property extraction for Tier 2 ---
 
 function diffProperties(leftElement: unknown, rightElement: unknown,): BpmnPropertyChange[] | undefined {
+  // Assumes ifl:property keys are unique per element (CPI exports do not repeat
+  // them). new Map collapses any duplicate key to its last occurrence, so a
+  // duplicate-key change would be missed — accepted given the invariant.
   const leftPairs = new Map(iflPropertyEntries(leftElement))
   const rightPairs = new Map(iflPropertyEntries(rightElement))
 
@@ -166,6 +193,26 @@ function diffProperties(leftElement: unknown, rightElement: unknown,): BpmnPrope
   }
 
   return changes.length > 0 ? changes : undefined
+}
+
+/**
+ * Field-level ifl:property list for a whole-element add/remove: an added element
+ * has no "old" side (every property is new → oldValue undefined) and a removed
+ * element has no "new" side (newValue undefined). Entries keep list order and
+ * any duplicate keys, unlike the Map-collapsed `changed` path.
+ */
+function sidePropertyList(
+  element: unknown,
+  status: 'added' | 'removed',
+): BpmnPropertyChange[] | undefined {
+  const entries = iflPropertyEntries(element)
+  if (entries.length === 0) return undefined
+
+  return entries.map(([key, value]) =>
+    status === 'added'
+      ? { key, oldValue: undefined, newValue: value }
+      : { key, oldValue: value, newValue: undefined },
+  )
 }
 
 async function parse(xml: string, side: BpmnDiffSide) {
@@ -189,22 +236,28 @@ export async function computeBpmnDiff(
     diff(left.rootElement, right.rootElement),
   )
 
-  // Enrich 'changed' entries with ifl:property-level detail (Tier 2).
+  // Enrich entries with ifl:property-level detail (Tier 2).
   // A pure ifl:property change (nested in extensionElements, no top-level attr
   // change) still lands in 'changed': bpmn-js-differ's *detection* walks the
   // whole moddle subtree, but its *recording* into `attrs` only covers top-level
   // tracked scalars — so such elements are 'changed' with empty `attrs`. This
   // gate therefore correctly admits them; diffProperties supplies the detail.
+  // added/removed carry no per-property diff from the differ, so we list the
+  // present side's ifl:property directly (single-sided detail).
   for (const change of classified.changes) {
-    if (change.status !== 'changed') continue
+    if (change.status === 'changed') {
+      const leftEl = left.elementsById[change.id]
+      const rightEl = right.elementsById[change.id]
+      if (leftEl === undefined || rightEl === undefined) continue
 
-    const leftEl = left.elementsById[change.id]
-    const rightEl = right.elementsById[change.id]
-    if (leftEl === undefined || rightEl === undefined) continue
-
-    const properties = diffProperties(leftEl, rightEl)
-    if (properties !== undefined) {
-      change.properties = properties
+      const properties = diffProperties(leftEl, rightEl)
+      if (properties !== undefined) change.properties = properties
+    } else if (change.status === 'added') {
+      const properties = sidePropertyList(right.elementsById[change.id], 'added')
+      if (properties !== undefined) change.properties = properties
+    } else if (change.status === 'removed') {
+      const properties = sidePropertyList(left.elementsById[change.id], 'removed')
+      if (properties !== undefined) change.properties = properties
     }
   }
 

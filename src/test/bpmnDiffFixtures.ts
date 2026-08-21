@@ -21,7 +21,14 @@ export function buildBpmnFixture({
 }: FixtureOptions = {}): string {
   const extraTask = includeExtraTask
     ? `
-      <bpmn2:serviceTask id="Task_2" name="Extra Task" />
+      <bpmn2:serviceTask id="Task_2" name="Extra Task">
+        <bpmn2:extensionElements>
+          <ifl:property>
+            <key>retry</key>
+            <value>3</value>
+          </ifl:property>
+        </bpmn2:extensionElements>
+      </bpmn2:serviceTask>
       <bpmn2:sequenceFlow id="Flow_2" sourceRef="Task_1" targetRef="Task_2" />`
     : ''
   const extraShape = includeExtraTask

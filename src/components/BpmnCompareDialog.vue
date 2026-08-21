@@ -682,9 +682,9 @@ onBeforeUnmount(() => {
                   <template v-for="(detail, prop) in change.attrs" :key="prop">
                     <dt>{{ prop }}</dt>
                     <dd>
-                      <span class="attr-old">{{ formatAttrValue(detail.newValue) }}</span>
+                      <span class="attr-old">{{ formatAttrValue(detail.oldValue) }}</span>
                       <span class="attr-arrow">&rarr;</span>
-                      <span class="attr-new">{{ formatAttrValue(detail.oldValue) }}</span>
+                      <span class="attr-new">{{ formatAttrValue(detail.newValue) }}</span>
                     </dd>
                   </template>
                 </dl>
