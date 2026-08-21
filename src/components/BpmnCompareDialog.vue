@@ -63,6 +63,7 @@ const phase = ref<ViewPhase>('idle')
 const hideLayoutOnly = ref(true)
 const leftReady = ref(false)
 const rightReady = ref(false)
+const expandedChangeId = ref<string | null>(null)
 
 let generation = 0
 let closeEmitted = !props.open
@@ -294,8 +295,18 @@ function handleLayoutToggle(event: Event) {
 }
 
 function focusChange(change: BpmnElementChange) {
+  expandedChangeId.value = expandedChangeId.value === change.id ? null : change.id
   runViewerAction('left', viewer => viewer.focus(change.id))
   runViewerAction('right', viewer => viewer.focus(change.id))
+}
+
+function formatAttrValue(value: unknown): string {
+  if (value === null || value === undefined) return '—'
+  if (typeof value === 'string') return value.length > 60 ? value.slice(0, 57) + '…' : value
+  if (typeof value === 'number' || typeof value === 'boolean') return String(value)
+  if (Array.isArray(value)) return `[${value.length} items]`
+  if (typeof value === 'object') return '[object]'
+  return String(value)
 }
 
 async function initialize() {
@@ -641,13 +652,42 @@ onBeforeUnmount(() => {
                 v-else
                 :key="change.id"
                 class="change-chip"
-                :class="`change-chip--${change.status}`"
+                :class="[
+                  `change-chip--${change.status}`,
+                  { 'change-chip--expanded': expandedChangeId === change.id },
+                ]"
                 type="button"
                 @click="focusChange(change)"
               >
                 <span class="change-chip__status">{{ change.status }}</span>
                 <strong>{{ change.name || change.id }}</strong>
                 <small>{{ change.type }}</small>
+                <dl
+                  v-if="expandedChangeId === change.id && change.properties"
+                  class="change-chip__attrs"
+                >
+                  <template v-for="prop in change.properties" :key="prop.key">
+                    <dt>{{ prop.key }}</dt>
+                    <dd>
+                      <span class="attr-old">{{ prop.oldValue ?? '—' }}</span>
+                      <span class="attr-arrow">&rarr;</span>
+                      <span class="attr-new">{{ prop.newValue ?? '—' }}</span>
+                    </dd>
+                  </template>
+                </dl>
+                <dl
+                  v-else-if="expandedChangeId === change.id && change.attrs"
+                  class="change-chip__attrs"
+                >
+                  <template v-for="(detail, prop) in change.attrs" :key="prop">
+                    <dt>{{ prop }}</dt>
+                    <dd>
+                      <span class="attr-old">{{ formatAttrValue(detail.newValue) }}</span>
+                      <span class="attr-arrow">&rarr;</span>
+                      <span class="attr-new">{{ formatAttrValue(detail.oldValue) }}</span>
+                    </dd>
+                  </template>
+                </dl>
               </button>
 
               <div
@@ -941,6 +981,47 @@ onBeforeUnmount(() => {
   color: var(--sapContent_LabelColor);
   font-size: var(--sapFontSmallSize);
   white-space: nowrap;
+}
+
+.change-chip--expanded {
+  max-width: 24rem;
+}
+
+.change-chip__attrs {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.125rem 0.5rem;
+  margin: 0.25rem 0 0;
+  padding: 0.25rem 0 0;
+  border-top: 1px solid var(--sapGroup_ContentBorderColor);
+  font-size: var(--sapFontSmallSize);
+}
+
+.change-chip__attrs dt {
+  color: var(--sapContent_LabelColor);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.change-chip__attrs dd {
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.change-chip__attrs .attr-old {
+  color: var(--sapNegativeTextColor, #bb0000);
+  text-decoration: line-through;
+}
+
+.change-chip__attrs .attr-arrow {
+  margin: 0 0.25rem;
+  color: var(--sapContent_LabelColor);
+}
+
+.change-chip__attrs .attr-new {
+  color: var(--sapPositiveTextColor, #107e3e);
 }
 
 .failure-list {

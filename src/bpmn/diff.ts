@@ -1,9 +1,11 @@
 import { BpmnModdle } from 'bpmn-moddle'
 import {
   diff,
+  type BpmnAttributeChange,
   type BpmnDiffElement,
   type BpmnDiffResult,
 } from 'bpmn-js-differ'
+import { iflPropertyEntries } from './moddleProperties'
 
 export type BpmnDiffSide = 'left' | 'right'
 export type BpmnChangeStatus =
@@ -11,6 +13,12 @@ export type BpmnChangeStatus =
   | 'removed'
   | 'changed'
   | 'layout-only'
+// Tier 2 property-level(ifl:property) diff
+export interface BpmnPropertyChange {
+  key: string
+  oldValue: string | undefined
+  newValue: string | undefined
+}
 
 export interface BpmnElementChange {
   id: string
@@ -18,6 +26,10 @@ export interface BpmnElementChange {
   name?: string
   status: BpmnChangeStatus
   alsoLayoutChanged: boolean
+  /** Property-level detail for 'changed' elements (absent for added/removed/layout-only). */
+  attrs?: Record<string, BpmnAttributeChange>
+  /** CPI ifl:property key/value diff for 'changed' elements. */
+  properties?: BpmnPropertyChange[]
 }
 
 export interface BpmnDiffViewModel {
@@ -50,6 +62,7 @@ function toChange(
   model: BpmnDiffElement,
   status: BpmnChangeStatus,
   layoutIds: ReadonlySet<string>,
+  attrs?: Record<string, BpmnAttributeChange>,
 ): BpmnElementChange {
   const change: BpmnElementChange = {
     id,
@@ -60,6 +73,10 @@ function toChange(
 
   if (model.name !== undefined) {
     change.name = model.name
+  }
+
+  if (attrs !== undefined && Object.keys(attrs).length > 0) {
+    change.attrs = attrs
   }
 
   return change
@@ -92,13 +109,14 @@ export function classifyBpmnDiff(
 
   append(Object.entries(raw._added), 'added')
   append(Object.entries(raw._removed), 'removed')
-  append(
-    Object.entries(raw._changed).map(([id, change]) => [
-      id,
-      change.model,
-    ] as const),
-    'changed',
-  )
+
+  for (const [id, changed] of Object.entries(raw._changed)) {
+    if (claimed.has(id)) continue
+
+    claimed.add(id)
+    changes.push(toChange(id, changed.model, 'changed', layoutIds, changed.attrs))
+  }
+
   append(Object.entries(raw._layoutChanged), 'layout-only')
 
   changes.sort((left, right) => {
@@ -130,6 +148,26 @@ function toWarningMessage(warning: unknown): string {
   return String(warning)
 }
 
+// --- ifl:property extraction for Tier 2 ---
+
+function diffProperties(leftElement: unknown, rightElement: unknown,): BpmnPropertyChange[] | undefined {
+  const leftPairs = new Map(iflPropertyEntries(leftElement))
+  const rightPairs = new Map(iflPropertyEntries(rightElement))
+
+  const changes: BpmnPropertyChange[] = []
+  const allKeys = new Set([...leftPairs.keys(), ...rightPairs.keys()])
+
+  for (const key of allKeys) {
+    const oldVal = leftPairs.get(key)
+    const newVal = rightPairs.get(key)
+    if (oldVal !== newVal) {
+      changes.push({ key, oldValue: oldVal, newValue: newVal })
+    }
+  }
+
+  return changes.length > 0 ? changes : undefined
+}
+
 async function parse(xml: string, side: BpmnDiffSide) {
   try {
     const moddle = new BpmnModdle()
@@ -150,6 +188,25 @@ export async function computeBpmnDiff(
   const classified = classifyBpmnDiff(
     diff(left.rootElement, right.rootElement),
   )
+
+  // Enrich 'changed' entries with ifl:property-level detail (Tier 2).
+  // A pure ifl:property change (nested in extensionElements, no top-level attr
+  // change) still lands in 'changed': bpmn-js-differ's *detection* walks the
+  // whole moddle subtree, but its *recording* into `attrs` only covers top-level
+  // tracked scalars — so such elements are 'changed' with empty `attrs`. This
+  // gate therefore correctly admits them; diffProperties supplies the detail.
+  for (const change of classified.changes) {
+    if (change.status !== 'changed') continue
+
+    const leftEl = left.elementsById[change.id]
+    const rightEl = right.elementsById[change.id]
+    if (leftEl === undefined || rightEl === undefined) continue
+
+    const properties = diffProperties(leftEl, rightEl)
+    if (properties !== undefined) {
+      change.properties = properties
+    }
+  }
 
   return {
     ...classified,

@@ -4,112 +4,22 @@ import {
   type CpiVisualKind,
   type ShapeFamily,
 } from './cpiCatalog'
+import {
+  asRecord,
+  iflPropertyEntries,
+  localName,
+  stringValue,
+  type UnknownRecord,
+} from './moddleProperties'
 
 export type { CpiVisualKind, ShapeFamily } from './cpiCatalog'
 
-type UnknownRecord = Record<string, unknown>
-
-function asRecord(value: unknown): UnknownRecord | undefined {
-  return value !== null && typeof value === 'object'
-    ? value as UnknownRecord
-    : undefined
-}
-
-function stringValue(value: unknown): string | undefined {
-  if (typeof value === 'string') return value
-
-  const object = asRecord(value)
-  if (object === undefined) return undefined
-  if (typeof object.$body === 'string') return object.$body
-  if (typeof object.value === 'string') return object.value
-  return undefined
-}
-
-function localName(value: unknown): string | undefined {
-  if (typeof value !== 'string') return undefined
-  return value.split(':').at(-1)?.toLowerCase()
-}
-
-function childValue(property: UnknownRecord, childName: 'key' | 'value',): string | undefined {
-  if (!Array.isArray(property.$children)) return undefined
-
-  for (const child of property.$children) {
-    const object = asRecord(child)
-    if (object === undefined || localName(object.$type) !== childName) continue
-
-    const value = stringValue(object)
-    if (value !== undefined) return value
-  }
-
-  return undefined
-}
-
-function propertyPart(property: UnknownRecord,part: 'key' | 'value',): string | undefined {
-  return stringValue(property[part]) ?? childValue(property, part)
-}
-
-/**
- * Extension-element sources to scan for `ifl:property` members: the element's
- * own `extensionElements` + each `eventDefinitions[*].extensionElements`.
- * 
- * For example: Error / timer events keep their CPI metadata nested under the
- * eventDefinition:
- * <bpmn2:errorEventDefinition>
- *   <bpmn2:extensionElements>
- *    <ifl:property></ifl:property>
- *    <ifl:property></ifl:property>
- *    ...
- *   </bpmn2:extensionElements>
- * </bpmn2:errorEventDefinition>
- * 
- * rather than directly on the event (RFC 010 doc 07 §3.5), so both locations
- * must be consulted. Non-event elements have no `eventDefinitions`, so this is a
- * no-op for them. Direct sources are listed first to preserve source priority.
- */
-function extensionSources(businessObject: UnknownRecord): UnknownRecord[] {
-  const sources: UnknownRecord[] = []
-  // <bpmn2:extensionElements> as direct member
-  const direct = asRecord(businessObject.extensionElements)
-  if (direct !== undefined) sources.push(direct)
-
-  // nested members under <bpmn2:eventDefinitions[*].extensionElements> (RFC 010 doc 07 §3.5)
-  if (Array.isArray(businessObject.eventDefinitions)) {
-    for (const definition of businessObject.eventDefinitions) {
-      const nested = asRecord(asRecord(definition)?.extensionElements)
-      if (nested !== undefined) sources.push(nested)
-    }
-  }
-
-  // participant processRef: Local Integration Process keeps its metadata on the
-  // referenced process, not on the participant itself (RFC 010 doc 07 §3.1).
-  const processRef = asRecord(businessObject.processRef)
-  if (processRef !== undefined) {
-    const processExt = asRecord(processRef.extensionElements)
-    if (processExt !== undefined) sources.push(processExt)
-  }
-
-  return sources
-}
-
 function extensionProperties(businessObject: UnknownRecord, expectedKey: string): string[] {
+  const target = expectedKey.toLowerCase()
   const values: string[] = []
 
-  for (const source of extensionSources(businessObject)) {
-    const candidates = [
-      ...(Array.isArray(source.values) ? source.values : []),
-      ...(Array.isArray(source.$children) ? source.$children : []),
-    ]
-
-    for (const candidate of candidates) {
-      const property = asRecord(candidate)
-      if (property === undefined) continue
-
-      const key = propertyPart(property, 'key')
-      if (key?.trim().toLowerCase() !== expectedKey.toLowerCase()) continue
-
-      const value = propertyPart(property, 'value')
-      if (value !== undefined) values.push(value)
-    }
+  for (const [key, value] of iflPropertyEntries(businessObject)) {
+    if (key.trim().toLowerCase() === target) values.push(value)
   }
 
   return values

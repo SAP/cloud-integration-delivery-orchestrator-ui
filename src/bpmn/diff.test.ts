@@ -79,6 +79,42 @@ describe('computeBpmnDiff', () => {
     ]))
   })
 
+  it('surfaces ifl:property key/value detail for changed elements', async () => {
+    const result = await computeBpmnDiff(
+      buildBpmnFixture({ iflValue: '30' }),
+      buildBpmnFixture({ iflValue: '31' }),
+    )
+
+    const changed = result.changes.find(c => c.id === 'Task_1' && c.status === 'changed')
+    expect(changed).toBeDefined()
+    expect(changed!.properties).toEqual([
+      { key: 'transactionTimeout', oldValue: '30', newValue: '31' },
+    ])
+  })
+
+  it('surfaces top-level attrs for name changes', async () => {
+    const result = await computeBpmnDiff(
+      buildBpmnFixture({ taskName: 'Before' }),
+      buildBpmnFixture({ taskName: 'After' }),
+    )
+
+    const changed = result.changes.find(c => c.id === 'Task_1' && c.status === 'changed')
+    expect(changed).toBeDefined()
+    expect(changed!.attrs).toBeDefined()
+    expect(changed!.attrs!.name).toBeDefined()
+  })
+
+  it('does not add properties when ifl:property pairs are unchanged', async () => {
+    const result = await computeBpmnDiff(
+      buildBpmnFixture({ taskName: 'Before', iflValue: '30' }),
+      buildBpmnFixture({ taskName: 'After', iflValue: '30' }),
+    )
+
+    const changed = result.changes.find(c => c.id === 'Task_1' && c.status === 'changed')
+    expect(changed).toBeDefined()
+    expect(changed!.properties).toBeUndefined()
+  })
+
   it('classifies Task_2 as added when the extra task appears', async () => {
     const result = await computeBpmnDiff(
       buildBpmnFixture(),
