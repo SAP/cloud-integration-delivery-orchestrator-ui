@@ -3,6 +3,7 @@ import type ElementRegistry from 'diagram-js/lib/core/ElementRegistry'
 import type GraphicsFactory from 'diagram-js/lib/core/GraphicsFactory'
 import type EventBus from 'diagram-js/lib/core/EventBus'
 import type Canvas from 'diagram-js/lib/core/Canvas'
+import type { ElementLike, ConnectionLike } from 'diagram-js/lib/core/Types'
 
 /**
  * After import, CPI .iflw files have connection waypoints targeting shape centers.
@@ -18,9 +19,10 @@ function ImportConnectionCropper(
   const docking = new CroppingConnectionDocking(elementRegistry, graphicsFactory)
 
   eventBus.on('import.done', () => {
+    // filter yields ElementLike[]; the waypoints guard narrows them to connections.
     const connections = elementRegistry.filter(
-      (el: { waypoints?: unknown }) => !!el.waypoints,
-    )
+      (el: ElementLike) => !!el.waypoints,
+    ) as ConnectionLike[]
 
     for (const connection of connections) {
       if (!connection.source || !connection.target) continue
