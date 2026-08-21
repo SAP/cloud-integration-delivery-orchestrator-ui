@@ -50,6 +50,10 @@ const overlayClass: Record<BpmnChangeStatus, string> = {
   'layout-only': 'bpmn-diff-badge bpmn-diff-badge--layout',
 }
 
+// Selection emphasis is layered ON TOP of the always-on status markers, tracked
+// separately so it never touches status-marker ownership.
+const SELECTED_MARKER = 'bpmn-diff-selected'
+
 function belongsOnSide(status: BpmnChangeStatus, side: ViewerSide) {
   return (
     status === 'changed' ||
@@ -73,6 +77,7 @@ export function createBpmnViewer(
   }> = []
   let imported = false
   let destroyed = false
+  let selectedId: string | null = null
 
   const services = () => ({
     canvas: viewer.get<Canvas>('canvas'),
@@ -100,6 +105,68 @@ export function createBpmnViewer(
     }
   }
 
+  // Center the element in the viewport, keeping the current zoom level.
+  const focusElement = (elementId: string) => {
+    if (!imported || destroyed) return
+
+    const { canvas, registry } = services()
+    const element = registry.get(elementId)
+    if (!element) return
+
+    // Determine element center — shapes have x/y/width/height, connections have waypoints
+    const shape = element as unknown as {
+      x?: number; y?: number; width?: number; height?: number
+      waypoints?: Array<{ x: number; y: number }>
+    }
+
+    let centerX: number
+    let centerY: number
+
+    if (shape.waypoints && shape.waypoints.length > 0) {
+      // Center on the midpoint of the connection span (first→last), not the
+      // middle array element — for a 2-point connection the latter is the
+      // endpoint, not the center.
+      const first = shape.waypoints[0]
+      const last = shape.waypoints[shape.waypoints.length - 1]
+      centerX = (first.x + last.x) / 2
+      centerY = (first.y + last.y) / 2
+    } else if (
+      typeof shape.x === 'number' && typeof shape.y === 'number'
+      && typeof shape.width === 'number' && typeof shape.height === 'number'
+    ) {
+      centerX = shape.x + shape.width / 2
+      centerY = shape.y + shape.height / 2
+    } else {
+      return
+    }
+
+    if (!isFinite(centerX) || !isFinite(centerY)) return
+
+    const currentViewbox = canvas.viewbox() as {
+      x: number; y: number; width: number; height: number
+    }
+    if (!isFinite(currentViewbox.width) || !isFinite(currentViewbox.height)) return
+
+    canvas.viewbox({
+      x: centerX - currentViewbox.width / 2,
+      y: centerY - currentViewbox.height / 2,
+      width: currentViewbox.width,
+      height: currentViewbox.height,
+    })
+  }
+
+  const clearSelection = () => {
+    if (selectedId === null) return
+    const previous = selectedId
+    selectedId = null
+    if (!imported || destroyed) return
+    try {
+      services().canvas.removeMarker(previous, SELECTED_MARKER)
+    } catch {
+      // ignore if the element/canvas is already gone
+    }
+  }
+
   return {
     async importXml(xml: string) {
       if (destroyed) {
@@ -109,6 +176,7 @@ export function createBpmnViewer(
       imported = false
       clearMarkers()
       clearOverlays()
+      clearSelection()
       const result = await viewer.importXML(prepareIflowXmlForRendering(xml)) // NOTE: entry point for generation businessObject
       if (!destroyed) imported = true
       return result
@@ -154,52 +222,49 @@ export function createBpmnViewer(
     },
 
     focus(elementId: string) {
+      focusElement(elementId)
+    },
+
+    /**
+     * Emphasize a single element (selected state) on top of the always-on status
+     * markers and center it. Replaces any previous selection. Unknown ids clear
+     * the selection.
+     */
+    select(elementId: string) {
       if (!imported || destroyed) return
 
       const { canvas, registry } = services()
-      const element = registry.get(elementId)
-      if (!element) return
-
-      // Determine element center — shapes have x/y/width/height, connections have waypoints
-      const shape = element as unknown as {
-        x?: number; y?: number; width?: number; height?: number
-        waypoints?: Array<{ x: number; y: number }>
-      }
-
-      let centerX: number
-      let centerY: number
-
-      if (shape.waypoints && shape.waypoints.length > 0) {
-        // Center on the midpoint of the connection span (first→last), not the
-        // middle array element — for a 2-point connection the latter is the
-        // endpoint, not the center.
-        const first = shape.waypoints[0]
-        const last = shape.waypoints[shape.waypoints.length - 1]
-        centerX = (first.x + last.x) / 2
-        centerY = (first.y + last.y) / 2
-      } else if (
-        typeof shape.x === 'number' && typeof shape.y === 'number'
-        && typeof shape.width === 'number' && typeof shape.height === 'number'
-      ) {
-        centerX = shape.x + shape.width / 2
-        centerY = shape.y + shape.height / 2
-      } else {
+      if (!registry.get(elementId)) {
+        clearSelection()
         return
       }
 
-      if (!isFinite(centerX) || !isFinite(centerY)) return
-
-      const currentViewbox = canvas.viewbox() as {
-        x: number; y: number; width: number; height: number
+      if (selectedId !== null && selectedId !== elementId) {
+        try { canvas.removeMarker(selectedId, SELECTED_MARKER) } catch { /* ignore */ }
       }
-      if (!isFinite(currentViewbox.width) || !isFinite(currentViewbox.height)) return
+      canvas.addMarker(elementId, SELECTED_MARKER)
+      selectedId = elementId
+      focusElement(elementId)
+    },
 
-      canvas.viewbox({
-        x: centerX - currentViewbox.width / 2,
-        y: centerY - currentViewbox.height / 2,
-        width: currentViewbox.width,
-        height: currentViewbox.height,
-      })
+    clearSelection() {
+      clearSelection()
+    },
+
+    /**
+     * Subscribe to canvas element clicks (bidirectional binding). Returns an
+     * unsubscribe function. Callback receives the clicked element id.
+     */
+    onElementClick(callback: (elementId: string) => void): () => void {
+      if (destroyed) return () => {}
+
+      const { eventBus } = services()
+      const handler = (event: any) => {
+        const id = event?.element?.id
+        if (typeof id === 'string') callback(id)
+      }
+      eventBus.on('element.click', handler)
+      return () => eventBus.off('element.click', handler)
     },
 
     onViewboxChanged(callback: (viewbox: unknown) => void): () => void {
@@ -221,6 +286,9 @@ export function createBpmnViewer(
     destroy() {
       if (destroyed) return
 
+      // Clear the selection marker while the viewer is still live — its guard
+      // skips removal once `destroyed`/`imported` flip below.
+      clearSelection()
       destroyed = true
       imported = false
       try {

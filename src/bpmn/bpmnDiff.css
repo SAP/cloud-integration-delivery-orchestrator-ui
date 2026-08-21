@@ -108,3 +108,33 @@
   stroke-dasharray: 1 4 !important;
   stroke-linecap: round !important;
 }
+
+/* Selection emphasis — layered on top of status markers (bidirectional binding).
+   A focus-colored glow makes the currently-selected element stand out without
+   overriding its status color. */
+.djs-element.bpmn-diff-selected .djs-visual {
+  filter: drop-shadow(0 0 3px var(--sapContent_FocusColor, #0064d9))
+    drop-shadow(0 0 6px var(--sapContent_FocusColor, #0064d9));
+}
+
+.djs-element.bpmn-diff-selected > .djs-outline {
+  visibility: visible !important;
+  stroke: var(--sapContent_FocusColor, #0064d9) !important;
+  stroke-width: 2px !important;
+  stroke-dasharray: none !important;
+}
+
+/* Hover affordance — hint that a *changed* element is clickable (bidirectional
+   binding). Deliberately weaker than the selected glow so the two states stay
+   distinct; skipped on the already-selected element to avoid stacking effects.
+   Scoped to elements carrying a diff marker so unchanged elements — which are
+   not clickable and have no matching change card — get no hover cue. */
+.djs-element:is(.bpmn-diff-added, .bpmn-diff-removed, .bpmn-diff-changed, .bpmn-diff-layout):hover {
+  cursor: pointer;
+}
+
+.djs-element:is(.bpmn-diff-added, .bpmn-diff-removed, .bpmn-diff-changed, .bpmn-diff-layout):not(.bpmn-diff-selected):hover
+  .djs-visual {
+  filter: drop-shadow(0 0 2px var(--sapContent_FocusColor, #0064d9));
+}
+

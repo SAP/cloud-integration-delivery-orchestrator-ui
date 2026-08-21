@@ -143,6 +143,41 @@ describe('computeBpmnDiff', () => {
     expect(changed!.properties).toBeUndefined()
   })
 
+  it('attaches full-config drill-down detail from the new side for changed elements', async () => {
+    const result = await computeBpmnDiff(
+      buildBpmnFixture({ taskName: 'Before', iflValue: '30' }),
+      buildBpmnFixture({ taskName: 'After', iflValue: '31' }),
+    )
+
+    const changed = result.changes.find(c => c.id === 'Task_1' && c.status === 'changed')
+    expect(changed).toBeDefined()
+    expect(changed!.detail).toBeDefined()
+    // Full config lists every top-level scalar + every ifl:property (incl.
+    // unchanged), taken from the new (right) side.
+    expect(changed!.detail!.attributes).toEqual(expect.arrayContaining([
+      { key: 'id', value: 'Task_1' },
+      { key: 'name', value: 'After' },
+    ]))
+    expect(changed!.detail!.properties).toEqual([
+      { key: 'transactionTimeout', value: '31' },
+    ])
+  })
+
+  it('attaches full-config detail for added elements from the new side', async () => {
+    const result = await computeBpmnDiff(
+      buildBpmnFixture(),
+      buildBpmnFixture({ includeExtraTask: true }),
+    )
+
+    const added = result.changes.find(c => c.id === 'Task_2' && c.status === 'added')
+    expect(added).toBeDefined()
+    expect(added!.detail!.attributes).toEqual(expect.arrayContaining([
+      { key: 'id', value: 'Task_2' },
+      { key: 'name', value: 'Extra Task' },
+    ]))
+    expect(added!.detail!.properties).toEqual([{ key: 'retry', value: '3' }])
+  })
+
   it('classifies Task_2 as added when the extra task appears', async () => {
     const result = await computeBpmnDiff(
       buildBpmnFixture(),

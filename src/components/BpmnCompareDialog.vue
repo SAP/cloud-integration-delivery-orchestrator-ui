@@ -8,6 +8,8 @@ import {
   watch,
 } from 'vue'
 import '@ui5/webcomponents/dist/BusyIndicator.js'
+import '@ui5/webcomponents/dist/Card.js'
+import '@ui5/webcomponents/dist/CardHeader.js'
 import '@ui5/webcomponents/dist/CheckBox.js'
 import '@ui5/webcomponents/dist/Dialog.js'
 import '@ui5/webcomponents/dist/Tag.js'
@@ -63,7 +65,12 @@ const phase = ref<ViewPhase>('idle')
 const hideLayoutOnly = ref(true)
 const leftReady = ref(false)
 const rightReady = ref(false)
-const expandedChangeId = ref<string | null>(null)
+// Single source of truth for the list↔canvas bidirectional binding. A non-null
+// id means that change card is expanded AND its canvas element is emphasized on
+// both sides. Clicking a card or a canvas element funnels through selectChange.
+const selectedElementId = ref<string | null>(null)
+// Per-selection toggle: unchanged config rows stay hidden until the user opts in.
+const showFullConfig = ref(false)
 
 let generation = 0
 let closeEmitted = !props.open
@@ -72,8 +79,7 @@ let resizeObserver: ResizeObserver | null = null
 let resizeFrame: number | null = null
 let fitScheduled = false
 let viewboxSyncCleanup: (() => void) | null = null
-
-const changePanelOpen = ref(true)
+let elementClickCleanup: (() => void) | null = null
 
 const hasLeftSide = computed(
   () => props.file !== null && props.file.status !== 'added',
@@ -86,6 +92,13 @@ const visibleChanges = computed(() =>
     change => !hideLayoutOnly.value || change.status !== 'layout-only',
   ),
 )
+// Per-status totals over the *full* change set (independent of the
+// hide-layout-only filter) so the summary shows a complete breakdown.
+const statusCounts = computed(() => {
+  const counts = { added: 0, removed: 0, changed: 0, 'layout-only': 0 }
+  for (const change of changes.value) counts[change.status] += 1
+  return counts
+})
 const leftFailure = computed(() =>
   failures.value.find(failure => failure.side === 'left'),
 )
@@ -153,6 +166,7 @@ function resetViewState() {
   hideLayoutOnly.value = true
   leftReady.value = false
   rightReady.value = false
+  selectedElementId.value = null
 }
 
 function destroyViewers() {
@@ -209,10 +223,31 @@ function startViewboxSync() {
   viewboxSyncCleanup = () => { unsubLeft(); unsubRight() }
 }
 
+function stopElementClickSync() {
+  elementClickCleanup?.()
+  elementClickCleanup = null
+}
+
+// Canvas → list half of the bidirectional binding: subscribe to element clicks
+// on both viewers so clicking any BPMN element selects its change card (and, via
+// selectChange, re-emphasizes the element on both sides). Clicks on elements
+// without a visible change clear the selection.
+function startElementClickSync() {
+  stopElementClickSync()
+  const left = leftViewer.value
+  const right = rightViewer.value
+  const unsubs: Array<() => void> = []
+  if (left) unsubs.push(left.onElementClick(handleCanvasClick))
+  if (right) unsubs.push(right.onElementClick(handleCanvasClick))
+  if (unsubs.length === 0) return
+  elementClickCleanup = () => unsubs.forEach(unsub => unsub())
+}
+
 function invalidate() {
   generation += 1
   stopResizeMonitoring()
   stopViewboxSync()
+  stopElementClickSync()
   destroyViewers()
   resetViewState()
 }
@@ -294,10 +329,41 @@ function handleLayoutToggle(event: Event) {
   applyCurrentChanges()
 }
 
-function focusChange(change: BpmnElementChange) {
-  expandedChangeId.value = expandedChangeId.value === change.id ? null : change.id
-  runViewerAction('left', viewer => viewer.focus(change.id))
-  runViewerAction('right', viewer => viewer.focus(change.id))
+// List → canvas + canvas → list funnel through here (single source of truth).
+// Passing null clears the selection on both sides; passing an id emphasizes that
+// element on both viewers and marks the matching card selected.
+function selectChange(id: string | null) {
+  selectedElementId.value = id
+  showFullConfig.value = false
+  if (id === null) {
+    runViewerAction('left', viewer => viewer.clearSelection())
+    runViewerAction('right', viewer => viewer.clearSelection())
+    return
+  }
+  runViewerAction('left', viewer => viewer.select(id))
+  runViewerAction('right', viewer => viewer.select(id))
+}
+
+// Card click: toggle — re-clicking the selected card collapses it.
+function activateChange(change: BpmnElementChange) {
+  selectChange(selectedElementId.value === change.id ? null : change.id)
+}
+
+// Canvas click: select the matching card if the element has a visible change,
+// otherwise clear. Scrolls the card into view so the detail is not off-screen.
+function handleCanvasClick(id: string) {
+  const matched = visibleChanges.value.some(change => change.id === id)
+  if (!matched) {
+    selectChange(null)
+    return
+  }
+  selectChange(id)
+  void nextTick(() => scrollCardIntoView(id))
+}
+
+function scrollCardIntoView(id: string) {
+  const card = document.querySelector(`[data-change-id="${CSS.escape(id)}"]`)
+  card?.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
 }
 
 function formatAttrValue(value: unknown): string {
@@ -307,6 +373,59 @@ function formatAttrValue(value: unknown): string {
   if (Array.isArray(value)) return `[${value.length} items]`
   if (typeof value === 'object') return '[object]'
   return String(value)
+}
+
+interface DiffRow {
+  key: string
+  oldValue: string
+  newValue: string
+}
+
+// Merge the two change channels (differ top-level attrs + CPI ifl:property) into
+// one Configuration | Old | New table. attrs carry structured old/new; properties
+// are already {key, oldValue, newValue}. Both normalized through formatAttrValue.
+function changedRows(change: BpmnElementChange): DiffRow[] {
+  const rows: DiffRow[] = []
+  if (change.attrs) {
+    for (const [key, detail] of Object.entries(change.attrs)) {
+      rows.push({
+        key,
+        oldValue: formatAttrValue(detail.oldValue),
+        newValue: formatAttrValue(detail.newValue),
+      })
+    }
+  }
+  if (change.properties) {
+    for (const prop of change.properties) {
+      rows.push({
+        key: prop.key,
+        oldValue: prop.oldValue ?? '—',
+        newValue: prop.newValue ?? '—',
+      })
+    }
+  }
+  return rows
+}
+
+interface ConfigRow {
+  key: string
+  value: string
+}
+
+// Full-configuration drill-down, minus the rows already shown as changed. These
+// are appended to the same table (spanning old/new) and stay hidden until the
+// user expands full configuration, so the default view is just what moved.
+function unchangedRows(change: BpmnElementChange): ConfigRow[] {
+  if (!change.detail) return []
+  const changedKeys = new Set(changedRows(change).map(row => row.key))
+  const rows: ConfigRow[] = []
+  for (const attr of change.detail.attributes) {
+    if (!changedKeys.has(attr.key)) rows.push({ key: attr.key, value: attr.value })
+  }
+  for (const prop of change.detail.properties) {
+    if (!changedKeys.has(prop.key)) rows.push({ key: prop.key, value: prop.value })
+  }
+  return rows
 }
 
 async function initialize() {
@@ -410,6 +529,7 @@ async function initialize() {
 
     if (!isCurrent(token, file)) return
     phase.value = 'ready'
+    startElementClickSync()
     scheduleFit(token, file, true)
   } catch (error) {
     if (!isCurrent(token, file)) return
@@ -513,7 +633,7 @@ onBeforeUnmount(() => {
         </span>
         <span class="toolbar-legend toolbar-legend--layout">
           <svg viewBox="0 0 20 4" aria-hidden="true"><line x1="0" y1="2" x2="20" y2="2" stroke-dasharray="1 4" stroke-linecap="round" /></svg>
-          Layout-only
+          Layout only
         </span>
         <ui5-toolbar-spacer />
         <ui5-checkbox
@@ -609,94 +729,149 @@ onBeforeUnmount(() => {
           </section>
         </div>
 
-        <section class="change-strip">
-          <button
-            class="change-strip__toggle"
-            type="button"
-            @click="changePanelOpen = !changePanelOpen"
-          >
-            <span>Changes ({{ file.status === 'modified' ? visibleChanges.length : 1 }})</span>
-            <span class="change-strip__arrow">{{ changePanelOpen ? '▼' : '▲' }}</span>
-          </button>
+        <section class="change-panel">
+          <ui5-card class="change-panel__summary">
+            <ui5-card-header
+              :title-text="`Changes (${file.status === 'modified' ? changes.length : 1})`"
+              :subtitle-text="file.path">
+              <div
+                v-if="file.status === 'modified'"
+                slot="action"
+                class="change-counts">
+                <ui5-tag design="Positive">+{{ statusCounts.added }}</ui5-tag>
+                <ui5-tag design="Negative">&minus;{{ statusCounts.removed }}</ui5-tag>
+                <ui5-tag design="Critical">~{{ statusCounts.changed }}</ui5-tag>
+                <ui5-tag design="Information">{{ statusCounts['layout-only'] }} layout</ui5-tag>
+              </div>
+            </ui5-card-header>
+          </ui5-card>
 
-          <div v-show="changePanelOpen" class="change-strip__body">
-            <ul
-              v-if="failures.length > 0"
-              class="failure-list"
-              aria-label="Visual comparison errors"
+          <ul
+            v-if="failures.length > 0"
+            class="failure-list"
+            aria-label="Visual comparison errors">
+            <li v-for="failure in failures" :key="failure.key">
+              <strong>{{ failure.side }}</strong>
+              <span>{{ failure.text }}</span>
+            </li>
+          </ul>
+
+          <div v-if="phase === 'loading'" class="change-panel__status" role="status">
+            Computing changes…
+          </div>
+
+          <div v-else class="change-panel__list">
+            <div
+              v-if="file.status !== 'modified'"
+              class="change-card"
+              :class="`change-card--${file.status === 'added' ? 'added' : 'removed'}`"
             >
-              <li v-for="failure in failures" :key="failure.key">
-                <strong>{{ failure.side }}</strong>
-                <span>{{ failure.text }}</span>
-              </li>
-            </ul>
-
-            <div v-if="phase === 'loading'" class="change-strip__status" role="status">
-              Computing changes…
+              <ui5-card-header
+                :title-text="'Entire iFlow'"
+                :subtitle-text="file.status === 'added' ? 'File added' : 'File removed'"
+              >
+                <!-- eslint-disable-next-line vue/no-deprecated-slot-attribute -->
+                <ui5-tag
+                  slot="action"
+                  :design="file.status === 'added' ? 'Positive' : 'Negative'"
+                >
+                  {{ file.status === 'added' ? 'ADDED' : 'REMOVED' }}
+                </ui5-tag>
+              </ui5-card-header>
             </div>
 
-            <div v-else class="change-strip__scroll">
+            <template v-else>
               <div
-                v-if="file.status !== 'modified'"
-                class="change-chip"
-                :class="`change-chip--${file.status === 'added' ? 'added' : 'removed'}`"
+                v-for="change in visibleChanges"
+                :key="change.id"
+                class="change-card"
+                :class="[
+                  `change-card--${change.status}`,
+                  { 'change-card--selected': selectedElementId === change.id },
+                ]"
+                :data-change-id="change.id"
               >
-                <span class="change-chip__status">
-                  {{ file.status === 'added' ? 'ADDED' : 'REMOVED' }}
-                </span>
-                <strong>Entire iFlow</strong>
+                <ui5-card-header
+                  interactive
+                  :title-text="change.name || change.id"
+                  :subtitle-text="change.type"
+                  @click="activateChange(change)"
+                >
+                  <!-- eslint-disable-next-line vue/no-deprecated-slot-attribute -->
+                  <ui5-tag
+                    slot="action"
+                    :design="change.status === 'added'
+                      ? 'Positive'
+                      : change.status === 'removed'
+                        ? 'Negative'
+                        : change.status === 'changed'
+                          ? 'Critical'
+                          : 'Information'"
+                  >
+                    {{ change.status }}
+                  </ui5-tag>
+                </ui5-card-header>
+
+                <div
+                  v-if="selectedElementId === change.id"
+                  class="change-card__detail"
+                >
+                  <div
+                    v-if="changedRows(change).length > 0 || unchangedRows(change).length > 0"
+                    class="detail-block"
+                  >
+                    <table class="diff-table">
+                      <thead>
+                        <tr>
+                          <th>Configuration</th>
+                          <th>Old</th>
+                          <th>New</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr v-for="row in changedRows(change)" :key="row.key">
+                          <td class="diff-key">{{ row.key }}</td>
+                          <td class="attr-old">{{ row.oldValue }}</td>
+                          <td class="attr-new">{{ row.newValue }}</td>
+                        </tr>
+                        <template v-if="showFullConfig">
+                          <tr
+                            v-for="row in unchangedRows(change)"
+                            :key="row.key"
+                            class="config-row--unchanged"
+                          >
+                            <td class="diff-key">{{ row.key }}</td>
+                            <td class="config-value" colspan="2">{{ row.value }}</td>
+                          </tr>
+                        </template>
+                      </tbody>
+                    </table>
+                    <button
+                      v-if="unchangedRows(change).length > 0"
+                      type="button"
+                      class="config-toggle"
+                      @click="showFullConfig = !showFullConfig"
+                    >
+                      {{ showFullConfig ? 'Hide' : 'Show' }} full configuration ({{ unchangedRows(change).length }})
+                    </button>
+                  </div>
+
+                  <div
+                    v-else
+                    class="change-panel__status"
+                  >
+                    No property-level detail
+                  </div>
+                </div>
               </div>
 
-              <button
-                v-for="change in visibleChanges"
-                v-else
-                :key="change.id"
-                class="change-chip"
-                :class="[
-                  `change-chip--${change.status}`,
-                  { 'change-chip--expanded': expandedChangeId === change.id },
-                ]"
-                type="button"
-                @click="focusChange(change)"
-              >
-                <span class="change-chip__status">{{ change.status }}</span>
-                <strong>{{ change.name || change.id }}</strong>
-                <small>{{ change.type }}</small>
-                <dl
-                  v-if="expandedChangeId === change.id && change.properties"
-                  class="change-chip__attrs"
-                >
-                  <template v-for="prop in change.properties" :key="prop.key">
-                    <dt>{{ prop.key }}</dt>
-                    <dd>
-                      <span class="attr-old">{{ prop.oldValue ?? '—' }}</span>
-                      <span class="attr-arrow">&rarr;</span>
-                      <span class="attr-new">{{ prop.newValue ?? '—' }}</span>
-                    </dd>
-                  </template>
-                </dl>
-                <dl
-                  v-else-if="expandedChangeId === change.id && change.attrs"
-                  class="change-chip__attrs"
-                >
-                  <template v-for="(detail, prop) in change.attrs" :key="prop">
-                    <dt>{{ prop }}</dt>
-                    <dd>
-                      <span class="attr-old">{{ formatAttrValue(detail.oldValue) }}</span>
-                      <span class="attr-arrow">&rarr;</span>
-                      <span class="attr-new">{{ formatAttrValue(detail.newValue) }}</span>
-                    </dd>
-                  </template>
-                </dl>
-              </button>
-
               <div
-                v-if="file.status === 'modified' && visibleChanges.length === 0 && failures.length === 0"
-                class="change-strip__status"
+                v-if="visibleChanges.length === 0 && failures.length === 0"
+                class="change-panel__status"
               >
                 No BPMN element changes
               </div>
-            </div>
+            </template>
           </div>
         </section>
       </main>
@@ -880,148 +1055,124 @@ onBeforeUnmount(() => {
   font-size: var(--sapFontSmallSize);
 }
 
-.change-strip {
+.change-panel {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  background: var(--sapGroup_ContentBackground);
-  border: 1px solid var(--sapGroup_ContentBorderColor);
-  border-radius: var(--sapElement_BorderCornerRadius);
-}
-
-.change-strip__toggle {
-  display: flex;
-  align-items: center;
+  min-height: 0;
+  max-height: 40vh;
   gap: 0.5rem;
-  padding: 0.375rem 1rem;
-  color: var(--sapLinkColor, #0064d9);
-  font: inherit;
-  font-size: var(--sapFontSize);
-  font-weight: 600;
-  background: none;
-  border: none;
-  cursor: pointer;
 }
 
-.change-strip__toggle:hover {
-  text-decoration: underline;
-}
-
-.change-strip__arrow {
-  font-size: 0.625rem;
-}
-
-.change-strip__body {
+.change-panel__summary {
+  flex: 0 0 auto;
   width: 100%;
-  border-top: 1px solid var(--sapGroup_ContentBorderColor);
 }
 
-.change-strip__scroll {
+.change-counts {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+/* Plain scrollable container (not wrapped in a ui5-card) so overflow bounds
+   reliably — a card's shadow-DOM content region would not constrain slotted
+   children. */
+.change-panel__list {
   display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
   gap: 0.5rem;
-  padding: 0.5rem 0.75rem;
-  overflow-x: auto;
+  padding: 0.25rem;
 }
 
-.change-strip__status {
+.change-panel__status {
   padding: 0.5rem 1rem;
   color: var(--sapContent_LabelColor);
   font-size: var(--sapFontSize);
   text-align: center;
 }
 
-.change-chip {
-  flex: 0 0 auto;
-  display: flex;
-  flex-direction: column;
-  gap: 0.125rem;
-  padding: 0.375rem 0.625rem;
-  min-width: 6rem;
-  max-width: 12rem;
-  color: var(--sapTextColor);
-  font: inherit;
-  text-align: left;
-  background: var(--sapList_Background);
+.change-card {
   border: 1px solid var(--sapList_BorderColor);
   border-left-width: 0.25rem;
   border-radius: var(--sapElement_BorderCornerRadius);
-  cursor: pointer;
+  background: var(--sapList_Background);
 }
 
-.change-chip:hover {
-  background: var(--sapList_Hover_Background);
+.change-card--added { border-left-color: var(--sapPositiveColor); }
+.change-card--removed { border-left-color: var(--sapNegativeColor); }
+.change-card--changed { border-left-color: var(--sapCriticalColor); }
+.change-card--layout-only {
+  border-left-color: var(--sapInformationColor);
+  border-left-style: dotted;
 }
 
-.change-chip:focus-visible {
+.change-card--selected {
   outline: 0.125rem solid var(--sapContent_FocusColor);
-  outline-offset: 0.125rem;
+  outline-offset: -0.125rem;
 }
 
-.change-chip--added { border-left-color: var(--sapPositiveColor); }
-.change-chip--removed { border-left-color: var(--sapNegativeColor); }
-.change-chip--changed { border-left-color: var(--sapCriticalColor); }
-.change-chip--layout-only { border-left-color: var(--sapInformationColor); border-left-style: dotted; }
-
-.change-chip__status {
-  color: var(--sapContent_LabelColor);
-  font-size: var(--sapFontSmallSize);
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
-
-.change-chip strong {
-  font-size: var(--sapFontSize);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.change-chip small {
-  color: var(--sapContent_LabelColor);
-  font-size: var(--sapFontSmallSize);
-  white-space: nowrap;
-}
-
-.change-chip--expanded {
-  max-width: 24rem;
-}
-
-.change-chip__attrs {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: 0.125rem 0.5rem;
-  margin: 0.25rem 0 0;
-  padding: 0.25rem 0 0;
+.change-card__detail {
+  padding: 0.5rem 0.75rem 0.75rem;
   border-top: 1px solid var(--sapGroup_ContentBorderColor);
+}
+
+.diff-table {
+  width: 100%;
+  border-collapse: collapse;
   font-size: var(--sapFontSmallSize);
 }
 
-.change-chip__attrs dt {
+.diff-table th {
+  padding: 0.25rem 0.5rem;
+  color: var(--sapContent_LabelColor);
+  font-weight: 600;
+  text-align: left;
+  border-bottom: 1px solid var(--sapGroup_ContentBorderColor);
+}
+
+.diff-table td {
+  padding: 0.25rem 0.5rem;
+  vertical-align: top;
+  overflow-wrap: anywhere;
+  border-bottom: 1px solid var(--sapList_BorderColor);
+}
+
+.diff-key {
   color: var(--sapContent_LabelColor);
   font-weight: 600;
   white-space: nowrap;
 }
 
-.change-chip__attrs dd {
-  margin: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.change-chip__attrs .attr-old {
+.attr-old {
   color: var(--sapNegativeTextColor, #bb0000);
   text-decoration: line-through;
 }
 
-.change-chip__attrs .attr-arrow {
-  margin: 0 0.25rem;
-  color: var(--sapContent_LabelColor);
+.attr-new {
+  color: var(--sapPositiveTextColor, #107e3e);
 }
 
-.change-chip__attrs .attr-new {
-  color: var(--sapPositiveTextColor, #107e3e);
+.config-row--unchanged .config-value,
+.config-row--unchanged .diff-key {
+  color: var(--sapContent_LabelColor);
+  font-weight: 400;
+}
+
+.config-toggle {
+  margin-top: 0.25rem;
+  padding: 0;
+  background: none;
+  border: none;
+  color: var(--sapLinkColor, #0064d9);
+  font-size: var(--sapFontSmallSize);
+  cursor: pointer;
+}
+
+.config-toggle:hover {
+  text-decoration: underline;
 }
 
 .failure-list {

@@ -5,7 +5,7 @@ import {
   type BpmnDiffElement,
   type BpmnDiffResult,
 } from 'bpmn-js-differ'
-import { iflPropertyEntries } from './moddleProperties'
+import { asRecord, iflPropertyEntries } from './moddleProperties'
 
 export type BpmnDiffSide = 'left' | 'right'
 export type BpmnChangeStatus =
@@ -20,6 +20,22 @@ export interface BpmnPropertyChange {
   newValue: string | undefined
 }
 
+/** A single key/value entry of a node's full configuration (drill-down). */
+export interface BpmnNodeAttribute {
+  key: string
+  value: string
+}
+
+/**
+ * Full configuration of one node (Part 1 drill-down): every top-level scalar
+ * attribute + every ifl:property, including unchanged ones — so review can see
+ * "what is this node overall", not just "which fields changed".
+ */
+export interface BpmnNodeDetail {
+  attributes: BpmnNodeAttribute[]
+  properties: BpmnNodeAttribute[]
+}
+
 export interface BpmnElementChange {
   id: string
   type: string
@@ -30,6 +46,8 @@ export interface BpmnElementChange {
   attrs?: Record<string, BpmnAttributeChange>
   /** CPI ifl:property key/value diff for 'changed' elements. */
   properties?: BpmnPropertyChange[]
+  /** Full-config drill-down (present side): all top-level scalars + all ifl:property. */
+  detail?: BpmnNodeDetail
 }
 
 export interface BpmnDiffViewModel {
@@ -215,6 +233,38 @@ function sidePropertyList(
   )
 }
 
+/**
+ * Full-config drill-down (Part 1): every top-level scalar attribute + every
+ * ifl:property of one node. Top-level scalars come from the businessObject's own
+ * enumerable string/number/boolean props (skipping `$`-prefixed moddle metadata,
+ * nested objects and arrays — the latter are covered by the ifl:property
+ * channel). ifl:property reuses `iflPropertyEntries` (source priority + document
+ * order). Pure function; the enrichment loop attaches its result to `detail`.
+ */
+function describeNode(element: unknown): BpmnNodeDetail | undefined {
+  const object = asRecord(element)
+  if (object === undefined) return undefined
+
+  const attributes: BpmnNodeAttribute[] = []
+  for (const [key, value] of Object.entries(object)) {
+    if (key.startsWith('$')) continue
+    if (
+      typeof value === 'string'
+      || typeof value === 'number'
+      || typeof value === 'boolean'
+    ) {
+      attributes.push({ key, value: String(value) })
+    }
+  }
+
+  const properties: BpmnNodeAttribute[] = iflPropertyEntries(element).map(
+    ([key, value]) => ({ key, value }),
+  )
+
+  if (attributes.length === 0 && properties.length === 0) return undefined
+  return { attributes, properties }
+}
+
 async function parse(xml: string, side: BpmnDiffSide) {
   try {
     const moddle = new BpmnModdle()
@@ -244,20 +294,30 @@ export async function computeBpmnDiff(
   // gate therefore correctly admits them; diffProperties supplies the detail.
   // added/removed carry no per-property diff from the differ, so we list the
   // present side's ifl:property directly (single-sided detail).
+  // Every branch also attaches a full-config `detail` (Part 1 drill-down) from
+  // the present/new side: changed/added → right (new), removed → left.
   for (const change of classified.changes) {
     if (change.status === 'changed') {
       const leftEl = left.elementsById[change.id]
       const rightEl = right.elementsById[change.id]
-      if (leftEl === undefined || rightEl === undefined) continue
-
-      const properties = diffProperties(leftEl, rightEl)
-      if (properties !== undefined) change.properties = properties
+      if (leftEl !== undefined && rightEl !== undefined) {
+        const properties = diffProperties(leftEl, rightEl)
+        if (properties !== undefined) change.properties = properties
+      }
+      const detail = describeNode(rightEl ?? leftEl)
+      if (detail !== undefined) change.detail = detail
     } else if (change.status === 'added') {
-      const properties = sidePropertyList(right.elementsById[change.id], 'added')
+      const rightEl = right.elementsById[change.id]
+      const properties = sidePropertyList(rightEl, 'added')
       if (properties !== undefined) change.properties = properties
+      const detail = describeNode(rightEl)
+      if (detail !== undefined) change.detail = detail
     } else if (change.status === 'removed') {
-      const properties = sidePropertyList(left.elementsById[change.id], 'removed')
+      const leftEl = left.elementsById[change.id]
+      const properties = sidePropertyList(leftEl, 'removed')
       if (properties !== undefined) change.properties = properties
+      const detail = describeNode(leftEl)
+      if (detail !== undefined) change.detail = detail
     }
   }
 

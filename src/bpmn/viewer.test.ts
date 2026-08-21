@@ -276,6 +276,7 @@ function createHarness(elementIds: string[] = []) {
   return {
     canvas,
     container,
+    eventBus,
     factory,
     get,
     handle,
@@ -1089,5 +1090,88 @@ describe('createBpmnViewer', () => {
 
     expect(get).not.toHaveBeenCalled()
     expect(viewer.destroy).toHaveBeenCalledOnce()
+  })
+
+  it('emphasizes a selected element on top of status markers and centers it', async () => {
+    const { canvas, handle, registry } = createHarness([])
+    const shape = { id: 'Present_1', x: 200, y: 100, width: 100, height: 80 }
+    registry.get.mockImplementation((id: string) => id === 'Present_1' ? shape : undefined)
+    canvas.viewbox.mockReturnValueOnce({ x: 0, y: 0, width: 1000, height: 600 })
+
+    await handle.importXml('<xml/>')
+    handle.select('Present_1')
+
+    expect(canvas.addMarker).toHaveBeenCalledWith('Present_1', 'bpmn-diff-selected')
+    // focusElement centers the shape (center 250,140 in a 1000×600 viewport)
+    expect(canvas.viewbox).toHaveBeenCalledWith({ x: -250, y: -160, width: 1000, height: 600 })
+  })
+
+  it('replaces a prior selection when a different element is selected', async () => {
+    const { canvas, handle, registry } = createHarness(['First_1', 'Second_1'])
+    await handle.importXml('<xml/>')
+
+    handle.select('First_1')
+    handle.select('Second_1')
+
+    expect(canvas.removeMarker).toHaveBeenCalledWith('First_1', 'bpmn-diff-selected')
+    expect(canvas.addMarker).toHaveBeenLastCalledWith('Second_1', 'bpmn-diff-selected')
+    expect(registry.get).toHaveBeenCalledWith('Second_1')
+  })
+
+  it('clears the selection when selecting an unknown element id', async () => {
+    const { canvas, handle } = createHarness(['Present_1'])
+    await handle.importXml('<xml/>')
+
+    handle.select('Present_1')
+    canvas.addMarker.mockClear()
+    handle.select('Missing_1')
+
+    expect(canvas.removeMarker).toHaveBeenCalledWith('Present_1', 'bpmn-diff-selected')
+    expect(canvas.addMarker).not.toHaveBeenCalled()
+  })
+
+  it('clearSelection removes the selected marker and is safe when nothing is selected', async () => {
+    const { canvas, handle } = createHarness(['Present_1'])
+    await handle.importXml('<xml/>')
+
+    handle.clearSelection()
+    expect(canvas.removeMarker).not.toHaveBeenCalled()
+
+    handle.select('Present_1')
+    handle.clearSelection()
+    expect(canvas.removeMarker).toHaveBeenCalledWith('Present_1', 'bpmn-diff-selected')
+  })
+
+  it('clears the selection marker on destroy', async () => {
+    const { canvas, handle } = createHarness(['Present_1'])
+    await handle.importXml('<xml/>')
+    handle.select('Present_1')
+
+    handle.destroy()
+
+    expect(canvas.removeMarker).toHaveBeenCalledWith('Present_1', 'bpmn-diff-selected')
+  })
+
+  it('forwards canvas element-click ids to the callback and unsubscribes on cleanup', async () => {
+    const { eventBus, handle } = createHarness(['Present_1'])
+    await handle.importXml('<xml/>')
+
+    const clicked: string[] = []
+    const stop = handle.onElementClick(id => clicked.push(id))
+
+    // Grab the handler registered on the eventBus mock and drive it directly.
+    const [eventName, handler] = eventBus.on.mock.calls.at(-1) as [
+      string,
+      (event: unknown) => void,
+    ]
+    expect(eventName).toBe('element.click')
+
+    handler({ element: { id: 'Present_1' } })
+    handler({ element: {} }) // no id → ignored
+    handler({}) // no element → ignored
+    expect(clicked).toEqual(['Present_1'])
+
+    stop()
+    expect(eventBus.off).toHaveBeenCalledWith('element.click', handler)
   })
 })
