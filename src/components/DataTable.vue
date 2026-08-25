@@ -1,6 +1,6 @@
 <template>
   <ui5-bar design="Header">
-    <ui5-text slot="startContent" class="table-header">{{ title }} ({{ counts }})</ui5-text>
+    <ui5-text slot="startContent" class="table-header">{{ title }} ({{ counts }}{{ total != null ? ' / ' + total : '' }})</ui5-text>
     <ui5-segmented-button id="sizeBtn" accessible-name="Switch Table Size">
       <ui5-segmented-button-item @click="tableWidth = '25%'">25%</ui5-segmented-button-item>
       <ui5-segmented-button-item @click="tableWidth = '50%'">50%</ui5-segmented-button-item>
@@ -27,7 +27,7 @@
     :loading="loading" loading-delay="0"
     :row-action-count="rowActionCount">
     <ui5-table-selection-single v-if="selectable" id="selection" slot="features" @change="handleCheck"></ui5-table-selection-single>
-    <ui5-table-growing v-if="growing" slot="features" mode="Scroll" @load-more="handleLoadMore"></ui5-table-growing>
+    <ui5-table-growing v-if="growing" slot="features" mode="Scroll" :style="{ display: hasMore ? '' : 'none' }" @load-more="handleLoadMore"></ui5-table-growing>
     <ui5-illustrated-message slot="noData" name="NoData"></ui5-illustrated-message>
     <ui5-table-header-row slot="headerRow">
       <ui5-table-header-cell min-width="150px" v-for="(header, i) in displayColumns" :key="`header-key-${i}`"
@@ -99,7 +99,16 @@ export default defineComponent({
     rowClick: { type: Function as PropType<(row: any) => void> },
     rowActions: { type: Array as PropType<RowAction[]> },
     selectable: { type: Boolean, default: true },
-    growing: { type: Boolean, default: false }
+    growing: { type: Boolean, default: false },
+    // Total number of rows available on the server (not just the loaded page).
+    // When provided, the header shows "loaded / total" and, once all rows are
+    // loaded (data.length >= total), the growing element is visually hidden via
+    // CSS (display:none) so the fallback "More" button disappears. The element
+    // itself is NEVER unmounted while growing is enabled: ui5-table only
+    // activates features (onTableActivate) once, in the table's onEnterDOM, so a
+    // later-mounted growing feature would never get its scroll IntersectionObserver
+    // attached. When omitted, growing behaves as before (always shown).
+    total: { type: Number, default: undefined }
   },
   data() {
     const rowProps = (row: any) => {
@@ -235,6 +244,11 @@ export default defineComponent({
   computed: {
     counts() {
       return this.data.length
+    },
+    hasMore(): boolean {
+      // No server total supplied → preserve legacy behavior (always allow growing).
+      if (this.total == null) return true
+      return this.data.length < this.total
     },
     displayColumns(): any[] {
       return (this.columns as any[]).filter((c: any) => c?.type !== 'selection')

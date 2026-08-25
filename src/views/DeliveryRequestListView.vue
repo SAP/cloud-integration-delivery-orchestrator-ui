@@ -83,6 +83,7 @@
     :row-click="handleRowClick"
     :loading="loading"
     :growing="true"
+    :total="total"
     @load-more="loadMoreDeliveryRequests"
   />
 </template>
@@ -92,7 +93,7 @@ import { defineComponent } from 'vue'
 import DataTable from '@/components/DataTable.vue'
 import ConfirmDeleteDialog from '@/components/ConfirmDeleteDialog.vue'
 import { deliveryRequestColumns, type ToolBar } from '@/service/consts'
-import { DeleteDeliveryRequest, GetDeliveryRequests, CreateDeliveryRequest, GetDeliveryRules, CurrentUser } from '@/service/api';
+import { DeleteDeliveryRequest, GetDeliveryRequests, CreateDeliveryRequest, GetDeliveryRules, CurrentUser, GetDrCounts } from '@/service/api';
 import type { DeliveryRequest, DeliveryRule, UserInfo } from '@/service/model';
 import { STATUS_FILTER_GROUPS, type StatusFilterKey } from '@/service/statuses';
 import { sortByOwnerAndDate } from '@/service/sort';
@@ -140,6 +141,8 @@ export default defineComponent({
       currentPage: 1,
       pageSize: 20,
       total: 0,
+      statusCounts: {} as Record<string, number>,
+      totalCount: 0,
       currentUserEmail: '',
     }
   },
@@ -148,12 +151,18 @@ export default defineComponent({
       return Object.keys(STATUS_FILTER_GROUPS) as StatusFilterKey[]
     },
     filterCounts(): Record<StatusFilterKey, number> {
+      // Counts come from the backend /counts endpoint (per aggregate_status),
+      // so badges reflect true totals independent of pagination.
       const counts = {} as Record<StatusFilterKey, number>
       for (const key of this.filterKeys) {
         const group = STATUS_FILTER_GROUPS[key]
-        counts[key] = group === null
-          ? this.searchedDeliveryRequests.length
-          : this.searchedDeliveryRequests.filter(dr => group.has(dr.AggregateStatus)).length
+        if (group === null) {
+          counts[key] = this.totalCount
+        } else {
+          let sum = 0
+          for (const s of group) sum += this.statusCounts[s] || 0
+          counts[key] = sum
+        }
       }
       return counts
     },
@@ -163,9 +172,9 @@ export default defineComponent({
       return this.deliveryRequests.filter(dr => this.matchesKeyword(dr, kw))
     },
     filteredDeliveryRequests(): DeliveryRequest[] {
-      const group = STATUS_FILTER_GROUPS[this.activeFilter]
-      const filtered = group === null ? this.searchedDeliveryRequests : this.searchedDeliveryRequests.filter(dr => group.has(dr.AggregateStatus))
-      return sortByOwnerAndDate(filtered, this.currentUserEmail)
+      // Status filtering is done server-side (see loadDeliveryRequests); here we
+      // only apply the client-side keyword search over the loaded page(s) + sort.
+      return sortByOwnerAndDate(this.searchedDeliveryRequests, this.currentUserEmail)
     },
   },
   methods: {
@@ -194,10 +203,21 @@ export default defineComponent({
     handleRowClick(row: DeliveryRequest) {
       this.$router.push({ path: `/delivery-request/${row.ID}` })
     },
+    // The aggregate_status values to request for the active tab.
+    // `undefined` (for the "All" group) means no status filter.
+    currentStatuses(): string[] | undefined {
+      const group = STATUS_FILTER_GROUPS[this.activeFilter]
+      return group === null ? undefined : Array.from(group as Set<string>)
+    },
+    async loadCounts() {
+      const res = await GetDrCounts()
+      this.statusCounts = res?.StatusCounts || {}
+      this.totalCount = res?.Total || 0
+    },
     async loadDeliveryRequests() {
       this.loading = true
       this.currentPage = 1
-      const resp = await GetDeliveryRequests(this.currentPage, this.pageSize)
+      const resp = await GetDeliveryRequests(this.currentPage, this.pageSize, this.currentStatuses())
       await Promise.all(
         resp.items.map(async (dr) => {
           dr.CreatedBy = (await this.fetchUserInfo(dr.CreatedBy)).email
@@ -212,7 +232,7 @@ export default defineComponent({
       if (this.deliveryRequests.length >= this.total) return
       this.loading = true
       this.currentPage++
-      const resp = await GetDeliveryRequests(this.currentPage, this.pageSize)
+      const resp = await GetDeliveryRequests(this.currentPage, this.pageSize, this.currentStatuses())
       await Promise.all(
         resp.items.map(async (dr) => {
           dr.CreatedBy = (await this.fetchUserInfo(dr.CreatedBy)).email
@@ -227,7 +247,7 @@ export default defineComponent({
       try {
         await CreateDeliveryRequest(this.selectedDeliveryRequest)
         this.showModal = false
-        await this.loadDeliveryRequests()
+        await Promise.all([this.loadDeliveryRequests(), this.loadCounts()])
         window.$toast?.success?.('Saved')
       } catch (e) {
         // Error displayed by http interceptor
@@ -246,17 +266,25 @@ export default defineComponent({
         await DeleteDeliveryRequest(this.pendingDeleteRows[0].ID)
         this.showDeleteDialog = false
         this.pendingDeleteRows = []
-        await this.loadDeliveryRequests()
+        await Promise.all([this.loadDeliveryRequests(), this.loadCounts()])
         window.$toast?.success?.('Deleted')
       } catch (e) {
         // Error displayed by http interceptor
       }
     },
   },
+  watch: {
+    // Switching tabs re-queries the backend from page 1 with the tab's status set,
+    // so each status shows its full paginated result rather than a client-side
+    // slice of the "All" page.
+    activeFilter() {
+      this.loadDeliveryRequests()
+    },
+  },
   async created() {
     const user = await CurrentUser()
     this.currentUserEmail = user?.email || ''
-    await this.loadDeliveryRequests()
+    await Promise.all([this.loadDeliveryRequests(), this.loadCounts()])
     const options = await GetDeliveryRules()
     this.deliveryRuleOptions = options.map(op => ({ label: op.Name, value: op, disabled: !op.Active }))
   },

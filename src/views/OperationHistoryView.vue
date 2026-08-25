@@ -290,6 +290,7 @@ const columns: Column[] = [
       :selectable="false"
       :row-click="handleRowClick"
       :growing="true"
+      :total="total"
       @load-more="loadMore"
     />
 

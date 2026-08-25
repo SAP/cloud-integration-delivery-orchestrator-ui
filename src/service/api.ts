@@ -4,8 +4,7 @@ import type { ApiEndpoint, Artifact, ArtifactTenantOperation, AppCount, Backfill
 import type { AggregateStatus, DeployState, ImportState, RequestState } from './statuses'
 
 export const GetDrCounts = () => {
-  const drCounts = http.get('/api/v1/deliveryRequest/counts') as Promise<{ [key: string]: number }[]>
-  return drCounts
+  return http.get('/api/v1/deliveryRequest/counts') as Promise<{ Total: number, StatusCounts: Record<string, number> }>
 }
 
 let currentUser: UserInfo | null = null
@@ -106,8 +105,10 @@ export const DeleteDeliveryRule = (id: number) => {
 
 
 // DeliveryRequest CRUD
-export const GetDeliveryRequests = (page = 1, pageSize = 20) => {
-  return http.get('/api/v1/deliveryRequest', { params: { page, pageSize } }) as Promise<{ items: DeliveryRequest[], total: number, page: number, pageSize: number }>
+export const GetDeliveryRequests = (page = 1, pageSize = 20, statuses?: string[]) => {
+  const params: Record<string, unknown> = { page, pageSize }
+  if (statuses && statuses.length > 0) params.status = statuses.join(',')
+  return http.get('/api/v1/deliveryRequest', { params }) as Promise<{ items: DeliveryRequest[], total: number, page: number, pageSize: number }>
 }
 
 export const GetDeliveryRequest = (id: Number) => {

@@ -2,6 +2,7 @@
     <ui5-dialog
         :header-text="selDeliveryRule.ID ? 'Edit Delivery Rule' : 'Create Delivery Rule'"
         :open="showModal"
+        @before-close="onBeforeClose"
         @close="showModal = false"
         style="width: 30%;"
     >
@@ -25,7 +26,6 @@
             <ui5-text style="font-weight: bold;">Included Tenants:</ui5-text>
             <ui5-multi-combobox
                 show-clear-icon
-                show-select-all
                 filter="Contains"
                 @selection-change="handleTenantSelectionChange"
                 style="width: 80%;">
@@ -75,8 +75,8 @@
             </div>
         </div>
         <ui5-toolbar slot="footer">
-            <ui5-toolbar-button design="Emphasized" text="Save" @click="onSave"></ui5-toolbar-button>
-            <ui5-toolbar-button design="Transparent" text="Cancel" @click="showModal = false"></ui5-toolbar-button>
+            <ui5-toolbar-button design="Emphasized" :text="saving ? 'Saving…' : 'Save'" :disabled="saving" @click="onSave"></ui5-toolbar-button>
+            <ui5-toolbar-button design="Transparent" text="Cancel" :disabled="saving" @click="showModal = false"></ui5-toolbar-button>
         </ui5-toolbar>
     </ui5-dialog>
 
@@ -154,6 +154,7 @@ export default defineComponent({
             cpiTenants: [] as CpiTenant[],
             transportRoutes: [] as TransportRoute[],
             loading: false,
+            saving: false,
         }
     },
     methods: {
@@ -165,11 +166,26 @@ export default defineComponent({
             this.loading = false
         },
         async onSave() {
+            // Re-entrancy guard: block duplicate submits from double-clicks or
+            // repeated clicks during a slow save (prevents duplicate rule creation).
+            if (this.saving) return
             // ensure arrays exist
             if (!this.selDeliveryRule.IncludedTenants) this.selDeliveryRule.IncludedTenants = []
             if (!this.selDeliveryRule.ExcludedTenants) this.selDeliveryRule.ExcludedTenants = []
-            await UpsertDeliveryRule(this.selDeliveryRule)
-            await this.refresh()
+            this.saving = true
+            try {
+                await UpsertDeliveryRule(this.selDeliveryRule)
+                // refresh() closes the modal on success. On error the promise
+                // rejects (toast shown by the http interceptor) and the modal
+                // stays open so the user can correct the input.
+                await this.refresh()
+            } finally {
+                this.saving = false
+            }
+        },
+        // Prevent the dialog from closing (ESC / backdrop) while a save is in flight.
+        onBeforeClose(e: CustomEvent) {
+            if (this.saving) e.preventDefault()
         },
         async handleDelete(rows: DeliveryRule[]) {
             if (rows.length === 0) {
@@ -236,13 +252,22 @@ export default defineComponent({
                     disabled: false
                 }))
             }
+            // Single-hop, downstream-only guidance: enable the direct downstream
+            // targets of the currently-included tenants. Walking one hop at a time
+            // keeps the included set a contiguous, connected chain (no gaps), which
+            // the backend SourceAndRoute connectivity check enforces on save.
+            // No upstream supplement and no convergence by design.
             const includeRoutes = this.transportRoutes.filter(
                 route => include.some(t => t.TmsSourceNodeID === route.sourceNodeId)
             )
+            const selectedIds = new Set(include.map(t => t.ID))
             return this.cpiTenants.map(t => ({
                 label: t.Name,
                 value: t,
-                disabled: !includeRoutes.some(route => route.targetNodeId === t.TmsSourceNodeID)
+                // Already-selected tenants stay enabled so they can be de-selected;
+                // otherwise enable only the direct downstream targets.
+                disabled: !selectedIds.has(t.ID)
+                    && !includeRoutes.some(route => route.targetNodeId === t.TmsSourceNodeID)
             }))
         }
     },
