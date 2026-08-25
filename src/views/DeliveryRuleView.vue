@@ -1,0 +1,304 @@
+<template>
+    <ui5-dialog
+        :header-text="selDeliveryRule.ID ? 'Edit Delivery Rule' : 'Create Delivery Rule'"
+        :open="showModal"
+        @before-close="onBeforeClose"
+        @close="showModal = false"
+        style="width: 30%;"
+    >
+        <div class="flex-vertical">
+            <ui5-text style="font-weight: bold;">Name:</ui5-text>
+            <ui5-input
+                :value="selDeliveryRule.Name || ''"
+                @change="selDeliveryRule.Name = $event.target.value"
+                placeholder="Rule Name"
+                style="width: 100%;"
+            />
+
+            <ui5-text style="font-weight: bold;">Version Pattern (regex):</ui5-text>
+            <ui5-input
+                :value="selDeliveryRule.VersionPattern || ''"
+                @change="selDeliveryRule.VersionPattern = $event.target.value"
+                placeholder="e.g. 5.2.*, 6,2,*"
+                style="width: 100%;"
+            />
+
+            <ui5-text style="font-weight: bold;">Included Tenants:</ui5-text>
+            <ui5-multi-combobox
+                show-clear-icon
+                filter="Contains"
+                @selection-change="handleTenantSelectionChange"
+                style="width: 80%;">
+                <ui5-mcb-item
+                    v-for="option in tenantOptions"
+                    :id="String(option.value.ID)"
+                    :text="option.label"
+                    :additional-text="String(option.value.ID)"
+                    :selected="selDeliveryRule.IncludedTenants?.some(t => t.ID === option.value.ID)"
+                    :style="option.disabled ? 'pointer-events: none; opacity: 0.5;' : ''"
+                />
+            </ui5-multi-combobox>
+
+            <div class="flex-row">
+                <ui5-tag
+                    v-for="tenant in selDeliveryRule.IncludedTenants"
+                    :key="tenant.ID"
+                    design="Set2"
+                    color-scheme="5"
+                >
+                    {{ tenant.Name }}
+                </ui5-tag>
+            </div>
+
+            <div class="switch-row">
+                <div class="switch-item">
+                    <ui5-text style="margin-right: 0.5rem; font-weight: bold;">Active:</ui5-text>
+                    <ui5-switch
+                        :checked="selDeliveryRule.Active"
+                        @change="selDeliveryRule.Active = $event.target.checked"
+                    />
+                </div>
+                <div class="switch-item">
+                    <ui5-text style="margin-right: 0.5rem; font-weight: bold;">Skip Approve:</ui5-text>
+                    <ui5-switch
+                        :checked="selDeliveryRule.SkipApprove"
+                        @change="selDeliveryRule.SkipApprove = $event.target.checked"
+                    />
+                </div>
+                <div class="switch-item">
+                    <ui5-text style="margin-right: 0.5rem; font-weight: bold;">Require Jira:</ui5-text>
+                    <ui5-switch
+                        :checked="selDeliveryRule.RequireJira"
+                        @change="selDeliveryRule.RequireJira = $event.target.checked"
+                    />
+                </div>
+            </div>
+        </div>
+        <ui5-toolbar slot="footer">
+            <ui5-toolbar-button design="Emphasized" :text="saving ? 'Saving…' : 'Save'" :disabled="saving" @click="onSave"></ui5-toolbar-button>
+            <ui5-toolbar-button design="Transparent" text="Cancel" :disabled="saving" @click="showModal = false"></ui5-toolbar-button>
+        </ui5-toolbar>
+    </ui5-dialog>
+
+    <div style="display: flex; align-items: center; gap: 8px; padding: 8px 0;">
+        <ui5-segmented-button>
+            <ui5-segmented-button-item
+                v-for="key in filterKeys"
+                :key="key"
+                :pressed="activeFilter === key"
+                @click="activeFilter = key"
+            >
+                {{ key }} ({{ filterCounts[key] }})
+            </ui5-segmented-button-item>
+        </ui5-segmented-button>
+    </div>
+
+    <data-table
+        title="Delivery Rules"
+        :columns="deliveryRuleColumns"
+        :data="filteredRules"
+        :custom-tool-bars="hasScope('DeliveryRule.Manage') ? toolBars : []"
+        :handle-add="hasScope('DeliveryRule.Manage') ? handleAdd : undefined"
+        :row-key="(row: DeliveryRule) => row.ID"
+        :key="rules.length"
+        :loading="loading"
+    />
+</template>
+
+<script lang="ts">
+import { defineComponent } from 'vue'
+import DataTable from '@/components/DataTable.vue'
+import { type ToolBar } from '@/service/consts'
+import {
+    GetDeliveryRules,
+    UpsertDeliveryRule,
+    DeleteDeliveryRule,
+    GetCpiTenants,
+    GetTransportRoutes,
+} from '@/service/api'
+import {deliveryRuleColumns} from '@/service/consts'
+import type { DeliveryRule, CpiTenant, TransportRoute } from '@/service/model'
+import "@ui5/webcomponents/dist/Dialog.js";
+import "@ui5/webcomponents/dist/Toolbar.js";
+import "@ui5/webcomponents/dist/ToolbarButton.js";
+import "@ui5/webcomponents/dist/Input.js";
+import "@ui5/webcomponents/dist/Switch.js";
+import "@ui5/webcomponents/dist/MultiComboBox.js";
+import "@ui5/webcomponents/dist/MultiComboBoxItem.js";
+import "@ui5/webcomponents/dist/Tag.js";
+import "@ui5/webcomponents/dist/Text.js";
+import "@ui5/webcomponents/dist/SegmentedButton.js";
+import "@ui5/webcomponents/dist/SegmentedButtonItem.js";
+import { useAuth } from '@/composables/useAuth'
+
+type RuleFilterKey = 'All' | 'Active' | 'Skip Approve' | 'Require Jira'
+
+export default defineComponent({
+    components: { DataTable },
+    setup() {
+        const { hasScope } = useAuth()
+        return { hasScope }
+    },
+    data() {
+        const toolBars: ToolBar<DeliveryRule>[] = [
+            { text: 'Edit', func: (rows: DeliveryRule[]) => this.handleEdit(rows) },
+            { text: 'Delete', func: (rows: DeliveryRule[]) => this.handleDelete(rows) },
+        ]
+        return {
+            deliveryRuleColumns,
+            rules: [] as DeliveryRule[],
+            activeFilter: 'All' as RuleFilterKey,
+            showModal: false,
+            toolBars,
+            selDeliveryRule: {} as DeliveryRule,
+            cpiTenants: [] as CpiTenant[],
+            transportRoutes: [] as TransportRoute[],
+            loading: false,
+            saving: false,
+        }
+    },
+    methods: {
+        async refresh() {
+            this.loading = true
+            this.rules = await GetDeliveryRules() || []
+            this.rules.sort((a, b) => (a.Name || '').localeCompare(b.Name || ''))
+            this.showModal = false
+            this.loading = false
+        },
+        async onSave() {
+            // Re-entrancy guard: block duplicate submits from double-clicks or
+            // repeated clicks during a slow save (prevents duplicate rule creation).
+            if (this.saving) return
+            // ensure arrays exist
+            if (!this.selDeliveryRule.IncludedTenants) this.selDeliveryRule.IncludedTenants = []
+            if (!this.selDeliveryRule.ExcludedTenants) this.selDeliveryRule.ExcludedTenants = []
+            this.saving = true
+            try {
+                await UpsertDeliveryRule(this.selDeliveryRule)
+                // refresh() closes the modal on success. On error the promise
+                // rejects (toast shown by the http interceptor) and the modal
+                // stays open so the user can correct the input.
+                await this.refresh()
+            } finally {
+                this.saving = false
+            }
+        },
+        // Prevent the dialog from closing (ESC / backdrop) while a save is in flight.
+        onBeforeClose(e: CustomEvent) {
+            if (this.saving) e.preventDefault()
+        },
+        async handleDelete(rows: DeliveryRule[]) {
+            if (rows.length === 0) {
+                window.$toast.warning('Please select a delivery rule')
+                return
+            }
+            await DeleteDeliveryRule(rows[0].ID)
+            await this.refresh()
+        },
+        handleAdd() {
+            this.selDeliveryRule = {} as DeliveryRule
+            this.showModal = true
+        },
+        handleEdit(rows: DeliveryRule[]) {
+            if (rows.length === 0) {
+                window.$toast.warning('Please select a delivery rule')
+                return
+            }
+            this.selDeliveryRule = { ...rows[0] }
+            this.showModal = true
+        },
+        handleSelect(value: CpiTenant[]) {
+            this.selDeliveryRule.IncludedTenants = value
+        },
+        handleTenantSelectionChange(event: any) {
+            const selectedItems = event.detail.items
+            const selectedTenants = selectedItems.map((item: any) => {
+                return this.cpiTenants.find(t => t.ID === Number(item.id))
+            }).filter((t: any) => t)
+            this.selDeliveryRule.IncludedTenants = selectedTenants
+        }
+    },
+    computed: {
+        filterKeys(): RuleFilterKey[] {
+            return ['All', 'Active', 'Skip Approve', 'Require Jira']
+        },
+        filterCounts(): Record<RuleFilterKey, number> {
+            return {
+                All: this.rules.length,
+                Active: this.rules.filter(r => r.Active).length,
+                'Skip Approve': this.rules.filter(r => r.SkipApprove).length,
+                'Require Jira': this.rules.filter(r => r.RequireJira).length,
+            }
+        },
+        filteredRules(): DeliveryRule[] {
+            switch (this.activeFilter) {
+                case 'Active':
+                    return this.rules.filter(r => r.Active)
+                case 'Skip Approve':
+                    return this.rules.filter(r => r.SkipApprove)
+                case 'Require Jira':
+                    return this.rules.filter(r => r.RequireJira)
+                case 'All':
+                default:
+                    return this.rules
+            }
+        },
+        tenantOptions(): { label: string; value: CpiTenant, disabled: boolean }[] {
+            const include = this.selDeliveryRule.IncludedTenants || []
+            if (include.length === 0) {
+                return this.cpiTenants.map(t => ({
+                    label: t.Name,
+                    value: t,
+                    disabled: false
+                }))
+            }
+            // Single-hop, downstream-only guidance: enable the direct downstream
+            // targets of the currently-included tenants. Walking one hop at a time
+            // keeps the included set a contiguous, connected chain (no gaps), which
+            // the backend SourceAndRoute connectivity check enforces on save.
+            // No upstream supplement and no convergence by design.
+            const includeRoutes = this.transportRoutes.filter(
+                route => include.some(t => t.TmsSourceNodeID === route.sourceNodeId)
+            )
+            const selectedIds = new Set(include.map(t => t.ID))
+            return this.cpiTenants.map(t => ({
+                label: t.Name,
+                value: t,
+                // Already-selected tenants stay enabled so they can be de-selected;
+                // otherwise enable only the direct downstream targets.
+                disabled: !selectedIds.has(t.ID)
+                    && !includeRoutes.some(route => route.targetNodeId === t.TmsSourceNodeID)
+            }))
+        }
+    },
+    async created() {
+        await this.refresh()
+        this.cpiTenants = await GetCpiTenants() || []
+        this.transportRoutes = await GetTransportRoutes()
+    }
+})
+</script>
+
+<style scoped>
+.flex-vertical {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.flex-row {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.switch-row {
+    display: flex;
+    gap: 2rem;
+}
+
+.switch-item {
+    display: flex;
+    align-items: center;
+}
+</style>

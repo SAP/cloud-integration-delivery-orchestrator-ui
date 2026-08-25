@@ -1,0 +1,54 @@
+/* these are necessary styles for vue flow */
+@import '@vue-flow/core/dist/style.css';
+
+/* this contains the default theme, these are optional styles */
+@import '@vue-flow/core/dist/theme-default.css';
+
+/* @import '@sap-theming/theming-base-content/content/Base/baseLib/sap_fiori_3/css_variables.css'; */
+
+/* @import 'fundamental-styles/dist/fundamental-styles.css'; */
+
+
+#app {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh; /* occupy full viewport height */
+}
+
+html,
+body {
+  margin: 8px;
+  padding: 0;
+  background-color: var(--sapBackgroundColor);
+  color: var(--sapTextColor);
+  /* font-family: var(--sapFontFamily); */
+}
+
+/* allow components to size to 100% height */
+html, body, #app {
+  height: 100%;
+}
+
+/* container below the ShellBar should expand and allow its children to fill */
+.body-class {
+  flex: 1 1 auto;
+  min-height: 0; /* allow proper height calculations for nested flex elements */
+  display: flex;
+  flex-direction: column;
+}
+
+/* hover styles can be added here if needed */
+
+/* responsive overrides can be added here if needed */
+
+/* ensure Naive UI message provider stretches and the routed view fills available space */
+.body-class n-message-provider {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.body-class n-message-provider > :last-child {
+  flex: 1 1 auto;
+  min-height: 0;
+}

@@ -1,0 +1,600 @@
+import axios from 'axios'
+import http from './http'
+import type { ApiEndpoint, Artifact, ArtifactTenantOperation, AppCount, BackfillTechIDResult, BootstrapJob, BootstrapPreview, CentralTmsContext, ConnectivityReport, ConnectivityStatus, CpiTenant, CreateDRFromMismatchRequest, CreateDRFromMismatchResponse, DeliverOpRequest, DeliveryRequest, DeliveryRule, GenerateTRResponse, GitOwnerInfo, GitRepoConfig, GitRepoInfo, IntegrationConfig, NodeTransportRequest, OperationCondition, OperationsHistoryFilters, OperationsHistoryResponse, Package, PreviewDRResponse, RuntimeArtifact, TmsNodeConfirmResponse, TmsRoutesResponse, TransportNode, TransportRoute, TriggerResult, UserInfo, VersionCompareIncludedPackage, VersionCompareResponse, VersionCompareSummaryItem } from './model'
+import type { AggregateStatus, DeployState, ImportState, RequestState } from './statuses'
+
+export const GetDrCounts = () => {
+  return http.get('/api/v1/deliveryRequest/counts') as Promise<{ Total: number, StatusCounts: Record<string, number> }>
+}
+
+let currentUser: UserInfo | null = null
+export const CurrentUser = async () => {
+  if (currentUser) return currentUser
+  const { data } = await axios.get('/user-api/currentUser')  
+  return currentUser = data
+}
+
+export const GetCPIApiEndpoints = () => {
+  return http.get('/api/v1/destinations') as Promise<ApiEndpoint[]>
+}
+
+export const GetTransportNodes = () => {
+  return http.get('/api/v1/tms/nodes') as Promise<TransportNode[]>
+}
+export const GetTransportRequests = (node_id: number | string) => {
+  return http.get('/api/v1/tms/trs', {
+    params: { transportNode: node_id }
+  }) as Promise<NodeTransportRequest[]>
+}
+
+export const GetTransportRoutes = () => {
+  return http.get('/api/v1/tms/routes') as Promise<TransportRoute[]>
+}
+
+
+export const GetPackages = (tenantId: number | string) => {
+  return http.get('/api/v1/tanant/packages', {
+    params: { tenant: tenantId }
+  }) as Promise<Package[]>
+}
+
+export const GenerateTR = (tenantId: number, deliveryRequestID: number, artifactOperationIDs: number[]) => {
+  return http.post(`/api/v1/cpiTenant/${tenantId}/generateTR`, {
+    deliveryRequestID,
+    artifactOperationIDs,
+  }) as Promise<GenerateTRResponse>
+}
+
+export interface PackageArtifactsResult {
+  packageId: string
+  artifacts: Artifact[]
+  error?: string
+}
+
+export const GetPackageArtifactsBatch = (tenantId: string, packageIds: string[]) => {
+  return http.get('/api/v1/tenant/packages/artifacts', {
+    params: { tenant: tenantId, packages: packageIds.join(',') }
+  }) as Promise<PackageArtifactsResult[]>
+}
+
+export const GetPackageArtifacts = async (tenantId: string, packageId: string): Promise<Artifact[]> => {
+  const results = await GetPackageArtifactsBatch(tenantId, [packageId])
+  const r = results?.[0]
+  if (r?.error) throw new Error(r.error)
+  return r?.artifacts ?? []
+}
+
+export const GetRuntimeArtifacts = (tenantId: string) => {
+  return http.get('/api/v1/tenant/runtime', {
+    params: { tenant: tenantId }
+  }) as Promise<RuntimeArtifact[]>
+}
+
+export const GetCpiTenants = () => {
+  return http.get('/api/v1/cpiTenant') as Promise<CpiTenant[]>
+}
+
+export const GetCpiTenant = (id: number) => {
+  return http.get(`/api/v1/cpiTenant/${id}`) as Promise<CpiTenant>
+}
+
+
+export const UpsertCpiTenant = (tenant: CpiTenant) => {
+  // if backend treats ID=0 (or absence) as create
+  return http.post('/api/v1/cpiTenant', tenant) as Promise<CpiTenant>
+}
+
+export const DeleteCpiTenant = (id: number) => {
+  return http.delete(`/api/v1/cpiTenant/${id}`)
+}
+
+export const GetDeliveryRules = () => {
+  return http.get('/api/v1/deliveryRule') as Promise<DeliveryRule[]>
+}
+export const GetDeliveryRule = (id: number) => {
+  return http.get(`/api/v1/deliveryRule/${id}`) as Promise<DeliveryRule>
+}
+export const UpsertDeliveryRule = (rule: DeliveryRule) => {
+  // will create a new rule if ID is 0
+  return http.post('/api/v1/deliveryRule', rule) as Promise<DeliveryRule>
+}
+
+export const DeleteDeliveryRule = (id: number) => {
+  return http.delete(`/api/v1/deliveryRule/${id}`)
+}
+
+
+// DeliveryRequest CRUD
+export const GetDeliveryRequests = (page = 1, pageSize = 20, statuses?: string[]) => {
+  const params: Record<string, unknown> = { page, pageSize }
+  if (statuses && statuses.length > 0) params.status = statuses.join(',')
+  return http.get('/api/v1/deliveryRequest', { params }) as Promise<{ items: DeliveryRequest[], total: number, page: number, pageSize: number }>
+}
+
+export const GetDeliveryRequest = (id: Number) => {
+  return http.get(`/api/v1/deliveryRequest/${id}`) as Promise<DeliveryRequest>
+}
+
+export const CreateDeliveryRequest = (req: DeliveryRequest) => {
+  return http.post('/api/v1/deliveryRequest', req) as Promise<DeliveryRequest>
+}
+
+export const UpdateDeliveryRequest = (req: DeliveryRequest) => {
+  return http.put(`/api/v1/deliveryRequest`, req) as Promise<DeliveryRequest>
+}
+
+export const DeleteDeliveryRequest = (id: number) => {
+  return http.delete(`/api/v1/deliveryRequest/${id}`)
+}
+
+export const CancelDeliveryRequest = (deliveryRequestID: number, reason: string) => {
+  return http.post('/api/v1/deliveryRequest/cancel', { deliveryRequestID, reason })
+}
+
+// Placeholder endpoints for artifact import / deploy operations.
+// Adjust paths & payloads once backend contract is finalized.
+export const ImportArtifactsToNode = (
+  deliveryRequestId: number,
+  nodeId: number,
+  artifacts: { id: string; version: string }[]
+) => {
+  return http.post(`/api/v1/deliveryRequest/${deliveryRequestId}/import`, {
+    nodeId,
+    artifacts
+  })
+}
+
+export const DeployArtifactsToNode = (
+  deliveryRequestId: number,
+  nodeId: number,
+  artifacts: { id: string; version: string }[]
+) => {
+  return http.post(`/api/v1/deliveryRequest/${deliveryRequestId}/deploy`, {
+    nodeId,
+    artifacts
+  })
+}
+
+export const CheckArtifactNodeStatus = (artifacts: Artifact[]) => {
+  return http.post('/api/v1/tms/artifactStatus', { artifacts }) as Promise<Artifact[]>;
+}
+
+export const ImportOps = (opIDs: number[], tenant: number, drID: number) => {
+  const req: DeliverOpRequest ={
+    opIDs: opIDs,
+    targetTenant: tenant,
+    deliveryRequestID: drID
+  }
+  return http.post(`/api/v1/deliveryRequest/import`, req)
+}
+
+export const DeployOps = (opIDs: number[], tenant: number, drID: number) => {
+  const req: DeliverOpRequest ={
+    opIDs: opIDs,
+    targetTenant: tenant,
+    deliveryRequestID: drID
+  }
+  return http.post(`/api/v1/deliveryRequest/deploy`, req)
+}
+
+// batch delete, avoid to use delete method, since there is no body support in delete method
+export const DeleteOps = (drID: number, opIDs: number[]) => {
+  if (opIDs.length === 0) return
+  return http.post(`/api/v1/deliveryRequest/deleteOps`, {opIds: opIDs, deliveryRequestID: drID})
+}
+
+export const InsertOps = (drID: number, ops: ArtifactTenantOperation[]): Promise<ArtifactTenantOperation[]> => {
+  if (ops.length === 0) return Promise.resolve([])
+  return http.post(`/api/v1/deliveryRequest/insertOps`, {ops: ops, deliveryRequestID: drID})
+}
+export const UpdateOps = (drID: number, ops: ArtifactTenantOperation[]): Promise<ArtifactTenantOperation[]> => {
+  if (ops.length === 0) return Promise.resolve([])
+  const items = ops.map(op => ({
+    ID: op.ID,
+    TransportRequestNumber: op.TransportRequestNumber,
+    SkipDeploy: op.SkipDeploy,
+  }))
+  return http.put(`/api/v1/deliveryRequest/updateOps`, {ops: items, deliveryRequestID: drID})
+}
+export const SyncStatus = (drID: number) => {
+  return http.post(`/api/v1/deliveryRequest/syncState/${drID}`)
+}
+// UAA user search by email
+export const UaaEmailSearch = (query: string) => {
+  return http.get(`/api/v1/uaa/search/${query}`) as Promise<UserInfo[]>
+}
+
+export const UaaUserInfo = (userId: string) => {
+  return http.get(`/api/v1/uaa/id/${userId}`) as Promise<UserInfo>
+}
+
+// approve delivery request
+export const RequestApprove = (drID: number, approvers: string[], comment: string|'') => {
+  return http.post(`/api/v1/deliveryRequest/requestApproval`, 
+    {approvers: approvers, deliveryRequestID: drID, comment: comment})
+}
+
+export const Approve = (drID: number, comment: string | []): Promise<DeliveryRequest> => {
+  return http.post('/api/v1/deliveryRequest/approve', 
+    {deliveryRequestID: drID, comment: comment})
+}
+
+// --- Version Compare ---
+
+export const TriggerVersionCompare = (ruleId: number) => {
+  return http.post(`/api/v1/deliveryRule/${ruleId}/versionCompare/trigger`) as Promise<TriggerResult>
+}
+
+export const QueryVersionCompare = (ruleId: number, params?: {
+  packageIDs?: string
+  designTime?: boolean
+  runTime?: boolean
+  mismatchOnly?: boolean
+}) => {
+  return http.get(`/api/v1/deliveryRule/${ruleId}/versionCompare`, {
+    params: {
+      packageIDs: params?.packageIDs,
+      designTime: params?.designTime !== undefined ? String(params.designTime) : undefined,
+      runTime: params?.runTime !== undefined ? String(params.runTime) : undefined,
+      mismatchOnly: params?.mismatchOnly ? 'true' : undefined,
+    }
+  }) as Promise<VersionCompareResponse>
+}
+
+export const GetVersionCompareSummary = () => {
+  return http.get('/api/v1/versionCompare/summary') as Promise<VersionCompareSummaryItem[]>
+}
+
+export const GetVersionCompareCounts = () => {
+  return http.get('/api/v1/versionCompare/counts') as Promise<AppCount>
+}
+
+export const GetIncludedPackages = () => {
+  return http.get('/api/v1/versionCompare/includedPackages') as Promise<{ packages: VersionCompareIncludedPackage[] }>
+}
+
+export const UpdateIncludedPackages = (packages: { packageID: string; description: string }[]) => {
+  return http.put('/api/v1/versionCompare/includedPackages', { packages }) as Promise<{ packages: VersionCompareIncludedPackage[] }>
+}
+
+export const PreviewDRFromMismatch = (ruleId: number) => {
+  return http.get(`/api/v1/deliveryRule/${ruleId}/versionCompare/previewDR`) as Promise<PreviewDRResponse>
+}
+
+export const CreateDRFromMismatch = (ruleId: number, req: CreateDRFromMismatchRequest) => {
+  return http.post(`/api/v1/deliveryRule/${ruleId}/versionCompare/createDR`, req, { silentError: true }) as Promise<CreateDRFromMismatchResponse>
+}
+
+export const AdhocVersionCompare = (tenantIDs: number[]) => {
+  return http.post('/api/v1/versionCompare/adhoc', { tenantIDs }) as Promise<VersionCompareResponse>
+}
+
+// --- Bootstrap ---
+
+export const PreviewBootstrap = (tenantId: number, cfToken: string) => {
+  return http.post(`/api/v1/cpiTenant/${tenantId}/bootstrap/preview`, { cfToken }) as Promise<BootstrapPreview>
+}
+
+export const ApplyBootstrap = (tenantId: number, cfToken: string) => {
+  return http.post(`/api/v1/cpiTenant/${tenantId}/bootstrap/apply`, { cfToken }) as Promise<{ jobId: number }>
+}
+
+export const GetBootstrapStatus = (tenantId: number) => {
+  return http.get(`/api/v1/cpiTenant/${tenantId}/bootstrap/status`) as Promise<BootstrapJob>
+}
+
+export const SaveCfIdentity = (tenantId: number, payload: { cfApiEndpoint: string; cfOrg: string; cfSpace: string; cfToken: string }) => {
+  return http.put(`/api/v1/cpiTenant/${tenantId}/cfIdentity`, payload) as Promise<{ tenantId: number }>
+}
+
+export const ExchangeCfPasscode = (cfApiEndpoint: string, passcode: string) => {
+  return http.post('/api/v1/cf/token', { cfApiEndpoint, passcode }) as Promise<{ accessToken: string }>
+}
+
+export const ListCfOrgs = (cfApiEndpoint: string, cfToken: string) => {
+  return http.post('/api/v1/cf/orgs', { cfApiEndpoint, cfToken }) as Promise<{ guid: string; name: string }[]>
+}
+
+export const ListCfSpaces = (cfApiEndpoint: string, cfToken: string, orgGuid: string) => {
+  return http.post('/api/v1/cf/spaces', { cfApiEndpoint, cfToken, orgGuid }) as Promise<{ guid: string; name: string }[]>
+}
+
+export const RetryBootstrap = (tenantId: number, cfToken: string) => {
+  return http.post(`/api/v1/cpiTenant/${tenantId}/bootstrap/retry`, { cfToken }) as Promise<{ jobId: number }>
+}
+
+export const ResetBootstrap = (tenantId: number) => {
+  return http.post(`/api/v1/cpiTenant/${tenantId}/bootstrap/reset`, {}) as Promise<{ tenantId: number }>
+}
+
+// --- TMS Node Registration ---
+
+export const RegisterTmsNode = (tenantId: number, payload: { nodeId: number; nodeName: string }) => {
+  return http.post(`/api/v1/cpiTenant/${tenantId}/tms-node/register`, payload) as Promise<void>
+}
+
+export const GetTmsNodeRoutes = (tenantId: number) => {
+  return http.get(`/api/v1/cpiTenant/${tenantId}/tms-node/routes`) as Promise<TmsRoutesResponse>
+}
+
+export const ConfirmTmsRoutes = (tenantId: number) => {
+  return http.post(`/api/v1/cpiTenant/${tenantId}/tms-node/confirm`, {}) as Promise<TmsNodeConfirmResponse>
+}
+
+// --- Central TMS Context ---
+
+export const GetCentralTmsContext = () => {
+  return http.get('/api/v1/centralTmsContext') as Promise<CentralTmsContext>
+}
+
+export const UpsertCentralTmsContext = (payload: Partial<CentralTmsContext>) => {
+  return http.put('/api/v1/centralTmsContext', payload) as Promise<CentralTmsContext>
+}
+
+// --- System Configuration ---
+
+export const GetIntegrations = () => {
+  return http.get('/api/v1/system/integrations') as Promise<IntegrationConfig[]>
+}
+
+export const UpdateIntegration = (type: string, payload: { destinationName: string; enabled: boolean; description: string }) => {
+  return http.put(`/api/v1/system/integrations/${type}`, payload) as Promise<IntegrationConfig>
+}
+
+export const TestIntegration = (type: string) => {
+  return http.get(`/api/v1/system/connectivity/integration/${type}`) as Promise<{ name: string; type: string; status: string; message?: string }>
+}
+
+// --- Git Repository Config ---
+
+export const GetGitRepoConfig = () => {
+  return http.get('/api/v1/system/gitRepoConfig') as Promise<GitRepoConfig>
+}
+
+export const GetGitProviders = () => {
+  return http.get('/api/v1/system/gitRepoConfig/providers') as Promise<string[]>
+}
+
+export const UpsertGitRepoConfig = (config: GitRepoConfig) => {
+  return http.put('/api/v1/system/gitRepoConfig', config) as Promise<{ config: GitRepoConfig; warning?: string }>
+}
+
+export const TestGitRepoConnection = () => {
+  return http.post('/api/v1/system/gitRepoConfig/test', {}) as Promise<{ status: string; message: string }>
+}
+
+export const GetGitOwners = (provider: string, destinationName: string) => {
+  return http.get('/api/v1/system/gitRepoConfig/owners', { params: { provider, destinationName } }) as Promise<GitOwnerInfo[]>
+}
+
+export const GetGitRepos = (provider: string, destinationName: string, owner: string, ownerType: string) => {
+  return http.get('/api/v1/system/gitRepoConfig/repos', { params: { provider, destinationName, owner, ownerType } }) as Promise<GitRepoInfo[]>
+}
+
+// --- Git Sync Snapshots ---
+
+export interface SnapshotFileEntry {
+  path: string
+  content?: string
+  isBinary: boolean
+  size: number
+}
+
+export interface SnapshotFilesResponse {
+  snapshotId: number
+  artifactId: string
+  version: string
+  tenant: string
+  files: SnapshotFileEntry[]
+}
+
+export interface GitSnapshot {
+  ID: number
+  artifactId: string
+  version: string
+  cpiTenantId: number
+  status: 'pending' | 'completed' | 'failed' | 'not_found'
+  triggeredAt: string
+  completedAt?: string
+  error?: string
+  commitSHA?: string
+  commitUrl?: string
+}
+
+export const GetGitSnapshots = async (artifactId: string, tenantId: number): Promise<GitSnapshot[]> => {
+  const data = await (http.get('/api/v1/gitSync/snapshots', { params: { artifactId, tenantId } }) as Promise<GitSnapshot[] | null>)
+  return data ?? []
+}
+
+export const GetSnapshotFiles = async (snapshotId: number): Promise<SnapshotFilesResponse> => {
+  const data = await (http.get(`/api/v1/gitSync/snapshots/${snapshotId}/files`) as Promise<SnapshotFilesResponse | null>)
+  const resp = data ?? { snapshotId, artifactId: '', version: '', tenant: '', files: [] }
+  resp.files = resp.files ?? []
+  return resp
+}
+
+export const TriggerGitSync = (payload: { artifactId: string; cpiTenantId: number; artifactType: string; packageId: string }) => {
+  return http.post('/api/v1/gitSync/trigger', payload) as Promise<void>
+}
+
+export const CheckConnectivity = () => {
+  return http.post('/api/v1/system/connectivity/all', {}) as Promise<ConnectivityReport>
+}
+
+export const GetLastConnectivity = () => {
+  return http.get('/api/v1/system/connectivity/last') as Promise<ConnectivityReport>
+}
+
+export const CheckConnectivityDatabase = () => {
+  return http.get('/api/v1/system/connectivity/database') as Promise<ConnectivityStatus>
+}
+
+export const CheckConnectivityTMS = () => {
+  return http.get('/api/v1/system/connectivity/tms') as Promise<ConnectivityStatus>
+}
+
+export const CheckConnectivityTenants = () => {
+  return http.get('/api/v1/system/connectivity/tenants') as Promise<ConnectivityStatus[]>
+}
+
+export const CheckConnectivityIntegrations = () => {
+  return http.get('/api/v1/system/connectivity/integrations') as Promise<ConnectivityStatus[]>
+}
+
+export const GetDatabaseInfo = () => {
+  return http.get('/api/v1/system/database/info') as Promise<{ host: string; port: string; dbName: string; status: string }>
+}
+
+export const BackfillTechIDs = (dryRun = false, tenant?: number) => {
+  return http.post('/api/v1/system/backfill-tech-id', null, {
+    params: {
+      ...(dryRun && { dryRun: 'true' }),
+      ...(tenant ? { tenant } : {}),
+    }
+  }) as Promise<BackfillTechIDResult>
+}
+
+// --- Operations History ---
+
+export const GetOperationsHistory = (params: Record<string, any>) => {
+  return http.get('/api/v1/operations/history', {
+    params,
+    paramsSerializer: (p: any) => {
+      const parts: string[] = []
+      for (const [key, val] of Object.entries(p)) {
+        if (Array.isArray(val)) {
+          val.forEach(v => parts.push(`${key}=${encodeURIComponent(v)}`))
+        } else if (val !== undefined && val !== null) {
+          parts.push(`${key}=${encodeURIComponent(String(val))}`)
+        }
+      }
+      return parts.join('&')
+    }
+  }) as Promise<OperationsHistoryResponse>
+}
+
+export const GetOperationsHistoryFilters = () => {
+  return http.get('/api/v1/operations/history/filters') as Promise<OperationsHistoryFilters>
+}
+
+export const GetOperationConditions = (opId: number) => {
+  return http.get(`/api/v1/operationConditions/${opId}`) as Promise<OperationCondition[]>
+}
+
+// Cpi tenant operations mapping
+export const TenantOps = (ops: ArtifactTenantOperation[]) => {
+  const tenantToOps: {[key: number] : {[key: string]: ArtifactTenantOperation}} = {}  // cpi tenant ID - map[trNumber]ArtifactTenantOperation
+  ops.forEach(op => {
+    const tenantId = op.Tenant!.ID
+    tenantToOps[tenantId] = tenantToOps[tenantId] || {}
+    const trNumber = (op.TransportRequestNumber ?? 0) as string
+    tenantToOps[tenantId][trNumber] = op
+  })
+
+  return tenantToOps
+}
+
+export const DeriveArtifactOpAgg = (op: ArtifactTenantOperation) => {
+  if (op.DeployState !== 'NOT_STARTED') return op.DeployState
+  if (op.ImportState !== 'NOT_STARTED') return op.ImportState
+  if (op.RequestState !== 'NOT_REQUESTED') return op.RequestState
+  return 'NOT_REQUESTED'
+}
+
+// derive aggregate status of a cpi tenant based on its artifact operations
+export const DeriveNodeAgg = (ops: ArtifactTenantOperation[]): AggregateStatus => {
+  if (ops.length === 0) return 'UNKNOWN'
+
+  // Collect state sets
+  const requestStates = ops.map(op => op.RequestState).filter(Boolean) as RequestState[]
+  const importStates = ops.map(op => op.ImportState).filter(Boolean) as ImportState[]
+  const deployStates = ops.map(op => op.DeployState).filter(Boolean) as DeployState[]
+
+  const any = <T>(arr: T[], v: T[]) => arr.some(s => v.includes(s))
+  const all = <T>(arr: T[], v: T[]) => arr.length > 0 && arr.every(s => v.includes(s))
+
+  // 1. Request phase error overrides others
+  if (any(requestStates, ['FAILED'])) return 'Error'
+
+  // 2. Import failures / progress / completion (import failure has higher priority than deploy failure)
+  if (any(importStates, ['FAILED'])) return 'IMPORT_FAILED'
+  if (any(importStates, ['IN_PROGRESS'])) return 'IMPORTING'
+  if (any(importStates, ['QUEUED'])) return 'AWAITING_IMPORT'
+
+  // 3. Deployment failures / progress / completion
+  if (any(deployStates, ['FAILED'])) return 'DEPLOY_FAILED'
+  if (all(deployStates, ['COMPLETE', 'DEPLOY_DISABLED'])) return 'DEPLOYED'
+  if (any(deployStates, ['IN_PROGRESS'])) return 'DEPLOYING'
+  if (all(deployStates, ['QUEUED'])) return 'AWAITING_DEPLOY'
+
+  // 4. Import completed, but deploy not started yet
+  if (all(importStates, ['COMPLETE', 'IMPORT_DISABLED']) && all(deployStates, ['NOT_STARTED', 'DEPLOY_DISABLED'])) {
+    return 'AWAITING_DEPLOY'
+  }
+  // 5. Import completed with mixed deploy states (QUEUED mixed with other states)
+  if (all(importStates, ['COMPLETE', 'IMPORT_DISABLED']) && deployStates.length > 0) {
+    return 'IMPORTED'
+  }
+
+  // 6. Awaiting import / pending transport request readiness
+  const allRequestsReady = requestStates.length > 0 && all(requestStates, ['READY'])
+  if (allRequestsReady) return 'AWAITING_IMPORT'
+  if (any(requestStates, ['REQUESTING', 'NOT_REQUESTED'])) return 'PENDING'
+
+  return 'UNKNOWN'
+}
+
+// Aggregate multiple tenant states into a single group state.
+// The group reflects the "bottleneck": error/failure states surface first,
+// then the least-progressed lifecycle stage among all tenants.
+export const DeriveGroupAgg = (tenantStates: AggregateStatus[]): AggregateStatus => {
+  if (tenantStates.length === 0) return 'UNKNOWN'
+
+  // Priority: error states first, then lifecycle order (earliest stage = highest priority).
+  const order: AggregateStatus[] = [
+    'Error',
+    'DEPLOY_FAILED',
+    'IMPORT_FAILED',
+    'CANCELED',
+    'PENDING',
+    'WAITING_APPROVAL',
+    'AWAITING_IMPORT',
+    'IMPORTING',
+    'IMPORTED',
+    'AWAITING_DEPLOY',
+    'DEPLOYING',
+    'DEPLOYED',
+    'UNKNOWN',
+  ]
+  const rank = (s: AggregateStatus) => {
+    const idx = order.indexOf(s)
+    return idx === -1 ? order.length : idx
+  }
+
+  return tenantStates.reduce((acc, cur) => rank(cur) < rank(acc) ? cur : acc)
+}
+
+import dagre from '@dagrejs/dagre'
+import {type Edge, type Node } from '@vue-flow/core'
+
+
+export function layoutNodes(nodes: Node[], edges: Edge[], direction: 'LR' | 'TB' = 'LR'): {nodes: Node[], edges: Edge[], height: number, width: number} {
+  const g = new dagre.graphlib.Graph()
+  g.setGraph({ rankdir: direction })
+  g.setDefaultEdgeLabel(() => ({}))
+
+  nodes.forEach((node) => {g.setNode(node.id, { width: Number(node?.width ?? 0), height: Number(node?.height ?? 0) })})
+
+  edges.forEach((edge) => {g.setEdge(edge.source, edge.target)})
+
+  dagre.layout(g)
+  return {
+    nodes: nodes.map(n => ({
+      ...n,
+      position: { x: g.node(n.id).x, y: g.node(n.id).y }
+    })),
+    edges: edges,
+    height: g.graph().height ?? 0,
+    width: g.graph().width ?? 0,
+  }
+}

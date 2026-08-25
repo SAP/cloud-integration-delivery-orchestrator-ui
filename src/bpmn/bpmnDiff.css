@@ -1,0 +1,140 @@
+/* SAPBPMN icon font — loop/multi-instance activity markers (extracted from CPI) */
+@font-face {
+  font-family: 'SAPBPMN';
+  src: url('../assets/SAPBPMNRegular.woff') format('woff');
+  font-weight: normal;
+  font-style: normal;
+}
+
+/* CPI connections — match CPI arrow style (#427CAC) */
+.djs-connection .djs-visual > path {
+  stroke: #427CAC !important;
+  stroke-width: 1px !important;
+  marker-end: url(#cpi-arrow-end) !important;
+}
+
+/* Arrowhead markers — same color as connection line */
+.djs-container svg marker path {
+  fill: #427CAC !important;
+  stroke: #427CAC !important;
+}
+
+/* Diff overlay badges */
+.bpmn-diff-badge {
+  display: inline-block;
+  border-radius: 50%;
+  color: #fff;
+  font-weight: bold;
+  font-size: 14px;
+  width: 20px;
+  height: 20px;
+  line-height: 20px;
+  text-align: center;
+  pointer-events: none;
+}
+
+.bpmn-diff-badge--added {
+  background-color: var(--sapPositiveColor, #107e3e);
+}
+
+.bpmn-diff-badge--removed {
+  background-color: var(--sapNegativeColor, #bb0000);
+}
+
+.bpmn-diff-badge--changed {
+  background-color: var(--sapCriticalColor, #c35500);
+}
+
+.bpmn-diff-badge--layout {
+  background-color: var(--sapInformationColor, #0a6ed1);
+}
+
+/* Diff markers — shapes */
+.djs-shape.bpmn-diff-added .djs-visual > .cpi-shape-outline,
+.djs-shape.bpmn-diff-added .djs-visual > :first-child:not(.cpi-shape-icon):not(.djs-label) {
+  stroke: var(--sapPositiveColor, #107e3e) !important;
+  stroke-width: 2.5px !important;
+  stroke-dasharray: none !important;
+  fill: var(--sapSuccessBackground, #e8f5e9) !important;
+}
+
+.djs-shape.bpmn-diff-removed .djs-visual > .cpi-shape-outline,
+.djs-shape.bpmn-diff-removed .djs-visual > :first-child:not(.cpi-shape-icon):not(.djs-label) {
+  stroke: var(--sapNegativeColor, #bb0000) !important;
+  stroke-width: 2.5px !important;
+  stroke-dasharray: 8 4 !important;
+  fill: var(--sapErrorBackground, #ffebee) !important;
+}
+
+.djs-shape.bpmn-diff-changed .djs-visual > .cpi-shape-outline,
+.djs-shape.bpmn-diff-changed .djs-visual > :first-child:not(.cpi-shape-icon):not(.djs-label) {
+  stroke: var(--sapCriticalColor, #c35500) !important;
+  stroke-width: 2.5px !important;
+  stroke-dasharray: 4 3 !important;
+  fill: var(--sapWarningBackground, #fff3e0) !important;
+}
+
+.djs-shape.bpmn-diff-layout .djs-visual > .cpi-shape-outline,
+.djs-shape.bpmn-diff-layout .djs-visual > :first-child:not(.cpi-shape-icon):not(.djs-label) {
+  stroke: var(--sapInformationColor, #0a6ed1) !important;
+  stroke-width: 2.5px !important;
+  stroke-dasharray: 1 4 !important;
+  stroke-linecap: round !important;
+  fill: var(--sapInformationBackground, #eaf3fc) !important;
+}
+
+/* Diff markers — connections */
+.djs-connection.bpmn-diff-added .djs-visual > path {
+  stroke: var(--sapPositiveColor, #107e3e) !important;
+  stroke-width: 2.5px !important;
+  stroke-dasharray: none !important;
+}
+
+.djs-connection.bpmn-diff-removed .djs-visual > path {
+  stroke: var(--sapNegativeColor, #bb0000) !important;
+  stroke-width: 2.5px !important;
+  stroke-dasharray: 8 4 !important;
+}
+
+.djs-connection.bpmn-diff-changed .djs-visual > path {
+  stroke: var(--sapCriticalColor, #c35500) !important;
+  stroke-width: 2.5px !important;
+  stroke-dasharray: 4 3 !important;
+}
+
+.djs-connection.bpmn-diff-layout .djs-visual > path {
+  stroke: var(--sapInformationColor, #0a6ed1) !important;
+  stroke-width: 2.5px !important;
+  stroke-dasharray: 1 4 !important;
+  stroke-linecap: round !important;
+}
+
+/* Selection emphasis — layered on top of status markers (bidirectional binding).
+   A focus-colored glow makes the currently-selected element stand out without
+   overriding its status color. */
+.djs-element.bpmn-diff-selected .djs-visual {
+  filter: drop-shadow(0 0 3px var(--sapContent_FocusColor, #0064d9))
+    drop-shadow(0 0 6px var(--sapContent_FocusColor, #0064d9));
+}
+
+.djs-element.bpmn-diff-selected > .djs-outline {
+  visibility: visible !important;
+  stroke: var(--sapContent_FocusColor, #0064d9) !important;
+  stroke-width: 2px !important;
+  stroke-dasharray: none !important;
+}
+
+/* Hover affordance — hint that a *changed* element is clickable (bidirectional
+   binding). Deliberately weaker than the selected glow so the two states stay
+   distinct; skipped on the already-selected element to avoid stacking effects.
+   Scoped to elements carrying a diff marker so unchanged elements — which are
+   not clickable and have no matching change card — get no hover cue. */
+.djs-element:is(.bpmn-diff-added, .bpmn-diff-removed, .bpmn-diff-changed, .bpmn-diff-layout):hover {
+  cursor: pointer;
+}
+
+.djs-element:is(.bpmn-diff-added, .bpmn-diff-removed, .bpmn-diff-changed, .bpmn-diff-layout):not(.bpmn-diff-selected):hover
+  .djs-visual {
+  filter: drop-shadow(0 0 2px var(--sapContent_FocusColor, #0064d9));
+}
+
