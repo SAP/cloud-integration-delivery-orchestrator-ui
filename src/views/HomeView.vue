@@ -1,9 +1,12 @@
 <script setup lang="ts">
 import AppCard from '@/components/AppCard.vue'
 import type { AppCount } from '@/service/model'
+import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuth } from '@/composables/useAuth'
 import "@ui5/webcomponents/dist/Title.js"
+import "@ui5/webcomponents-fiori/dist/IllustratedMessage.js"
+import "@ui5/webcomponents-fiori/dist/illustrations/UnableToUpload.js";
 
 type ChildMeta = { description?: string; statusCount?: () => Promise<AppCount>; width?: string; height?: string; requiredScope?: string }
 
@@ -21,6 +24,8 @@ function visibleChildren(route: (typeof apps)[number]) {
     return !scope || hasScope(scope)
   })
 }
+
+const hasAnyVisible = computed(() => apps.some(app => visibleChildren(app).length > 0))
 </script>
 
 <template>
@@ -39,6 +44,12 @@ function visibleChildren(route: (typeof apps)[number]) {
         />
       </div>
     </section>
+    <div v-if="!hasAnyVisible" >
+      <ui5-illustrated-message name="UnableToUpload"
+        title-text="No Apps Available"
+        subtitle-text="You don't have permission to access any features yet. Ask administrator to assign Delivery Orchestrator role collection (Administrator, Operator, or Viewer) in BTP Cockpit.">
+      </ui5-illustrated-message>
+    </div>
   </div>
 </template>
 

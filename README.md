@@ -4,11 +4,33 @@
 
 ## About this project
 
-Vue 3 frontend for SAP Cloud Integration multi-tenant delivery orchestration — embedded into the backend Docker image at build time.
+Vue 3 frontend for SAP Cloud Integration multi-tenant delivery orchestration. Its production build is embedded into the backend Docker image, so it ships as part of a single deployable service.
 
-## Requirements and Setup
+This is one of the source repositories behind the [Cloud Integration Delivery Orchestrator](https://github.com/SAP/cloud-integration-delivery-orchestrator) (deployment & docs). The backend it talks to lives in [cloud-integration-delivery-orchestrator-srv](https://github.com/SAP/cloud-integration-delivery-orchestrator-srv), which also embeds this UI's build output at release time.
 
-*Insert a short description what is required to get your project running...*
+## Architecture
+
+A single-page application built with Vue 3 + TypeScript, bundled by Vite.
+
+- **UI toolkit**: [UI5 Web Components](https://sap.github.io/ui5-webcomponents/) (+ Fiori), registered as custom elements (`ui5-*`) in the Vite config.
+- **Routing / data**: `vue-router` for navigation, `axios` for the backend REST API.
+- **Specialized views**: BPMN artifact comparison via `bpmn-js` + `bpmn-js-differ` + `bpmn-moddle`; graph/diagram rendering via `@vue-flow/core` + `@dagrejs/dagre`; textual diffs via `diff` + `diff2html`.
+- **`src/` layout**: `views` (routed pages) · `components` (reusable UI) · `composables` (shared reactive logic) · `service` (API client) · `router` · `bpmn` (compare helpers) · `types` · `assets`.
+
+At runtime the app calls the backend under `/api`, `/user-api`, `/auth`, and `/logout`.
+
+## Local Development
+
+Requirements: Node.js 20+. The frontend needs the backend running on `http://localhost:8080` (see the [backend repo](https://github.com/SAP/cloud-integration-delivery-orchestrator-srv) for how to start it locally).
+
+```bash
+npm ci        # install dependencies
+npm run dev   # start the Vite dev server on http://localhost:5173
+```
+
+The dev server proxies `/api`, `/user-api`, `/auth`, and `/logout` to the backend on `:8080` (configured in `vite.config.ts`), so open `http://localhost:5173` and log in through the backend's XSUAA flow. Alternatively, open `http://localhost:8080` directly — the backend reverse-proxies to this Vite server when `VITE_DEV_URL` is set, preserving hot-module reload.
+
+Other scripts: `npm run build` (type-check + production build), `npm run lint`, `npm run format`, `npm run test`.
 
 ## Support, Feedback, Contributing
 
