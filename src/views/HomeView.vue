@@ -47,7 +47,7 @@ const hasAnyVisible = computed(() => apps.some(app => visibleChildren(app).lengt
     <div v-if="!hasAnyVisible" >
       <ui5-illustrated-message name="UnableToUpload"
         title-text="No Apps Available"
-        subtitle-text="You don't have permission to access any features yet. Ask an administrator to assign you a Delivery Orchestrator role collection (Administrator, Operator, or Viewer) in BTP Cockpit.">
+        subtitle-text="You don't have permission to access any features yet. Ask administrator to assign Delivery Orchestrator role collection (Administrator, Operator, or Viewer) in BTP Cockpit.">
       </ui5-illustrated-message>
     </div>
   </div>
