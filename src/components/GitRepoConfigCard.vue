@@ -320,24 +320,24 @@ onMounted(async () => {
 <template>
   <!-- Disconnect GitHub App: confirm phase, then a "finish on GitHub" phase once the
        backend returns the Advanced-page deep-link (App-registration delete is UI-only). -->
-  <ui5-dialog
-    header-text="Disconnect GitHub App"
-    :open="showDisconnectDialog"
-    @before-close="showDisconnectDialog = false"
-    style="width: 34rem;">
+  <ui5-dialog header-text="Disconnect GitHub App" :open="showDisconnectDialog"
+    @before-close="showDisconnectDialog = false" style="width: 34rem;">
     <div class="sc-dialog-content">
       <template v-if="!disconnectAdvancedUrl">
         <ui5-message-strip design="Negative" hide-close-button>
           This cannot be undone. Synced history already on GitHub is not removed.
         </ui5-message-strip>
 
-        <ui5-title level="H6" size="H6" style="margin-top: 0.75rem;">Performed automatically when you confirm</ui5-title>
+        <ui5-title level="H6" size="H6" style="margin-top: 0.75rem;">Performed automatically when you
+          confirm</ui5-title>
         <ui5-text>1. Uninstall the GitHub App installation (revokes its repository access).</ui5-text>
         <ui5-text>2. Delete the stored App private key (the auto-created destination).</ui5-text>
         <ui5-text>3. Unbind the repository configuration in this app.</ui5-text>
 
-        <ui5-title level="H6" size="H6" style="margin-top: 0.75rem;">Requires a manual step on GitHub afterwards</ui5-title>
-        <ui5-text>Delete the App registration — GitHub has no API for this. After you confirm, we'll show a deep-link to the App's Advanced settings page; open it and click "Delete GitHub App".</ui5-text>
+        <ui5-title level="H6" size="H6" style="margin-top: 0.75rem;">Requires a manual step on GitHub
+          afterwards</ui5-title>
+        <ui5-text>Delete the App registration — GitHub has no API for this. After you confirm, we'll show a deep-link to
+          the App's Advanced settings page; open it and click "Delete GitHub App".</ui5-text>
       </template>
       <template v-else>
         <ui5-message-strip design="Positive" hide-close-button style="margin-bottom: 0.75rem;">
@@ -350,7 +350,8 @@ onMounted(async () => {
     </div>
     <ui5-toolbar slot="footer">
       <template v-if="!disconnectAdvancedUrl">
-        <ui5-toolbar-button design="Negative" text="I Confirm to Disconnect" :disabled="disconnecting" @click="onConfirmDisconnect" />
+        <ui5-toolbar-button design="Negative" text="I Confirm to Disconnect" :disabled="disconnecting"
+          @click="onConfirmDisconnect" />
         <ui5-toolbar-button design="Transparent" text="Cancel" @click="showDisconnectDialog = false" />
       </template>
       <ui5-toolbar-button v-else design="Emphasized" text="Close" @click="showDisconnectDialog = false" />
@@ -358,10 +359,7 @@ onMounted(async () => {
   </ui5-dialog>
 
   <!-- Edit Git Repository Config Dialog -->
-  <ui5-dialog
-    header-text="Configure Git Repository"
-    :open="showGitEditDialog"
-    @before-close="showGitEditDialog = false"
+  <ui5-dialog header-text="Configure Git Repository" :open="showGitEditDialog" @before-close="showGitEditDialog = false"
     style="width: 36rem;">
     <div class="sc-dialog-content">
       <ui5-label required>Authentication Method</ui5-label>
@@ -374,14 +372,12 @@ onMounted(async () => {
       <template v-if="gitAuthMethod === 'pat'">
         <ui5-label required style="margin-top: 0.75rem;">Provider</ui5-label>
         <ui5-select style="width: 100%;" @change="onGitProviderChange(($event as any).detail.selectedOption.value)">
-          <ui5-option v-for="p in gitProviders" :key="p" :value="p" :selected="gitEditForm.provider === p">{{ p }}</ui5-option>
+          <ui5-option v-for="p in gitProviders" :key="p" :value="p" :selected="gitEditForm.provider === p">{{ p
+            }}</ui5-option>
         </ui5-select>
 
         <ui5-label required style="margin-top: 0.75rem;">Destination</ui5-label>
-        <ui5-combobox
-          style="width: 100%;"
-          placeholder="Search Git Destinations..."
-          filter="Contains"
+        <ui5-combobox style="width: 100%;" placeholder="Search Git Destinations..." filter="Contains"
           :selected-value="gitEditForm.destinationName"
           @selection-change="onGitDestinationChange(($event as any).detail.item?.getAttribute('value') || '')">
           <ui5-cb-item v-for="d in destinations" :key="d.name" :text="d.name" :value="d.name"></ui5-cb-item>
@@ -389,105 +385,88 @@ onMounted(async () => {
 
         <ui5-label required style="margin-top: 0.75rem;">Owner</ui5-label>
         <ui5-busy-indicator :active="gitOwnersLoading" :delay="0" size="S" style="width: 100%;">
-          <ui5-combobox
-            style="width: 100%;"
-            placeholder="Search Owner..."
-            filter="Contains"
-            :selected-value="gitEditForm.owner"
-            :disabled="gitOwners.length === 0 && !gitOwnersLoading"
+          <ui5-combobox style="width: 100%;" placeholder="Search Owner..." filter="Contains"
+            :selected-value="gitEditForm.owner" :disabled="gitOwners.length === 0 && !gitOwnersLoading"
             :loading="gitOwnersLoading"
             @selection-change="onGitOwnerChange(($event as any).detail.item?.getAttribute('value') || '')">
-            <ui5-cb-item v-for="o in gitOwners" :key="o.login" :text="`${o.login} (${o.type})`" :value="o.login"></ui5-cb-item>
+            <ui5-cb-item v-for="o in gitOwners" :key="o.login" :text="`${o.login} (${o.type})`"
+              :value="o.login"></ui5-cb-item>
           </ui5-combobox>
         </ui5-busy-indicator>
 
         <ui5-label required style="margin-top: 0.75rem;">Repository</ui5-label>
         <ui5-busy-indicator :active="gitReposLoading" :delay="0" size="S" style="width: 100%;">
-          <ui5-combobox
-            style="width: 100%;"
-            placeholder="Search Repository..."
-            filter="Contains"
-            :selected-value="gitEditForm.repo"
-            :disabled="gitRepos.length === 0 && !gitReposLoading"
+          <ui5-combobox style="width: 100%;" placeholder="Search Repository..." filter="Contains"
+            :selected-value="gitEditForm.repo" :disabled="gitRepos.length === 0 && !gitReposLoading"
             :loading="gitReposLoading"
             @selection-change="gitEditForm.repo = ($event as any).detail.item?.getAttribute('value') || ''">
-            <ui5-cb-item v-for="r in gitRepos" :key="r.name" :text="r.private ? `${r.name} (private)` : r.name" :value="r.name"></ui5-cb-item>
+            <ui5-cb-item v-for="r in gitRepos" :key="r.name" :text="r.private ? `${r.name} (private)` : r.name"
+              :value="r.name"></ui5-cb-item>
           </ui5-combobox>
         </ui5-busy-indicator>
 
-        <ui5-checkbox
-          style="margin-top: 0.75rem;"
-          :checked="gitEditForm.enabled"
-          @change="gitEditForm.enabled = ($event as any).target.checked"
-          text="Enabled" />
+        <ui5-checkbox style="margin-top: 0.75rem;" :checked="gitEditForm.enabled"
+          @change="gitEditForm.enabled = ($event as any).target.checked" text="Enabled" />
       </template>
 
       <!-- GitHub App mode: three states — installed (repo read-back), install-pending, not-registered. -->
       <template v-else>
-        <ui5-busy-indicator :active="appReposLoading" :delay="0" size="M" style="width: 100%; display: block; margin-top: 0.75rem;">
+        <ui5-busy-indicator :active="appReposLoading" :delay="0" size="M"
+          style="width: 100%; display: block; margin-top: 0.75rem;">
           <div class="app-form">
-          <!-- state c: installed → pick from the repos the installation was granted -->
-          <template v-if="appInstalled">
-            <ui5-message-strip design="Positive" hide-close-button style="margin-bottom: 0.75rem;">
-              GitHub App installed. Select one of the repositories the installation was granted.
-            </ui5-message-strip>
-            <ui5-label required>Repository</ui5-label>
-            <ui5-combobox
-              style="width: 100%;"
-              placeholder="Search Repository..."
-              filter="Contains"
-              :selected-value="gitEditForm.repo"
-              :disabled="appRepos.length === 0"
-              @selection-change="gitEditForm.repo = ($event as any).detail.item?.getAttribute('value') || ''">
-              <ui5-cb-item v-for="r in appRepos" :key="r.name" :text="r.private ? `${r.name} (private)` : r.name" :value="r.name"></ui5-cb-item>
-            </ui5-combobox>
-            <ui5-checkbox
-              style="margin-top: 0.75rem;"
-              :checked="gitEditForm.enabled"
-              @change="gitEditForm.enabled = ($event as any).target.checked"
-              text="Enabled" />
-          </template>
-
-          <!-- states a & b: not installed → registration form (b adds an install-pending warning) -->
-          <template v-else>
-            <ui5-message-strip v-if="appInstallPending" design="Warning" hide-close-button style="margin-bottom: 0.75rem;">
-              The GitHub App is registered but not installed on any repository yet. Finish installing it on GitHub, then reopen this dialog — or re-register below.
-            </ui5-message-strip>
-            <ui5-message-strip v-else design="Information" hide-close-button style="margin-bottom: 0.75rem;">
-              Register a GitHub App to sync using short-lived installation tokens (no PAT required). You'll be redirected to GitHub to create and install it.
-            </ui5-message-strip>
-
-            <ui5-label>GitHub Base URL</ui5-label>
-            <ui5-input
-              :value="appGithubUrl"
-              @input="appGithubUrl = ($event as any).target.value"
-              placeholder="Leave empty for github.com, e.g. (https://)github.example.com"
-              style="width: 100%;" />
-
-            <ui5-label style="margin-top: 0.75rem;">Account Type</ui5-label>
-            <ui5-select style="width: 100%;" @change="appAccountType = ($event as any).detail.selectedOption.value">
-              <ui5-option value="user" :selected="appAccountType === 'user'">Personal account</ui5-option>
-              <ui5-option value="org" :selected="appAccountType === 'org'">Organization</ui5-option>
-            </ui5-select>
-
-            <template v-if="appAccountType === 'org'">
-              <ui5-label required style="margin-top: 0.75rem;">Organization</ui5-label>
-              <ui5-input
-                :value="appOrg"
-                @input="appOrg = ($event as any).target.value"
-                placeholder="organization name, e.g. acme-corp"
-                style="width: 100%;" />
+            <!-- state c: installed → pick from the repos the installation was granted -->
+            <template v-if="appInstalled">
+              <ui5-message-strip design="Positive" hide-close-button style="margin-bottom: 0.75rem;">
+                GitHub App installed. Select one of the repositories the installation was granted.
+              </ui5-message-strip>
+              <ui5-label required>Repository</ui5-label>
+              <ui5-combobox style="width: 100%;" placeholder="Search Repository..." filter="Contains"
+                :selected-value="gitEditForm.repo" :disabled="appRepos.length === 0"
+                @selection-change="gitEditForm.repo = ($event as any).detail.item?.getAttribute('value') || ''">
+                <ui5-cb-item v-for="r in appRepos" :key="r.name" :text="r.private ? `${r.name} (private)` : r.name"
+                  :value="r.name"></ui5-cb-item>
+              </ui5-combobox>
+              <ui5-checkbox style="margin-top: 0.75rem;" :checked="gitEditForm.enabled"
+                @change="gitEditForm.enabled = ($event as any).target.checked" text="Enabled" />
             </template>
 
-            <ui5-button design="Emphasized" style="margin-top: 1rem;" :disabled="appRegistering" @click="startAppRegistration">
-              {{ appInstallPending ? 'Re-register GitHub App' : 'Register GitHub App' }}
-            </ui5-button>
-          </template>
+            <!-- states a & b: not installed → registration form (b adds an install-pending warning) -->
+            <template v-else>
+              <ui5-message-strip v-if="appInstallPending" design="Critical" hide-close-button
+                style="margin-bottom: 0.75rem;">
+                The GitHub App is registered but not installed on any repository yet. Finish installing it on GitHub,
+                then reopen this dialog — or re-register below.
+              </ui5-message-strip>
+              <ui5-message-strip v-else design="Information" hide-close-button style="margin-bottom: 0.75rem;">
+                Register a GitHub App to sync using short-lived installation tokens (no PAT required). You'll be
+                redirected to GitHub to create and install it.
+              </ui5-message-strip>
 
-          <!-- Exit mechanism: available once an App is registered (installed or install-pending). -->
-          <div v-if="appRegistered" class="disconnect-row">
-            <ui5-button design="Negative" @click="openDisconnectDialog">Disconnect GitHub App</ui5-button>
-          </div>
+              <ui5-label>GitHub Base URL</ui5-label>
+              <ui5-input :value="appGithubUrl" @input="appGithubUrl = ($event as any).target.value"
+                placeholder="Leave empty for github.com, e.g. (https://)github.example.com" style="width: 100%;" />
+
+              <ui5-label style="margin-top: 0.75rem;">Account Type</ui5-label>
+              <ui5-select style="width: 100%;" @change="appAccountType = ($event as any).detail.selectedOption.value">
+                <ui5-option value="user" :selected="appAccountType === 'user'">Personal account</ui5-option>
+                <ui5-option value="org" :selected="appAccountType === 'org'">Organization</ui5-option>
+              </ui5-select>
+
+              <template v-if="appAccountType === 'org'">
+                <ui5-label required style="margin-top: 0.75rem;">Organization</ui5-label>
+                <ui5-input :value="appOrg" @input="appOrg = ($event as any).target.value" 
+                    placeholder="organization name, e.g. acme-corp" style="width: 100%;" />
+              </template>
+
+              <ui5-button design="Emphasized" style="margin-top: 1rem;" :disabled="appRegistering" @click="startAppRegistration">
+                {{ appInstallPending ? 'Re-register GitHub App' : 'Register GitHub App' }}
+              </ui5-button>
+            </template>
+
+            <!-- Exit mechanism: available once an App is registered (installed or install-pending). -->
+            <div v-if="appRegistered" class="disconnect-row">
+              <ui5-button design="Negative" @click="openDisconnectDialog">Disconnect GitHub App</ui5-button>
+            </div>
           </div>
         </ui5-busy-indicator>
       </template>
