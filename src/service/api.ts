@@ -371,6 +371,27 @@ export const GetGitRepos = (provider: string, destinationName: string, owner: st
   return http.get('/api/v1/system/gitRepoConfig/repos', { params: { provider, destinationName, owner, ownerType } }) as Promise<GitRepoInfo[]>
 }
 
+// --- GitHub App auth ---
+
+// Starts the App manifest flow. Returns the GitHub postUrl (already carrying ?state=), the
+// manifest JSON to POST, and the state nonce. The caller submits a hidden form to postUrl.
+export const StartGitAppManifest = (githubUrl: string, accountType: 'user' | 'org', org: string) => {
+  return http.get('/api/v1/system/gitApp/manifest', { params: { githubUrl, accountType, org } }) as Promise<{ postUrl: string; manifest: string; state: string }>
+}
+
+// App-mode read-back: lists exactly the repos the installation was granted. 409 while the App is
+// registered but not yet installed — silentError lets the caller drive the install-guidance UI.
+export const GetGitAppRepos = () => {
+  return http.get('/api/v1/system/gitApp/repos', { silentError: true } as never) as Promise<GitRepoInfo[]>
+}
+
+// Exit mechanism: uninstalls the installation, deletes the auto-created destination, and unbinds
+// the config. Returns the App's Advanced-settings deep-link so the admin can finish the UI-only
+// App-registration deletion on GitHub.
+export const DisconnectGitApp = () => {
+  return http.delete('/api/v1/system/gitApp') as Promise<{ advancedUrl: string; message: string }>
+}
+
 // --- Git Sync Snapshots ---
 
 export interface SnapshotFileEntry {

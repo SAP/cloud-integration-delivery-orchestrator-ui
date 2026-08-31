@@ -37,6 +37,7 @@ const openMenu = ref(false)
 onMounted(async () => {
   setToastRef(toastContainer.value)
   initGlobalToast()
+  handleSpaToast()
   userInfo.value = await CurrentUser()
   loadScopes()
   wsClient.connect()
@@ -45,6 +46,25 @@ onMounted(async () => {
 onUnmounted(() => {
   wsClient.disconnect()
 })
+
+// Browser-facing backend callbacks (e.g. the GitHub App manifest flow) 302 back
+// here with a toast directive on the query string: ?toast=<success|error>&msg=<text>
+// (RFC 010 doc 12, RP-3). The message is authored by the backend — the single
+// source of truth, exactly like the OKMsg/Fail JSON convention — so this handler
+// stays generic: show the toast, then strip only toast/msg (preserving any action
+// flags such as openGitDialog that the destination view honors).
+function handleSpaToast() {
+  const query = router.currentRoute.value.query
+  const toast = query.toast
+  if (!toast) return
+  const msg = typeof query.msg === 'string' ? query.msg : ''
+  if (toast === 'error') window.$toast?.error(msg || 'Operation failed. Please try again.')
+  else window.$toast?.success(msg || 'Done.')
+  const rest = { ...query }
+  delete rest.toast
+  delete rest.msg
+  router.replace({ query: rest })
+}
 
 function handleLogout(e: CustomEvent) {
   e.preventDefault()

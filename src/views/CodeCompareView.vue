@@ -454,7 +454,7 @@ onUnmounted(() => {
           Syncing target tenant snapshot to Git...
         </ui5-message-strip>
         <template v-else-if="targetStatus === 'failed'">
-          <ui5-message-strip design="Negative" hide-close-button>
+          <ui5-message-strip design="Negative" hide-close-button style="width: 90%;">
             Target tenant sync failed: {{ targetError }}
           </ui5-message-strip>
           <ui5-button design="Transparent" @click="handleRetry('target')">Retry</ui5-button>
