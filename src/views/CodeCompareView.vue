@@ -142,7 +142,7 @@ function resolveSourceSnapshot(
   const latestCompleted = snapshots.find(s => s.status === 'completed')
   if (latestCompleted && compareCPIVersion(latestCompleted.version, props.artifactVersion) > 0) {
     if (isCurrent(gen)) {
-      sourceVersionMismatch.value = `Source is v${latestCompleted.version}, DR references v${props.artifactVersion}`
+      sourceVersionMismatch.value = `Note: Artifact version ${latestCompleted.version} in source tenant. DR references version ${props.artifactVersion}.`
     }
     return latestCompleted
   }
@@ -499,7 +499,7 @@ onUnmounted(() => {
     <ui5-busy-indicator v-if="loading" active :delay="0" style="display: flex; justify-content: center; padding: 2rem;" />
 
     <template v-else-if="sourceStatus !== 'completed' || targetStatus !== 'completed'">
-      <ui5-message-strip v-if="sourceVersionMismatch" design="Information" hide-close-button style="margin-bottom: 0.75rem;">
+      <ui5-message-strip v-if="sourceVersionMismatch" design="Critical" hide-close-button style="margin-bottom: 0.75rem;">
         {{ sourceVersionMismatch }}
       </ui5-message-strip>
 
@@ -533,7 +533,7 @@ onUnmounted(() => {
     </template>
 
     <template v-else>
-      <ui5-message-strip v-if="sourceVersionMismatch" design="Information" hide-close-button style="margin-bottom: 0.75rem;">
+      <ui5-message-strip v-if="sourceVersionMismatch" design="Critical" hide-close-button style="margin-bottom: 0.75rem;">
         {{ sourceVersionMismatch }}
       </ui5-message-strip>
 
