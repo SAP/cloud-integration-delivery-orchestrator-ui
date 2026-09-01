@@ -71,8 +71,17 @@ function handleLogout(e: CustomEvent) {
   window.location.href = '/logout'
 }
 
+function handleBack() {
+  const backTo = router.currentRoute.value.meta.backTo as string | undefined
+  if (backTo) {
+    router.push(backTo)
+  } else {
+    router.go(-1)
+  }
+}
+
 function handleHelp() {
-  window.open('https://wiki.one.int.sap/wiki/x/ZUH3WQE', '_blank')
+  window.open('https://github.com/SAP/cloud-integration-delivery-orchestrator', '_blank')
 }
 
 function handleMenuItemClick() {
@@ -94,10 +103,10 @@ const userRoles = computed(() =>
 <template>
   <ui5-shellbar>
     <ui5-shellbar-branding @click="() => router.push('/')" slot="branding">
-      CPI Delivery
+      Delivery Orchestrator
       <img slot="logo" src="/sap-logo.svg" />
     </ui5-shellbar-branding>
-    <ui5-button v-if="canBack" @click="() => router.go(-1)" icon="nav-back" slot="startButton"></ui5-button>
+    <ui5-button v-if="canBack" @click="handleBack" icon="nav-back" slot="startButton"></ui5-button>
     <ui5-shellbar-item @click="handleHelp" icon="sys-help" text="Help"></ui5-shellbar-item>
     <ui5-avatar
       @click="() => { openMenu = !openMenu }"
