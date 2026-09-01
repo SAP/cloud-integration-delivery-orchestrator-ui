@@ -428,7 +428,9 @@ export const GetGitSnapshots = async (artifactId: string, tenantId: number): Pro
 }
 
 export const GetSnapshotFiles = async (snapshotId: number): Promise<SnapshotFilesResponse> => {
-  const data = await (http.get(`/api/v1/gitSync/snapshots/${snapshotId}/files`) as Promise<SnapshotFilesResponse | null>)
+  // silentError: Code Compare handles read failures inline (per-side banner /
+  // orphan Re-sync button), so suppress the duplicate global toast.
+  const data = await (http.get(`/api/v1/gitSync/snapshots/${snapshotId}/files`, { silentError: true }) as Promise<SnapshotFilesResponse | null>)
   const resp = data ?? { snapshotId, artifactId: '', version: '', tenant: '', files: [] }
   resp.files = resp.files ?? []
   return resp
@@ -436,6 +438,13 @@ export const GetSnapshotFiles = async (snapshotId: number): Promise<SnapshotFile
 
 export const TriggerGitSync = (payload: { artifactId: string; cpiTenantId: number; artifactType: string; packageId: string }) => {
   return http.post('/api/v1/gitSync/trigger', payload) as Promise<void>
+}
+
+// InvalidateGitSnapshot marks a completed-but-orphaned snapshot as failed so the
+// existing failed→pending re-sync path can rebuild it against the current repo
+// (RFC 010 · 13). Used by Code Compare's Re-sync recovery on SNAPSHOT_ORPHANED.
+export const InvalidateGitSnapshot = (snapshotId: number) => {
+  return http.post(`/api/v1/gitSync/snapshots/${snapshotId}/invalidate`, {}) as Promise<void>
 }
 
 export const CheckConnectivity = () => {

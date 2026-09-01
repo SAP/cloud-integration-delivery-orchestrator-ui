@@ -84,6 +84,12 @@ describe('classify', () => {
     expect(classify(error)).toEqual({ code: 'BACKEND_ERROR', retryable: false })
   })
 
+  it('recognizes backend SNAPSHOT_ORPHANED code on 409', () => {
+    // Backend sends SNAPSHOT_ORPHANED (RFC 010 · 13) so Code Compare can offer Re-sync
+    const error = { response: { status: 409, data: { code: 'SNAPSHOT_ORPHANED', message: 'version no longer available' } } }
+    expect(classify(error)).toEqual({ code: 'SNAPSHOT_ORPHANED', retryable: false })
+  })
+
   it('ignores unknown backend code and falls back to status', () => {
     const error = { response: { status: 400, data: { code: 'BOGUS_CODE', message: 'bad' } } }
     expect(classify(error)).toEqual({ code: 'INVALID_INPUT', retryable: false })

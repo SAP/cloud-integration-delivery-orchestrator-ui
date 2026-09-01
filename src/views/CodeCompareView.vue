@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, watch, nextTick, onUnmounted } from 'vue'
-import { GetGitSnapshots, GetSnapshotFiles, TriggerGitSync, type GitSnapshot } from '@/service/api'
+import { GetGitSnapshots, GetSnapshotFiles, TriggerGitSync, InvalidateGitSnapshot, type GitSnapshot } from '@/service/api'
 import { buildCompareFiles, type CompareFileItem } from '@/service/codeCompareFiles'
 import { Diff2HtmlUI } from 'diff2html/lib-esm/ui/js/diff2html-ui-base'
 import 'diff2html/bundles/css/diff2html.min.css'
@@ -35,7 +35,11 @@ const props = defineProps<{
 }>()
 
 const loading = ref(true)
-const error = ref('')
+// Joint compare-level state (only meaningful once BOTH sides read OK). Per-side
+// failures are attributed to sourceError/targetError + sourceStatus/targetStatus,
+// never here — see loadCompare Phase 1/3 and applySideReadError.
+const compareError = ref('') // build/render failed after both sides loaded
+const noDiffNotice = ref(false) // both versions identical — an outcome, not an error
 const hasDiff = ref(false)
 const fileStats = ref({ added: 0, deleted: 0, modified: 0, unchanged: 0 })
 const compareInfo = ref({ sourceTenant: '', sourceVersion: '', targetTenant: '', targetVersion: '', sourceCommitUrl: '', targetCommitUrl: '' })
@@ -60,6 +64,12 @@ const sourceStatus = ref<SnapshotDisplayStatus>('loading')
 const targetStatus = ref<SnapshotDisplayStatus>('loading')
 const sourceError = ref('')
 const targetError = ref('')
+// Snapshot ID of an orphaned side (completed but its commit is unreadable in the
+// current repo). When set, the failed side offers Re-sync instead of Retry: the
+// snapshot must first be invalidated (completed→failed) to pass the backend
+// "Already done" claim gate before re-pushing to the current repo (RFC 010 · 13).
+const sourceOrphanSnapId = ref<number | null>(null)
+const targetOrphanSnapId = ref<number | null>(null)
 const sourceVersionMismatch = ref('')
 const targetNotFound = ref(false)
 
@@ -152,7 +162,8 @@ async function loadCompare() {
   if (!props.artifactId || !props.sourceTenantId || !props.targetTenantId) return
 
   loading.value = true
-  error.value = ''
+  compareError.value = ''
+  noDiffNotice.value = false
   hasDiff.value = false
   patchesCache.value = []
   iflowFiles.value = []
@@ -163,27 +174,37 @@ async function loadCompare() {
   targetStatus.value = 'loading'
   sourceError.value = ''
   targetError.value = ''
+  sourceOrphanSnapId.value = null
+  targetOrphanSnapId.value = null
   sourceVersionMismatch.value = ''
   targetNotFound.value = false
 
-  // === Phase 1: initial snapshot query (both sides) ===
-  let sourceSnapshots: GitSnapshot[]
-  let targetSnapshots: GitSnapshot[]
-  try {
-    ;[sourceSnapshots, targetSnapshots] = await Promise.all([
-      GetGitSnapshots(props.artifactId, props.sourceTenantId),
-      GetGitSnapshots(props.artifactId, props.targetTenantId),
-    ])
-  } catch (e: any) {
-    if (!isCurrent(gen)) return // superseded
-    loading.value = false
-    error.value = e?.message || 'Failed to query snapshots'
-    return
-  }
+  // === Phase 1: initial snapshot query (both sides, independently) ===
+  const [sourceQuery, targetQuery] = await Promise.allSettled([
+    GetGitSnapshots(props.artifactId, props.sourceTenantId),
+    GetGitSnapshots(props.artifactId, props.targetTenantId),
+  ])
   if (!isCurrent(gen)) return // superseded
 
   // Flip loading off so per-side status (syncing/failed) is visible during Phase 2.
   loading.value = false
+
+  // A per-side query failure is attributed to that side (not a shared banner) so the
+  // template renders the failed side's status branch + a Retry, instead of an error
+  // that stays invisible while status is still 'loading'.
+  if (sourceQuery.status === 'rejected' || targetQuery.status === 'rejected') {
+    if (sourceQuery.status === 'rejected') {
+      sourceStatus.value = 'failed'
+      sourceError.value = sourceQuery.reason?.message || 'Failed to query snapshots'
+    }
+    if (targetQuery.status === 'rejected') {
+      targetStatus.value = 'failed'
+      targetError.value = targetQuery.reason?.message || 'Failed to query snapshots'
+    }
+    return
+  }
+  const sourceSnapshots = sourceQuery.value
+  const targetSnapshots = targetQuery.value
 
   // === Phase 2: resolve each side independently (may auto-trigger) ===
   const [source, target] = await Promise.all([
@@ -194,11 +215,12 @@ async function loadCompare() {
 
   // === Phase 3: decide next step ===
   if (source.kind === 'not_found' && target.kind === 'not_found') {
-    error.value = 'Artifact not found on either tenant.'
+    sourceStatus.value = 'failed'; sourceError.value = 'Artifact not found on source tenant.'
+    targetStatus.value = 'failed'; targetError.value = 'Artifact not found on target tenant.'
     return
   }
   if (source.kind === 'not_found') {
-    error.value = 'Source artifact not found on source tenant.'
+    sourceStatus.value = 'failed'; sourceError.value = 'Source artifact not found on source tenant.'
     return
   }
   if (target.kind === 'not_found') {
@@ -272,21 +294,43 @@ async function resolveSide(
   setStatus('syncing'); return { kind: 'pending' }
 }
 
+// applySideReadError attributes a GetSnapshotFiles failure to one side: it flips
+// that side to 'failed' (so the template shows the recoverable status branch) and,
+// when the backend flagged the snapshot as orphaned, records its ID so the button
+// offers Re-sync (invalidate + re-push) rather than a plain Retry.
+function applySideReadError(side: 'source' | 'target', err: any, snapId: number) {
+  const isSource = side === 'source'
+  ;(isSource ? sourceStatus : targetStatus).value = 'failed'
+  ;(isSource ? sourceError : targetError).value = err?.message || 'Failed to load files'
+  ;(isSource ? sourceOrphanSnapId : targetOrphanSnapId).value =
+    err?.code === 'SNAPSHOT_ORPHANED' ? snapId : null
+}
+
 async function loadDiff(
-  sourceSnap: GitSnapshot,
-  targetSnap: GitSnapshot | null,
-  gen: number,
+  sourceSnap: GitSnapshot, targetSnap: GitSnapshot | null, gen: number,
 ) {
   if (!isCurrent(gen)) return
   loading.value = true
-  try {
-    const emptyFiles = { snapshotId: 0, artifactId: '', version: '', tenant: '', files: [] }
-    const [sourceFiles, targetFiles] = await Promise.all([
-      GetSnapshotFiles(sourceSnap.ID),
-      targetSnap ? GetSnapshotFiles(targetSnap.ID) : Promise.resolve(emptyFiles),
-    ])
-    if (!isCurrent(gen)) return
 
+  const emptyFiles = { snapshotId: 0, artifactId: '', version: '', tenant: '', files: [] }
+  // Fetch each side independently so a failure is attributed to the correct side
+  // (source vs target) instead of a single shared banner, and so an orphaned read
+  // can offer a per-side Re-sync.
+  const [sourceRes, targetRes] = await Promise.allSettled([
+    GetSnapshotFiles(sourceSnap.ID),
+    targetSnap ? GetSnapshotFiles(targetSnap.ID) : Promise.resolve(emptyFiles),
+  ])
+  if (!isCurrent(gen)) return
+
+  let sideFailed = false
+  if (sourceRes.status === 'rejected') { applySideReadError('source', sourceRes.reason, sourceSnap.ID); sideFailed = true }
+  if (targetRes.status === 'rejected' && targetSnap) { applySideReadError('target', targetRes.reason, targetSnap.ID); sideFailed = true }
+  if (sideFailed) { loading.value = false; return }
+
+  const sourceFiles = (sourceRes as PromiseFulfilledResult<typeof emptyFiles>).value
+  const targetFiles = (targetRes as PromiseFulfilledResult<typeof emptyFiles>).value
+
+  try {
     const result = buildCompareFiles(sourceFiles, targetFiles)
     if (!isCurrent(gen)) return
     compareInfo.value = {
@@ -302,14 +346,14 @@ async function loadDiff(
     iflowFiles.value = result.iflowFiles
 
     if (!result.textPatches.length && !result.iflowFiles.length) {
-      error.value = 'No differences found between the two versions.'
+      noDiffNotice.value = true
       return
     }
 
     hasDiff.value = true
   } catch (e: any) {
     if (!isCurrent(gen)) return
-    error.value = e?.message || 'Failed to load diff'
+    compareError.value = e?.message || 'Failed to load diff'
     return
   } finally {
     if (isCurrent(gen)) loading.value = false
@@ -394,6 +438,30 @@ async function handleRetry(side: 'source' | 'target') {
   }
 }
 
+// handleReSync recovers an orphaned snapshot: it first invalidates the stale
+// completed row (→ failed) so the backend claim gate lets it re-push, then reuses
+// the normal Retry path to sync against the current repo (RFC 010 · 13, D4).
+async function handleReSync(side: 'source' | 'target') {
+  const isSource = side === 'source'
+  const snapId = (isSource ? sourceOrphanSnapId : targetOrphanSnapId).value
+  if (snapId == null) { await handleRetry(side); return }
+
+  const gen = generation
+  ;(isSource ? sourceStatus : targetStatus).value = 'syncing'
+  ;(isSource ? sourceError : targetError).value = ''
+  try {
+    await InvalidateGitSnapshot(snapId)
+  } catch (e: any) {
+    if (!isCurrent(gen)) return
+    ;(isSource ? sourceStatus : targetStatus).value = 'failed'
+    ;(isSource ? sourceError : targetError).value = e?.message || 'Re-sync failed'
+    return
+  }
+  if (!isCurrent(gen)) return
+  ;(isSource ? sourceOrphanSnapId : targetOrphanSnapId).value = null
+  await handleRetry(side)
+}
+
 function openBpmnDiff(file: CompareFileItem) {
   selectedIflow.value = file
   bpmnDialogOpen.value = true
@@ -441,10 +509,11 @@ onUnmounted(() => {
           Syncing source tenant snapshot to Git...
         </ui5-message-strip>
         <template v-else-if="sourceStatus === 'failed'">
-          <ui5-message-strip design="Negative" hide-close-button>
+          <ui5-message-strip design="Negative" hide-close-button style="width: 90%;">
             Source tenant sync failed: {{ sourceError }}
           </ui5-message-strip>
-          <ui5-button design="Transparent" @click="handleRetry('source')">Retry</ui5-button>
+          <ui5-button v-if="sourceOrphanSnapId" design="Emphasized" @click="handleReSync('source')">Re-sync</ui5-button>
+          <ui5-button v-else design="Transparent" @click="handleRetry('source')">Retry</ui5-button>
         </template>
       </div>
 
@@ -457,7 +526,8 @@ onUnmounted(() => {
           <ui5-message-strip design="Negative" hide-close-button style="width: 90%;">
             Target tenant sync failed: {{ targetError }}
           </ui5-message-strip>
-          <ui5-button design="Transparent" @click="handleRetry('target')">Retry</ui5-button>
+          <ui5-button v-if="targetOrphanSnapId" design="Emphasized" @click="handleReSync('target')">Re-sync</ui5-button>
+          <ui5-button v-else design="Transparent" @click="handleRetry('target')">Retry</ui5-button>
         </template>
       </div>
     </template>
@@ -471,8 +541,12 @@ onUnmounted(() => {
         Target artifact is new (no baseline on target tenant). All files shown as added.
       </ui5-message-strip>
 
-      <ui5-message-strip v-if="error" design="Negative" hide-close-button style="margin-bottom: 1rem;">
-        {{ error }}
+      <ui5-message-strip v-if="noDiffNotice" design="Information" hide-close-button style="margin-bottom: 1rem;">
+        No differences found between the two versions.
+      </ui5-message-strip>
+
+      <ui5-message-strip v-if="compareError" design="Negative" hide-close-button style="margin-bottom: 1rem;">
+        {{ compareError }}
       </ui5-message-strip>
 
       <template v-if="hasDiff || patchesCache.length">
