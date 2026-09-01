@@ -385,6 +385,13 @@ export const GetGitAppRepos = () => {
   return http.get('/api/v1/system/gitApp/repos', { silentError: true } as never) as Promise<GitRepoInfo[]>
 }
 
+// Install-pending helper: returns the settings-install deep-link for a registered-but-not-yet-
+// installed App, so the card can render a "Finish installing on GitHub" link. silentError so a
+// non-pending state (already installed / not registered) is ignored quietly by the caller.
+export const GetGitAppInstallUrl = () => {
+  return http.get('/api/v1/system/gitApp/installUrl', { silentError: true } as never) as Promise<{ installUrl: string }>
+}
+
 // Exit mechanism: uninstalls the installation, deletes the auto-created destination, and unbinds
 // the config. Returns the App's Advanced-settings deep-link so the admin can finish the UI-only
 // App-registration deletion on GitHub.

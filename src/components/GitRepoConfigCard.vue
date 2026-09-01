@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { GetGitRepoConfig, GetGitProviders, UpsertGitRepoConfig, TestGitRepoConnection, GetCPIApiEndpoints, GetGitOwners, GetGitRepos, StartGitAppManifest, GetGitAppRepos, DisconnectGitApp } from '@/service/api'
+import { GetGitRepoConfig, GetGitProviders, UpsertGitRepoConfig, TestGitRepoConnection, GetCPIApiEndpoints, GetGitOwners, GetGitRepos, StartGitAppManifest, GetGitAppRepos, GetGitAppInstallUrl, DisconnectGitApp } from '@/service/api'
 import type { GitRepoConfig, GitOwnerInfo, GitRepoInfo, ApiEndpoint } from '@/service/model'
 import { postForm } from '@/service/formSubmit'
 
@@ -71,6 +71,7 @@ const appRepos = ref<GitRepoInfo[]>([])
 const appReposLoading = ref(false)
 const appInstalled = ref(false)     // GetGitAppRepos succeeded → installation granted
 const appInstallPending = ref(false) // GetGitAppRepos 409 → registered but not installed (state b)
+const appInstallUrl = ref('')        // install-pending only: deep-link to finish installing on GitHub
 
 // An App is registered once the persisted config carries an App ID (callback-authored).
 const appRegistered = computed(() => !!gitConfig.value.githubAppId)
@@ -98,6 +99,7 @@ const onConfirmDisconnect = async () => {
     gitEditForm.value = emptyGitConfig()
     appInstalled.value = false
     appInstallPending.value = false
+    appInstallUrl.value = ''
     appRepos.value = []
     showGitEditDialog.value = false
     window.$toast.success('GitHub App disconnected')
@@ -234,12 +236,20 @@ const loadAppRepos = async () => {
   appRepos.value = []
   appInstalled.value = false
   appInstallPending.value = false
+  appInstallUrl.value = ''
   appReposLoading.value = true
   try {
     appRepos.value = await GetGitAppRepos()
     appInstalled.value = true
   } catch (e: any) {
-    if (e?.status === 409) appInstallPending.value = true
+    if (e?.status === 409) {
+      appInstallPending.value = true
+      // Best-effort: surface the install deep-link so the admin can finish installing without
+      // hunting through GitHub settings. On failure the strip still shows plain guidance text.
+      try {
+        appInstallUrl.value = (await GetGitAppInstallUrl()).installUrl
+      } catch { appInstallUrl.value = '' }
+    }
   } finally {
     appReposLoading.value = false
   }
@@ -434,8 +444,8 @@ onMounted(async () => {
             <template v-else>
               <ui5-message-strip v-if="appInstallPending" design="Critical" hide-close-button
                 style="margin-bottom: 0.75rem;">
-                The GitHub App is registered but not installed on any repository yet. Finish installing it on GitHub,
-                then reopen this dialog — or re-register below.
+                The GitHub App is registered but not installed on any repository yet.
+                <ui5-link v-if="appInstallUrl" :href="appInstallUrl" target="_blank">Finish installing it on GitHub</ui5-link><template v-else>Finish installing it on GitHub</template>, then reopen this dialog — or re-register below.
               </ui5-message-strip>
               <ui5-message-strip v-else design="Information" hide-close-button style="margin-bottom: 0.75rem;">
                 Register a GitHub App to sync using short-lived installation tokens (no PAT required). You'll be
