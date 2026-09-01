@@ -370,7 +370,7 @@ onMounted(async () => {
 
   <!-- Edit Git Repository Config Dialog -->
   <ui5-dialog header-text="Configure Git Repository" :open="showGitEditDialog" @before-close="showGitEditDialog = false"
-    style="width: 36rem;">
+    style="width: 40rem;">
     <div class="sc-dialog-content">
       <ui5-label required>Authentication Method</ui5-label>
       <ui5-select style="width: 100%;" @change="onGitAuthMethodChange(($event as any).detail.selectedOption.value)">
@@ -498,9 +498,16 @@ onMounted(async () => {
           </div>
           <div class="info-field">
             <ui5-label>Auth Method</ui5-label>
-            <ui5-tag design="Set2" color-scheme="8" style="font-size: 0.75rem;">
+            <ui5-tag design="Transparent" style="font-size: 0.75rem;">
               {{ gitConfig.authMethod === 'github_app' ? 'GitHub App' : 'PAT' }}
             </ui5-tag>
+          </div>
+          <div v-if="gitConfig.authMethod === 'github_app' && gitConfig.githubAppSlug" class="info-field">
+            <ui5-label>GitHub App</ui5-label>
+            <ui5-link v-if="gitConfig.appSettingsUrl" :href="gitConfig.appSettingsUrl" target="_blank" style="font-size: 0.85rem;">
+              {{ gitConfig.githubAppSlug }}
+            </ui5-link>
+            <ui5-text v-else class="mono">{{ gitConfig.githubAppSlug }}</ui5-text>
           </div>
           <div class="info-field">
             <ui5-label>Destination</ui5-label>

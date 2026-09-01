@@ -503,6 +503,9 @@ export interface GitRepoConfig {
   // github_app credentials (callback-owned; github_app mode only; read-only to the client).
   githubAppId?: number
   githubInstallationId?: number
+  githubAppSlug?: string
+  // Computed by backend (github_app mode only): link to the App's settings page on GitHub.
+  appSettingsUrl?: string
 }
 
 export interface GitOwnerInfo {
