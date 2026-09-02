@@ -491,11 +491,21 @@ export interface IntegrationConfig {
 
 export interface GitRepoConfig {
   ID?: number
+  // Discriminator: 'pat' (default) or 'github_app'. Selects which fields the client authors.
+  authMethod?: 'pat' | 'github_app'
+  // Target selection (client-owned in BOTH modes).
   provider: string
-  destinationName: string
-  owner: string
   repo: string
   enabled: boolean
+  // Connection identity (pat: client-owned · github_app: callback-owned, read-only to the client).
+  destinationName: string
+  owner: string
+  // github_app credentials (callback-owned; github_app mode only; read-only to the client).
+  githubAppId?: number
+  githubInstallationId?: number
+  githubAppSlug?: string
+  // Computed by backend (github_app mode only): link to the App's settings page on GitHub.
+  appSettingsUrl?: string
 }
 
 export interface GitOwnerInfo {

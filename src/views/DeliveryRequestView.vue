@@ -149,7 +149,7 @@
   <ui5-dynamic-page id="page" show-footer>
     <ui5-dynamic-page-title slot="titleArea">
       <ui5-breadcrumbs slot="breadcrumbs">
-        <ui5-breadcrumbs-item href="#">Delivery Request</ui5-breadcrumbs-item>
+        <ui5-breadcrumbs-item href="/jobs/delivery-request-list">Delivery Request</ui5-breadcrumbs-item>
         <ui5-breadcrumbs-item href="#">#{{ deliveryRequest.ID }}</ui5-breadcrumbs-item>
       </ui5-breadcrumbs>
 
@@ -347,8 +347,10 @@
 
                 </div>
 
+                <div style="border-top: 1px solid var(--sapList_BorderColor);"></div>
+
                   <!-- Selected Artifacts list -->
-                <div v-if="selArtifactOps.length || deleteOps.length" style="margin-top:18px; display: flex; flex-direction: column; gap:10px">
+                <div v-if="selArtifactOps.length || deleteOps.length" style="display: flex; flex-direction: column; gap:10px">
                   <div style="display: flex; align-items: center; gap: 8px;">
                     <ui5-title size="H6">Selected Artifacts ({{ selArtifactOps.length }})</ui5-title>
                     <ui5-button icon="refresh" design="Transparent" tooltip="Refresh TR status" :disabled="refreshingOps" @click="refreshOps" />

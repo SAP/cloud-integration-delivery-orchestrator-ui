@@ -44,14 +44,14 @@ const router = createRouter({
   routes: [
     {
       path: '/',
-      name: 'CPI Delivery',
+      name: 'Delivery Orchestrator',
       component: () => import('@/views/HomeView.vue'),
       meta: { description: 'Home' }
     },
     {
       path: '/jobs',
       name: 'Cloud Integration Delployment and Transport',
-      meta: { description: 'Jobs Root' },
+      meta: { description: 'Jobs Root', backTo: '/' },
       children: [
         {
           path: 'delivery-request-list',
@@ -86,7 +86,7 @@ const router = createRouter({
     {
       path: '/config',
       name: 'Delivery Configurations',
-      meta: { description: 'Configurations Root' },
+      meta: { description: 'Configurations Root', backTo: '/' },
       children: [
         {
           path: 'cpi-tenants',

@@ -371,6 +371,34 @@ export const GetGitRepos = (provider: string, destinationName: string, owner: st
   return http.get('/api/v1/system/gitRepoConfig/repos', { params: { provider, destinationName, owner, ownerType } }) as Promise<GitRepoInfo[]>
 }
 
+// --- GitHub App auth ---
+
+// Starts the App manifest flow. Returns the GitHub postUrl (already carrying ?state=), the
+// manifest JSON to POST, and the state nonce. The caller submits a hidden form to postUrl.
+export const StartGitAppManifest = (githubUrl: string, accountType: 'user' | 'org', org: string) => {
+  return http.get('/api/v1/system/gitApp/manifest', { params: { githubUrl, accountType, org } }) as Promise<{ postUrl: string; manifest: string; state: string }>
+}
+
+// App-mode read-back: lists exactly the repos the installation was granted. 409 while the App is
+// registered but not yet installed — silentError lets the caller drive the install-guidance UI.
+export const GetGitAppRepos = () => {
+  return http.get('/api/v1/system/gitApp/repos', { silentError: true } as never) as Promise<GitRepoInfo[]>
+}
+
+// Install-pending helper: returns the settings-install deep-link for a registered-but-not-yet-
+// installed App, so the card can render a "Finish installing on GitHub" link. silentError so a
+// non-pending state (already installed / not registered) is ignored quietly by the caller.
+export const GetGitAppInstallUrl = () => {
+  return http.get('/api/v1/system/gitApp/installUrl', { silentError: true } as never) as Promise<{ installUrl: string }>
+}
+
+// Exit mechanism: uninstalls the installation, deletes the auto-created destination, and unbinds
+// the config. Returns the App's Advanced-settings deep-link so the admin can finish the UI-only
+// App-registration deletion on GitHub.
+export const DisconnectGitApp = () => {
+  return http.delete('/api/v1/system/gitApp') as Promise<{ advancedUrl: string; message: string }>
+}
+
 // --- Git Sync Snapshots ---
 
 export interface SnapshotFileEntry {
@@ -407,7 +435,9 @@ export const GetGitSnapshots = async (artifactId: string, tenantId: number): Pro
 }
 
 export const GetSnapshotFiles = async (snapshotId: number): Promise<SnapshotFilesResponse> => {
-  const data = await (http.get(`/api/v1/gitSync/snapshots/${snapshotId}/files`) as Promise<SnapshotFilesResponse | null>)
+  // silentError: Code Compare handles read failures inline (per-side banner /
+  // orphan Re-sync button), so suppress the duplicate global toast.
+  const data = await (http.get(`/api/v1/gitSync/snapshots/${snapshotId}/files`, { silentError: true }) as Promise<SnapshotFilesResponse | null>)
   const resp = data ?? { snapshotId, artifactId: '', version: '', tenant: '', files: [] }
   resp.files = resp.files ?? []
   return resp
@@ -415,6 +445,13 @@ export const GetSnapshotFiles = async (snapshotId: number): Promise<SnapshotFile
 
 export const TriggerGitSync = (payload: { artifactId: string; cpiTenantId: number; artifactType: string; packageId: string }) => {
   return http.post('/api/v1/gitSync/trigger', payload) as Promise<void>
+}
+
+// InvalidateGitSnapshot marks a completed-but-orphaned snapshot as failed so the
+// existing failed→pending re-sync path can rebuild it against the current repo
+// (RFC 010 · 13). Used by Code Compare's Re-sync recovery on SNAPSHOT_ORPHANED.
+export const InvalidateGitSnapshot = (snapshotId: number) => {
+  return http.post(`/api/v1/gitSync/snapshots/${snapshotId}/invalidate`, {}) as Promise<void>
 }
 
 export const CheckConnectivity = () => {
