@@ -1,6 +1,6 @@
 import axios from 'axios'
 import http from './http'
-import type { ApiEndpoint, Artifact, ArtifactTenantOperation, AppCount, BackfillTechIDResult, BootstrapJob, BootstrapPreview, CentralTmsContext, ConnectivityReport, ConnectivityStatus, CpiTenant, CreateDRFromMismatchRequest, CreateDRFromMismatchResponse, DeliverOpRequest, DeliveryRequest, DeliveryRule, GenerateTRResponse, GitOwnerInfo, GitRepoConfig, GitRepoInfo, IntegrationConfig, NodeTransportRequest, OperationCondition, OperationsHistoryFilters, OperationsHistoryResponse, Package, PreviewDRResponse, RuntimeArtifact, TmsNodeConfirmResponse, TmsRoutesResponse, TransportNode, TransportRoute, TriggerResult, UserInfo, VersionCompareIncludedPackage, VersionCompareResponse, VersionCompareSummaryItem } from './model'
+import type { ApiEndpoint, Artifact, ArtifactTenantOperation, AppCount, BackfillTechIDResult, BootstrapJob, BootstrapPreview, CentralTmsContext, ConnectivityStatus, CpiTenant, CreateDRFromMismatchRequest, CreateDRFromMismatchResponse, DeliverOpRequest, DeliveryRequest, DeliveryRule, GenerateTRResponse, GitOwnerInfo, GitRepoConfig, GitRepoInfo, JiraConfig, NodeTransportRequest, OperationCondition, OperationsHistoryFilters, OperationsHistoryResponse, Package, PreviewDRResponse, RuntimeArtifact, TmsNodeConfirmResponse, TmsRoutesResponse, TransportNode, TransportRoute, TriggerResult, UserInfo, VersionCompareIncludedPackage, VersionCompareResponse, VersionCompareSummaryItem } from './model'
 import type { AggregateStatus, DeployState, ImportState, RequestState } from './statuses'
 
 export const GetDrCounts = () => {
@@ -331,18 +331,18 @@ export const UpsertCentralTmsContext = (payload: Partial<CentralTmsContext>) => 
   return http.put('/api/v1/centralTmsContext', payload) as Promise<CentralTmsContext>
 }
 
-// --- System Configuration ---
+// --- Jira Config ---
 
-export const GetIntegrations = () => {
-  return http.get('/api/v1/system/integrations') as Promise<IntegrationConfig[]>
+export const GetJiraConfig = () => {
+  return http.get('/api/v1/system/jiraConfig') as Promise<JiraConfig>
 }
 
-export const UpdateIntegration = (type: string, payload: { destinationName: string; enabled: boolean; description: string }) => {
-  return http.put(`/api/v1/system/integrations/${type}`, payload) as Promise<IntegrationConfig>
+export const UpdateJiraConfig = (payload: { destinationName: string; enabled: boolean }) => {
+  return http.put('/api/v1/system/jiraConfig', payload) as Promise<JiraConfig>
 }
 
-export const TestIntegration = (type: string) => {
-  return http.get(`/api/v1/system/connectivity/integration/${type}`) as Promise<{ name: string; type: string; status: string; message?: string }>
+export const TestJiraConnection = () => {
+  return http.post('/api/v1/system/jiraConfig/test', {}) as Promise<{ name: string; type: string; status: string; message?: string }>
 }
 
 // --- Git Repository Config ---
@@ -454,14 +454,6 @@ export const InvalidateGitSnapshot = (snapshotId: number) => {
   return http.post(`/api/v1/gitSync/snapshots/${snapshotId}/invalidate`, {}) as Promise<void>
 }
 
-export const CheckConnectivity = () => {
-  return http.post('/api/v1/system/connectivity/all', {}) as Promise<ConnectivityReport>
-}
-
-export const GetLastConnectivity = () => {
-  return http.get('/api/v1/system/connectivity/last') as Promise<ConnectivityReport>
-}
-
 export const CheckConnectivityDatabase = () => {
   return http.get('/api/v1/system/connectivity/database') as Promise<ConnectivityStatus>
 }
@@ -472,10 +464,6 @@ export const CheckConnectivityTMS = () => {
 
 export const CheckConnectivityTenants = () => {
   return http.get('/api/v1/system/connectivity/tenants') as Promise<ConnectivityStatus[]>
-}
-
-export const CheckConnectivityIntegrations = () => {
-  return http.get('/api/v1/system/connectivity/integrations') as Promise<ConnectivityStatus[]>
 }
 
 export const GetDatabaseInfo = () => {

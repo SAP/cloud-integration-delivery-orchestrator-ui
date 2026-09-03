@@ -482,11 +482,11 @@ export interface GenerateTRResponse {
 
 // --- System Configuration ---
 
-export interface IntegrationConfig {
-  type: string
+export interface JiraConfig {
+  ID?: number
   destinationName: string
   enabled: boolean
-  description: string
+  endpoint?: string
 }
 
 export interface GitRepoConfig {

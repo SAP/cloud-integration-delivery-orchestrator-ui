@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { ref, reactive, onMounted, computed } from 'vue'
-import { CheckConnectivity, GetLastConnectivity, GetDatabaseInfo, GetIntegrations, UpdateIntegration, TestIntegration, GetCentralTmsContext, UpsertCentralTmsContext, GetCpiTenants } from '@/service/api'
-import type { ConnectivityStatus, IntegrationConfig, CentralTmsContext, CpiTenant } from '@/service/model'
+import { ref, onMounted } from 'vue'
+import { GetDatabaseInfo, GetJiraConfig, UpdateJiraConfig, TestJiraConnection, GetCentralTmsContext, UpsertCentralTmsContext, GetCpiTenants } from '@/service/api'
+import type { ConnectivityStatus, JiraConfig, CentralTmsContext, CpiTenant } from '@/service/model'
 import GitRepoConfigCard from '@/components/GitRepoConfigCard.vue'
 
 import "@ui5/webcomponents/dist/Title.js"
@@ -19,50 +19,19 @@ import "@ui5/webcomponents/dist/Label.js"
 import "@ui5/webcomponents/dist/Input.js"
 import "@ui5/webcomponents/dist/CheckBox.js"
 import "@ui5/webcomponents/dist/Dialog.js"
+import "@ui5/webcomponents/dist/Switch.js"
 import "@ui5/webcomponents/dist/Toolbar.js"
 import "@ui5/webcomponents/dist/ToolbarButton.js"
 import "@ui5/webcomponents/dist/MessageStrip.js"
-import "@ui5/webcomponents-icons/dist/refresh.js"
 import "@ui5/webcomponents-icons/dist/edit.js"
 import "@ui5/webcomponents-icons/dist/connected.js"
 
-// ── Connectivity Results (cached) ────────────────────────────────────────────
-
-const connectivityResults = ref<ConnectivityStatus[]>([])
-const connectivityLoading = ref(false)
-const checkedAt = ref('')
-
-const getStatus = (type: string, name?: string): ConnectivityStatus | undefined => {
-  return connectivityResults.value.find(r => r.type === type && (name ? r.name === name : true))
-}
+// ── Helpers ─────────────────────────────────────────────────────────────────
 
 const statusDesign = (status?: string): string => {
   if (status === 'ok') return 'Positive'
   if (status === 'error') return 'Negative'
   return 'Neutral'
-}
-
-const runConnectivityCheck = async () => {
-  connectivityLoading.value = true
-  try {
-    const report = await CheckConnectivity()
-    connectivityResults.value = report.results || []
-    checkedAt.value = new Date(report.checkedAt).toLocaleString()
-  } catch {
-    // Error displayed by http interceptor
-  } finally {
-    connectivityLoading.value = false
-  }
-}
-
-const loadLastConnectivity = async () => {
-  try {
-    const report = await GetLastConnectivity()
-    connectivityResults.value = report.results || []
-    checkedAt.value = new Date(report.checkedAt).toLocaleString()
-  } catch {
-    // silently ignore — first visit or no cached report
-  }
 }
 
 // ── Central TMS Context ──────────────────────────────────────────────────────
@@ -72,7 +41,6 @@ const tmsContextLoading = ref(false)
 const showTmsEditDialog = ref(false)
 const tmsEditDestName = ref('')
 const tmsSaving = ref(false)
-const tmsConfigured = computed(() => !!tmsContext.value?.TmsApiDestinationName)
 
 const loadTmsContext = async () => {
   tmsContextLoading.value = true
@@ -104,53 +72,60 @@ const onSaveTmsContext = async () => {
   }
 }
 
-// ── Integration Registry ─────────────────────────────────────────────────────
+// ── Jira Config ──────────────────────────────────────────────────────────────
 
-const integrations = ref<IntegrationConfig[]>([])
-const integrationsLoading = ref(false)
-const showEditDialog = ref(false)
-const editingConfig = ref<IntegrationConfig | null>(null)
-const testResults = reactive<Record<string, { status: string; message?: string }>>({})
+const jiraConfig = ref<JiraConfig | null>(null)
+const jiraLoading = ref(false)
+const showJiraEditDialog = ref(false)
+const jiraEditDest = ref('')
+const jiraEditEnabled = ref(false)
+const jiraSaving = ref(false)
+const jiraTestResult = ref<ConnectivityStatus | null>(null)
+const jiraTesting = ref(false)
 
-const loadIntegrations = async () => {
-  integrationsLoading.value = true
+const loadJiraConfig = async () => {
+  jiraLoading.value = true
   try {
-    integrations.value = await GetIntegrations() || []
+    jiraConfig.value = await GetJiraConfig()
+  } catch {
+    jiraConfig.value = null
+  } finally {
+    jiraLoading.value = false
+  }
+}
+
+const openJiraEditDialog = () => {
+  jiraEditDest.value = jiraConfig.value?.destinationName ?? ''
+  jiraEditEnabled.value = jiraConfig.value?.enabled ?? false
+  showJiraEditDialog.value = true
+}
+
+const onSaveJiraConfig = async () => {
+  jiraSaving.value = true
+  try {
+    jiraConfig.value = await UpdateJiraConfig({
+      destinationName: jiraEditDest.value.trim(),
+      enabled: jiraEditEnabled.value,
+    })
+    window.$toast.success('Jira configuration saved')
+    showJiraEditDialog.value = false
+    jiraTestResult.value = null
   } catch {
     // Error displayed by http interceptor
   } finally {
-    integrationsLoading.value = false
+    jiraSaving.value = false
   }
 }
 
-const handleEditIntegration = (cfg: IntegrationConfig) => {
-  editingConfig.value = { ...cfg }
-  showEditDialog.value = true
-}
-
-const onSaveIntegration = async () => {
-  if (!editingConfig.value) return
+const handleTestJira = async () => {
+  jiraTesting.value = true
+  jiraTestResult.value = null
   try {
-    await UpdateIntegration(editingConfig.value.type, {
-      destinationName: editingConfig.value.destinationName,
-      enabled: editingConfig.value.enabled,
-      description: editingConfig.value.description,
-    })
-    window.$toast.success(`Integration '${editingConfig.value.type}' updated`)
-    showEditDialog.value = false
-    await loadIntegrations()
-  } catch {
-    // Error displayed by http interceptor
-  }
-}
-
-const handleTestIntegration = async (cfg: IntegrationConfig) => {
-  delete testResults[cfg.type]
-  try {
-    const result = await TestIntegration(cfg.type)
-    testResults[cfg.type] = result
+    jiraTestResult.value = await TestJiraConnection()
   } catch (e: any) {
-    testResults[cfg.type] = { status: 'error', message: e?.message ?? 'test failed' }
+    jiraTestResult.value = { name: 'jira', type: 'jira', status: 'error', message: e?.message ?? 'test failed' }
+  } finally {
+    jiraTesting.value = false
   }
 }
 
@@ -181,42 +156,11 @@ const loadDatabaseInfo = async () => {
 // ── Lifecycle ────────────────────────────────────────────────────────────────
 
 onMounted(async () => {
-  await Promise.allSettled([loadTmsContext(), loadIntegrations(), loadTenants(), loadDatabaseInfo(), loadLastConnectivity()])
+  await Promise.allSettled([loadTmsContext(), loadJiraConfig(), loadTenants(), loadDatabaseInfo()])
 })
 </script>
 
 <template>
-  <!-- Edit Integration Dialog -->
-  <ui5-dialog
-    header-text="Edit Integration"
-    :open="showEditDialog"
-    @before-close="showEditDialog = false"
-    style="width: 32rem;">
-    <div class="sc-dialog-content" v-if="editingConfig">
-      <ui5-label required>Destination Name</ui5-label>
-      <ui5-input
-        :value="editingConfig.destinationName"
-        @input="editingConfig.destinationName = ($event as any).target.value"
-        placeholder="e.g. cpi-delivery-github"
-        style="width: 100%;" />
-      <ui5-label style="margin-top: 0.75rem;">Description</ui5-label>
-      <ui5-input
-        :value="editingConfig.description"
-        @input="editingConfig.description = ($event as any).target.value"
-        placeholder="Optional description"
-        style="width: 100%;" />
-      <ui5-checkbox
-        style="margin-top: 0.75rem;"
-        :checked="editingConfig.enabled"
-        @change="editingConfig.enabled = ($event as any).target.checked"
-        text="Enabled" />
-    </div>
-    <ui5-toolbar slot="footer">
-      <ui5-toolbar-button design="Emphasized" text="Save" @click="onSaveIntegration" />
-      <ui5-toolbar-button design="Transparent" text="Cancel" @click="showEditDialog = false" />
-    </ui5-toolbar>
-  </ui5-dialog>
-
   <!-- Edit Central TMS Context Dialog -->
   <ui5-dialog
     header-text="Configure Central TMS"
@@ -240,23 +184,48 @@ onMounted(async () => {
     </ui5-toolbar>
   </ui5-dialog>
 
+  <!-- Edit Jira Config Dialog -->
+  <ui5-dialog
+    header-text="Configure Jira Integration"
+    :open="showJiraEditDialog"
+    @before-close="showJiraEditDialog = false"
+    style="width: 36rem;">
+    <div class="sc-dialog-content">
+      <ui5-message-strip design="Information" hide-close-button style="margin-bottom: 1rem;">
+        Configure the BTP Destination that connects to your Jira instance.
+        The destination should use BasicAuthentication with the Jira base URL
+        (e.g. https://jira.example.com) and a service account's credentials.
+      </ui5-message-strip>
+      <ui5-label required>Destination Name</ui5-label>
+      <ui5-input
+        :value="jiraEditDest"
+        @input="jiraEditDest = ($event as any).target.value"
+        placeholder="e.g. cpi-delivery-jira"
+        style="width: 100%;" />
+      <div style="display: flex; align-items: center; gap: 0.5rem; margin-top: 0.75rem;">
+        <ui5-label>Enabled</ui5-label>
+        <ui5-switch
+          :checked="jiraEditEnabled"
+          @change="jiraEditEnabled = ($event as any).target.checked" />
+      </div>
+    </div>
+    <ui5-toolbar slot="footer">
+      <ui5-toolbar-button design="Emphasized" text="Save" :disabled="jiraSaving" @click="onSaveJiraConfig" />
+      <ui5-toolbar-button design="Transparent" text="Cancel" @click="showJiraEditDialog = false" />
+    </ui5-toolbar>
+  </ui5-dialog>
+
   <div class="page">
     <!-- Header -->
     <div class="page-header">
       <ui5-title level="H4">System Configuration & External Dependencies</ui5-title>
-      <div class="page-header-actions">
-        <ui5-text v-if="checkedAt" style="color: var(--sapContent_LabelColor); font-size: 0.8rem;">Last checked: {{ checkedAt }}</ui5-text>
-        <ui5-button design="Emphasized" icon="refresh" :disabled="connectivityLoading" @click="runConnectivityCheck">
-          Check All
-        </ui5-button>
-      </div>
     </div>
 
     <!-- Central TMS -->
     <ui5-panel header-text="Central TMS" fixed>
       <ui5-busy-indicator :active="tmsContextLoading" :delay="0" size="M" style="width: 100%;">
         <div class="panel-body">
-          <ui5-message-strip v-if="!tmsConfigured && !tmsContextLoading" design="Critical" hide-close-button>
+          <ui5-message-strip v-if="!tmsContext?.TmsApiDestinationName && !tmsContextLoading" design="Critical" hide-close-button>
             Central TMS is not configured. Bootstrap and transport request operations will be blocked. Click "Configure" to set the TMS API destination name.
           </ui5-message-strip>
           <div class="info-row">
@@ -273,16 +242,9 @@ onMounted(async () => {
               <ui5-text>{{ new Date(tmsContext.LastValidatedAt).toLocaleString() }}</ui5-text>
             </div>
             <div class="info-field">
-              <ui5-label>Status</ui5-label>
-              <ui5-tag v-if="getStatus('tms')" :design="statusDesign(getStatus('tms')?.status)" style="font-size: 0.75rem;">
-                {{ getStatus('tms')?.status === 'ok' ? 'OK' : getStatus('tms')?.message }}
-              </ui5-tag>
-              <ui5-text v-else style="color: var(--sapContent_LabelColor);">—</ui5-text>
-            </div>
-            <div class="info-field">
               <ui5-label>&nbsp;</ui5-label>
               <ui5-button design="Transparent" icon="edit" @click="openTmsEditDialog">
-                {{ tmsConfigured ? 'Edit' : 'Configure' }}
+                {{ tmsContext?.TmsApiDestinationName ? 'Edit' : 'Configure' }}
               </ui5-button>
             </div>
           </div>
@@ -293,43 +255,42 @@ onMounted(async () => {
     <!-- Git Repository -->
     <GitRepoConfigCard />
 
-    <!-- Integration Registry -->
-    <ui5-panel header-text="Integration Registry" fixed>
-      <ui5-busy-indicator :active="integrationsLoading" :delay="0" size="M" style="width: 100%;">
-        <ui5-table>
-          <ui5-table-header-row slot="headerRow">
-            <ui5-table-header-cell>Type</ui5-table-header-cell>
-            <ui5-table-header-cell>Destination</ui5-table-header-cell>
-            <ui5-table-header-cell>Enabled</ui5-table-header-cell>
-            <ui5-table-header-cell>Status</ui5-table-header-cell>
-            <ui5-table-header-cell>Actions</ui5-table-header-cell>
-          </ui5-table-header-row>
-          <ui5-table-row v-for="cfg in integrations" :key="cfg.type">
-            <ui5-table-cell>
-              <ui5-tag design="Set2" color-scheme="6" style="font-size: 0.75rem;">{{ cfg.type }}</ui5-tag>
-            </ui5-table-cell>
-            <ui5-table-cell><ui5-text>{{ cfg.destinationName || '—' }}</ui5-text></ui5-table-cell>
-            <ui5-table-cell>
-              <ui5-tag :design="cfg.enabled ? 'Positive' : 'Neutral'" style="font-size: 0.75rem;">
-                {{ cfg.enabled ? 'Yes' : 'No' }}
+    <!-- Jira Integration -->
+    <ui5-panel header-text="Jira Integration" fixed>
+      <ui5-busy-indicator :active="jiraLoading" :delay="0" size="M" style="width: 100%;">
+        <div class="panel-body">
+          <div class="info-row">
+            <div class="info-field">
+              <ui5-label>Destination</ui5-label>
+              <ui5-text>{{ jiraConfig?.destinationName || '—' }}</ui5-text>
+            </div>
+            <div class="info-field" v-if="jiraConfig?.endpoint">
+              <ui5-label>Endpoint</ui5-label>
+              <ui5-text class="mono">{{ jiraConfig.endpoint }}</ui5-text>
+            </div>
+            <div class="info-field">
+              <ui5-label>Enabled</ui5-label>
+              <ui5-tag :design="jiraConfig?.enabled ? 'Positive' : 'Neutral'" style="font-size: 0.75rem;">
+                {{ jiraConfig?.enabled ? 'Yes' : 'No' }}
               </ui5-tag>
-            </ui5-table-cell>
-            <ui5-table-cell>
-              <ui5-tag v-if="testResults[cfg.type]" :design="statusDesign(testResults[cfg.type].status)" style="font-size: 0.7rem;">
-                {{ testResults[cfg.type].status === 'ok' ? 'OK' : testResults[cfg.type].message }}
-              </ui5-tag>
-              <ui5-tag v-else-if="getStatus('integration', cfg.type)" :design="statusDesign(getStatus('integration', cfg.type)?.status)" style="font-size: 0.7rem;">
-                {{ getStatus('integration', cfg.type)?.status === 'ok' ? 'OK' : getStatus('integration', cfg.type)?.message }}
+            </div>
+            <div class="info-field">
+              <ui5-label>Status</ui5-label>
+              <ui5-tag v-if="jiraTestResult" :design="statusDesign(jiraTestResult.status)" style="font-size: 0.75rem;">
+                {{ jiraTestResult.status === 'ok' ? 'OK' : jiraTestResult.message }}
               </ui5-tag>
               <ui5-text v-else style="color: var(--sapContent_LabelColor);">—</ui5-text>
-            </ui5-table-cell>
-            <ui5-table-cell>
-              <ui5-button design="Transparent" icon="edit" @click="handleEditIntegration(cfg)" tooltip="Edit" />
-              <ui5-button design="Transparent" icon="connected" @click="handleTestIntegration(cfg)"
-                :disabled="!cfg.destinationName" tooltip="Test Connection" />
-            </ui5-table-cell>
-          </ui5-table-row>
-        </ui5-table>
+            </div>
+            <div class="info-field">
+              <ui5-label>&nbsp;</ui5-label>
+              <div style="display: flex; gap: 0.25rem;">
+                <ui5-button design="Transparent" icon="edit" @click="openJiraEditDialog" tooltip="Edit" />
+                <ui5-button design="Transparent" icon="connected" @click="handleTestJira"
+                  :disabled="!jiraConfig?.destinationName || jiraTesting" tooltip="Test Connection" />
+              </div>
+            </div>
+          </div>
+        </div>
       </ui5-busy-indicator>
     </ui5-panel>
 
@@ -341,19 +302,12 @@ onMounted(async () => {
             <ui5-table-header-cell>Tenant</ui5-table-header-cell>
             <ui5-table-header-cell>PIR Destination</ui5-table-header-cell>
             <ui5-table-header-cell>Lifecycle</ui5-table-header-cell>
-            <ui5-table-header-cell>Status</ui5-table-header-cell>
           </ui5-table-header-row>
           <ui5-table-row v-for="t in tenants" :key="t.ID">
             <ui5-table-cell><ui5-text>{{ t.Name }}</ui5-text></ui5-table-cell>
             <ui5-table-cell><ui5-text class="mono">{{ t.PirApiDestinationName || '—' }}</ui5-text></ui5-table-cell>
             <ui5-table-cell>
               <ui5-tag design="Set2" style="font-size: 0.7rem;">{{ t.LifecycleState || '—' }}</ui5-tag>
-            </ui5-table-cell>
-            <ui5-table-cell>
-              <ui5-tag v-if="getStatus('cpi_tenant', t.Name)" :design="statusDesign(getStatus('cpi_tenant', t.Name)?.status)" style="font-size: 0.7rem;">
-                {{ getStatus('cpi_tenant', t.Name)?.status === 'ok' ? 'OK' : 'Error' }}
-              </ui5-tag>
-              <ui5-text v-else style="color: var(--sapContent_LabelColor);">—</ui5-text>
             </ui5-table-cell>
           </ui5-table-row>
         </ui5-table>
@@ -373,10 +327,7 @@ onMounted(async () => {
         </div>
         <div class="info-field">
           <ui5-label>Status</ui5-label>
-          <ui5-tag v-if="getStatus('database')" :design="statusDesign(getStatus('database')?.status)" style="font-size: 0.75rem;">
-            {{ getStatus('database')?.status === 'ok' ? 'OK' : getStatus('database')?.message }}
-          </ui5-tag>
-          <ui5-tag v-else-if="dbInfo" :design="statusDesign(dbInfo.status)" style="font-size: 0.75rem;">
+          <ui5-tag v-if="dbInfo" :design="statusDesign(dbInfo.status)" style="font-size: 0.75rem;">
             {{ dbInfo.status === 'ok' ? 'OK' : 'Error' }}
           </ui5-tag>
           <ui5-text v-else style="color: var(--sapContent_LabelColor);">—</ui5-text>
@@ -401,13 +352,7 @@ onMounted(async () => {
   align-items: center;
 }
 
-.page-header-actions {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-/* Info panels (TMS, Database) */
+/* Info panels (TMS, Jira, Database) */
 .panel-body {
   display: flex;
   flex-direction: column;
