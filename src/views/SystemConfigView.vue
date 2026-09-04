@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { GetDatabaseInfo, GetJiraConfig, UpdateJiraConfig, TestJiraConnection, GetCentralTmsContext, UpsertCentralTmsContext, GetCpiTenants } from '@/service/api'
-import type { ConnectivityStatus, JiraConfig, CentralTmsContext, CpiTenant } from '@/service/model'
+import { GetDatabaseInfo, GetJiraConfig, UpdateJiraConfig, TestJiraConnection, GetAnsStatus, TestAnsConnection, GetCentralTmsContext, UpsertCentralTmsContext, GetCpiTenants } from '@/service/api'
+import type { ConnectivityStatus, JiraConfig, AnsStatus, CentralTmsContext, CpiTenant } from '@/service/model'
 import GitRepoConfigCard from '@/components/GitRepoConfigCard.vue'
 
 import "@ui5/webcomponents/dist/Title.js"
@@ -129,6 +129,36 @@ const handleTestJira = async () => {
   }
 }
 
+// ── ANS (Notifications) ─────────────────────────────────────────────────────
+
+const ansStatus = ref<AnsStatus | null>(null)
+const ansLoading = ref(false)
+const ansTestResult = ref<ConnectivityStatus | null>(null)
+const ansTesting = ref(false)
+
+const loadAnsStatus = async () => {
+  ansLoading.value = true
+  try {
+    ansStatus.value = await GetAnsStatus()
+  } catch {
+    ansStatus.value = null
+  } finally {
+    ansLoading.value = false
+  }
+}
+
+const handleTestAns = async () => {
+  ansTesting.value = true
+  ansTestResult.value = null
+  try {
+    ansTestResult.value = await TestAnsConnection()
+  } catch (e: any) {
+    ansTestResult.value = { name: 'ANS', type: 'ans', status: 'error', message: e?.message ?? 'test failed' }
+  } finally {
+    ansTesting.value = false
+  }
+}
+
 // ── CPI Tenants ──────────────────────────────────────────────────────────────
 
 const tenants = ref<CpiTenant[]>([])
@@ -156,7 +186,7 @@ const loadDatabaseInfo = async () => {
 // ── Lifecycle ────────────────────────────────────────────────────────────────
 
 onMounted(async () => {
-  await Promise.allSettled([loadTmsContext(), loadJiraConfig(), loadTenants(), loadDatabaseInfo()])
+  await Promise.allSettled([loadTmsContext(), loadJiraConfig(), loadAnsStatus(), loadTenants(), loadDatabaseInfo()])
 })
 </script>
 
@@ -290,6 +320,45 @@ onMounted(async () => {
               </div>
             </div>
           </div>
+        </div>
+      </ui5-busy-indicator>
+    </ui5-panel>
+
+    <!-- Notifications (ANS) -->
+    <ui5-panel header-text="Notifications (SAP Alert Notification Service)" fixed>
+      <ui5-busy-indicator :active="ansLoading" :delay="0" size="M" style="width: 100%;">
+        <div class="panel-body">
+          <ui5-message-strip v-if="ansStatus && !ansStatus.bound && !ansLoading" design="Information" hide-close-button>
+            Alert Notification Service is not bound. Delivery event notifications (Email, Slack, Teams) are currently disabled.
+            Bind the alert-notification service instance to enable notifications.
+          </ui5-message-strip>
+          <div class="info-row">
+            <div class="info-field">
+              <ui5-label>Status</ui5-label>
+              <ui5-tag :design="ansStatus?.bound ? 'Positive' : 'Neutral'" style="font-size: 0.75rem;">
+                {{ ansStatus?.bound ? 'Connected' : 'Not bound' }}
+              </ui5-tag>
+            </div>
+            <div class="info-field" v-if="ansStatus?.endpoint">
+              <ui5-label>Endpoint</ui5-label>
+              <ui5-text class="mono">{{ ansStatus.endpoint }}</ui5-text>
+            </div>
+            <div class="info-field" v-if="ansTestResult">
+              <ui5-label>Test</ui5-label>
+              <ui5-tag :design="statusDesign(ansTestResult.status)" style="font-size: 0.75rem;">
+                {{ ansTestResult.status === 'ok' ? 'OK' : ansTestResult.message }}
+              </ui5-tag>
+            </div>
+            <div class="info-field" v-if="ansStatus?.bound">
+              <ui5-label>&nbsp;</ui5-label>
+              <ui5-button design="Transparent" icon="connected" @click="handleTestAns"
+                :disabled="ansTesting" tooltip="Test Connection" />
+            </div>
+          </div>
+          <ui5-message-strip v-if="ansStatus?.bound" design="Information" hide-close-button style="margin-top: 0.5rem;">
+            Notification delivery (Email, Slack, Teams) is managed via the SAP Alert Notification Service cockpit.
+            Configure conditions, actions, and subscriptions there to route delivery events.
+          </ui5-message-strip>
         </div>
       </ui5-busy-indicator>
     </ui5-panel>

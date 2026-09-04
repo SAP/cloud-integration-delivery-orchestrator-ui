@@ -1,6 +1,6 @@
 import axios from 'axios'
 import http from './http'
-import type { ApiEndpoint, Artifact, ArtifactTenantOperation, AppCount, BackfillTechIDResult, BootstrapJob, BootstrapPreview, CentralTmsContext, ConnectivityStatus, CpiTenant, CreateDRFromMismatchRequest, CreateDRFromMismatchResponse, DeliverOpRequest, DeliveryRequest, DeliveryRule, GenerateTRResponse, GitOwnerInfo, GitRepoConfig, GitRepoInfo, JiraConfig, NodeTransportRequest, OperationCondition, OperationsHistoryFilters, OperationsHistoryResponse, Package, PreviewDRResponse, RuntimeArtifact, TmsNodeConfirmResponse, TmsRoutesResponse, TransportNode, TransportRoute, TriggerResult, UserInfo, VersionCompareIncludedPackage, VersionCompareResponse, VersionCompareSummaryItem } from './model'
+import type { AnsStatus, ApiEndpoint, Artifact, ArtifactTenantOperation, AppCount, BackfillTechIDResult, BootstrapJob, BootstrapPreview, CentralTmsContext, ConnectivityStatus, CpiTenant, CreateDRFromMismatchRequest, CreateDRFromMismatchResponse, DeliverOpRequest, DeliveryRequest, DeliveryRule, GenerateTRResponse, GitOwnerInfo, GitRepoConfig, GitRepoInfo, JiraConfig, NodeTransportRequest, OperationCondition, OperationsHistoryFilters, OperationsHistoryResponse, Package, PreviewDRResponse, RuntimeArtifact, TmsNodeConfirmResponse, TmsRoutesResponse, TransportNode, TransportRoute, TriggerResult, UserInfo, VersionCompareIncludedPackage, VersionCompareResponse, VersionCompareSummaryItem } from './model'
 import type { AggregateStatus, DeployState, ImportState, RequestState } from './statuses'
 
 export const GetDrCounts = () => {
@@ -343,6 +343,16 @@ export const UpdateJiraConfig = (payload: { destinationName: string; enabled: bo
 
 export const TestJiraConnection = () => {
   return http.post('/api/v1/system/jiraConfig/test', {}) as Promise<{ name: string; type: string; status: string; message?: string }>
+}
+
+// --- ANS Status ---
+
+export const GetAnsStatus = () => {
+  return http.get('/api/v1/system/ansStatus') as Promise<AnsStatus>
+}
+
+export const TestAnsConnection = () => {
+  return http.post('/api/v1/system/ansStatus/test', {}) as Promise<{ name: string; type: string; status: string; message?: string }>
 }
 
 // --- Git Repository Config ---

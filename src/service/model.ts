@@ -489,6 +489,11 @@ export interface JiraConfig {
   endpoint?: string
 }
 
+export interface AnsStatus {
+  bound: boolean
+  endpoint?: string
+}
+
 export interface GitRepoConfig {
   ID?: number
   // Discriminator: 'pat' (default) or 'github_app'. Selects which fields the client authors.
