@@ -49,6 +49,11 @@ const outputFormat = ref<'side-by-side' | 'line-by-line'>('side-by-side')
 const diffMatchStyle = ref<'word' | 'char'>('word')
 const patchesCache = ref<string[]>([])
 const iflowFiles = ref<CompareFileItem[]>([])
+// CPI configuration file hints: when parameters.prop or parameters.propdef appear
+// in the diff, the template shows an informational strip explaining the CPI
+// externalized-parameters mechanism (transport-safe vs tenant-local).
+const hasParamsProp = ref(false)
+const hasParamsPropdef = ref(false)
 const selectedIflow = ref<CompareFileItem | null>(null)
 const bpmnDialogOpen = ref(false)
 
@@ -167,6 +172,8 @@ async function loadCompare() {
   hasDiff.value = false
   patchesCache.value = []
   iflowFiles.value = []
+  hasParamsProp.value = false
+  hasParamsPropdef.value = false
   selectedIflow.value = null
   bpmnDialogOpen.value = false
   fileStats.value = { added: 0, deleted: 0, modified: 0, unchanged: 0 }
@@ -344,6 +351,8 @@ async function loadDiff(
     fileStats.value = result.stats
     patchesCache.value = result.textPatches
     iflowFiles.value = result.iflowFiles
+    hasParamsProp.value = result.files.some(f => f.path.endsWith('/parameters.prop') || f.path === 'parameters.prop')
+    hasParamsPropdef.value = result.files.some(f => f.path.endsWith('/parameters.propdef') || f.path === 'parameters.propdef')
 
     if (!result.textPatches.length && !result.iflowFiles.length) {
       noDiffNotice.value = true
@@ -596,6 +605,16 @@ onUnmounted(() => {
             @open-visual="openBpmnDiff"
           />
         </div>
+
+        <!-- CPI Configuration file hints (externalized parameters) -->
+        <ui5-message-strip v-if="hasParamsProp" design="Information" hide-close-button style="margin-bottom: 0.5rem;">
+          <b>parameters.prop</b> — Configured values: tenant-specific runtime configuration set via the Configure dialog. These values are <b>NOT</b> overwritten during transport.
+          <ui5-link href="https://community.sap.com/t5/technology-blog-posts-by-sap/enrichments-of-externalization-feature-in-sap-cloud-integration/ba-p/13430329" target="_blank" style="margin-left: 4px;">Learn more</ui5-link>
+        </ui5-message-strip>
+        <ui5-message-strip v-if="hasParamsPropdef" design="Information" hide-close-button style="margin-bottom: 0.5rem;">
+          <b>parameters.propdef</b> — Parameter definitions &amp; defaults: design-time parameter schema that travels with the artifact during transport.
+          <ui5-link href="https://community.sap.com/t5/technology-blog-posts-by-sap/enrichments-of-externalization-feature-in-sap-cloud-integration/ba-p/13430329" target="_blank" style="margin-left: 4px;">Learn more</ui5-link>
+        </ui5-message-strip>
 
         <!-- Diff content (Diff2HtmlUI manages this element) -->
         <div

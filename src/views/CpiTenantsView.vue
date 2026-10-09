@@ -55,7 +55,7 @@
                     <div style="margin-bottom: 1rem;">
 
                         <!-- Group 1: Provider-side Destinations (in cpi-delivery subaccount) -->
-                        <div class="prereq-group-header">Provider Destinations <span class="prereq-group-note">(cpi-delivery subaccount)</span></div>
+                        <div class="prereq-group-header">Provider Destinations <span class="prereq-group-note">(delivery-orchestrator subaccount)</span></div>
                         <div class="prereq-grid" style="margin-bottom: 0.5rem;">
                             <div class="prereq-item">
                                 <ui5-tag :design="selectedCpiTenant.PirApiDestinationName ? 'Positive' : 'Neutral'" style="font-size: 0.7rem; min-width: 64px;">
