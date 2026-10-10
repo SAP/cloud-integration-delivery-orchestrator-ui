@@ -162,7 +162,6 @@ export default defineComponent({
             this.loading = true
             this.rules = await GetDeliveryRules() || []
             this.rules.sort((a, b) => (a.Name || '').localeCompare(b.Name || ''))
-            this.showModal = false
             this.loading = false
         },
         async onSave() {
@@ -175,13 +174,17 @@ export default defineComponent({
             this.saving = true
             try {
                 await UpsertDeliveryRule(this.selDeliveryRule)
-                // refresh() closes the modal on success. On error the promise
-                // rejects (toast shown by the http interceptor) and the modal
-                // stays open so the user can correct the input.
+                // On error the promise rejects (toast shown by the http
+                // interceptor) and the modal stays open so the user can correct
+                // the input.
                 await this.refresh()
             } finally {
                 this.saving = false
             }
+            // Close only after saving is cleared: onBeforeClose vetoes closing
+            // while saving, which would leave the dialog stuck open (and Cancel
+            // a no-op, since showModal would already be false).
+            this.showModal = false
         },
         // Prevent the dialog from closing (ESC / backdrop) while a save is in flight.
         onBeforeClose(e: CustomEvent) {
