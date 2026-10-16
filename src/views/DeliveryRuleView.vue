@@ -207,7 +207,10 @@ export default defineComponent({
                 window.$toast.warning('Please select a delivery rule')
                 return
             }
-            this.selDeliveryRule = { ...rows[0] }
+            // rows come from DataTable's selection snapshot, which goes stale once
+            // the rules are reloaded (e.g. after a save); resolve the current rule by ID.
+            const latest = this.rules.find(r => r.ID === rows[0].ID) ?? rows[0]
+            this.selDeliveryRule = { ...latest }
             this.showModal = true
         },
         handleSelect(value: CpiTenant[]) {
