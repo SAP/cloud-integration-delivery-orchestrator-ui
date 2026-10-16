@@ -21,6 +21,52 @@ const mountView = async () => {
   return wrapper
 }
 
+describe('DeliveryRuleView edit', () => {
+  beforeEach(() => {
+    vi.mocked(GetCpiTenants).mockResolvedValue([])
+    vi.mocked(GetTransportRoutes).mockResolvedValue([])
+  })
+
+  it('opens the dialog with the latest values when the selected row is stale', async () => {
+    // DataTable hands over the row object captured at selection time; after a
+    // save the rules are reloaded, so that object no longer has the saved values.
+    const staleRow = { ID: 3, Name: 'Version 2', VersionPattern: '2.1.*' } as any
+    vi.mocked(GetDeliveryRules).mockResolvedValue([{ ...staleRow, VersionPattern: '2.2.*' }])
+    const wrapper = await mountView()
+    const vm = wrapper.vm as any
+
+    vm.handleEdit([staleRow])
+
+    expect(vm.selDeliveryRule.VersionPattern).toBe('2.2.*')
+    expect(vm.showModal).toBe(true)
+  })
+
+  it('does not mutate the loaded rule while the dialog is edited', async () => {
+    const loaded = { ID: 3, Name: 'Version 2', VersionPattern: '2.1.*' } as any
+    vi.mocked(GetDeliveryRules).mockResolvedValue([loaded])
+    const wrapper = await mountView()
+    const vm = wrapper.vm as any
+
+    vm.handleEdit([loaded])
+    vm.selDeliveryRule.VersionPattern = '9.*'
+
+    expect(vm.rules[0].VersionPattern).toBe('2.1.*')
+  })
+
+  it('warns and keeps the dialog closed when no rule is selected', async () => {
+    vi.mocked(GetDeliveryRules).mockResolvedValue([])
+    const warning = vi.fn()
+    ;(window as any).$toast = { warning }
+    const wrapper = await mountView()
+    const vm = wrapper.vm as any
+
+    vm.handleEdit([])
+
+    expect(warning).toHaveBeenCalledWith('Please select a delivery rule')
+    expect(vm.showModal).toBe(false)
+  })
+})
+
 describe('DeliveryRuleView save', () => {
   beforeEach(() => {
     vi.mocked(GetDeliveryRules).mockResolvedValue([])
