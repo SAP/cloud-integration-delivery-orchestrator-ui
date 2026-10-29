@@ -828,6 +828,7 @@ export default defineComponent({
                 if (updated) this.selectedCpiTenant = { ...updated }
                 this.step1Error = ''
                 this.wizardStep = 2
+                await this.loadTmsNodes()
             } catch (e: any) {
                 this.step1Error = e?.message ?? 'CF identity verification failed'
             } finally {
