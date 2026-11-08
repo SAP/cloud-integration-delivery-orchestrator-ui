@@ -58,20 +58,22 @@ const openTmsEditDialog = () => {
   showTmsEditDialog.value = true
 }
 
-// Count of tenants with TMS extension enabled (not_started excluded)
-const tmsBootstrappedCount = computed(() =>
-  tenants.value.filter(t => t.TmsExtensionState === 'bootstrapped').length
+// Count of tenants that a reconfigure would reset (Rule 4 resets both
+// node_confirmed and bootstrapped tenants to not_started).
+const tmsAffectedCount = computed(() =>
+  tenants.value.filter(t => t.TmsExtensionState === 'bootstrapped' || t.TmsExtensionState === 'node_confirmed').length
 )
 
-// Confirm dialog before saving TMS context (Rule 4: may invalidate bootstrapped tenants)
+// Confirm dialog before saving TMS context (every save is a full reconfigure:
+// Rule 4 may reset TMS-ready tenants, even when the destination name is unchanged).
 const showTmsConfirmDialog = ref(false)
 
 const onSaveTmsContext = async () => {
   if (!tmsEditDestName.value.trim()) return
-  // If changing an existing destination name and there are bootstrapped tenants, confirm first
-  if (tmsContext.value?.TmsApiDestinationName
-      && tmsContext.value.TmsApiDestinationName !== tmsEditDestName.value.trim()
-      && tmsBootstrappedCount.value > 0) {
+  // Every save re-applies the Central TMS config (reconfigure) and runs Rule 4,
+  // including a same-name save. If any TMS-ready tenant would be reset, confirm
+  // first so the operator knows they must re-select node + re-apply.
+  if (tmsAffectedCount.value > 0) {
     showTmsConfirmDialog.value = true
     return
   }
@@ -92,8 +94,17 @@ const doSaveTmsContext = async () => {
     }
     showTmsEditDialog.value = false
     await loadTenants()
-  } catch {
-    // Error displayed by http interceptor
+  } catch (err: any) {
+    // Optimistic-concurrency conflict: another reconfigure changed the config
+    // while this save was in flight. Reload the current config and ask the
+    // operator to retry, rather than silently overwriting.
+    if (err?.code === 'TMS_CONFIG_CHANGED' || err?.data?.code === 'TMS_CONFIG_CHANGED') {
+      window.$toast.warning('Central TMS was reconfigured by someone else. Reloaded the latest config — please review and retry.')
+      await loadTmsContext()
+    } else {
+      // Other errors (e.g. TMS_BOOTSTRAP_IN_PROGRESS, validation failure).
+      window.$toast.error(err?.message ?? 'Failed to save Central TMS context')
+    }
   } finally {
     tmsSaving.value = false
   }
@@ -241,24 +252,25 @@ onMounted(async () => {
     </ui5-toolbar>
   </ui5-dialog>
 
-  <!-- Confirm TMS Destination Change Dialog -->
+  <!-- Confirm TMS Reconfigure Dialog -->
   <ui5-dialog
-    header-text="Confirm TMS Destination Change"
+    header-text="Confirm Central TMS Reconfigure"
     :open="showTmsConfirmDialog"
     @before-close="showTmsConfirmDialog = false"
     style="width: 32rem;">
     <div class="sc-dialog-content">
       <ui5-message-strip design="Critical" hide-close-button style="margin-bottom: 1rem;">
-        Changing the TMS API destination will invalidate {{ tmsBootstrappedCount }} TMS-ready tenant(s).
-        They will be reset to <strong>not_started</strong> (node cleared) and must re-select node + re-apply individually.
+        Re-applying the Central TMS configuration will reset {{ tmsAffectedCount }} TMS-ready tenant(s).
+        They will be reset to <strong>not_started</strong> (node cleared) and must re-select node + re-apply
+        individually. This applies even when the destination name is unchanged.
       </ui5-message-strip>
       <ui5-text>
-        Current: <strong>{{ tmsContext?.TmsApiDestinationName }}</strong><br />
+        Current: <strong>{{ tmsContext?.TmsApiDestinationName || '—' }}</strong><br />
         New: <strong>{{ tmsEditDestName.trim() }}</strong>
       </ui5-text>
     </div>
     <ui5-toolbar slot="footer">
-      <ui5-toolbar-button design="Negative" text="Confirm Change" :disabled="tmsSaving" @click="doSaveTmsContext" />
+      <ui5-toolbar-button design="Negative" text="Reconfigure" :disabled="tmsSaving" @click="doSaveTmsContext" />
       <ui5-toolbar-button design="Transparent" text="Cancel" @click="showTmsConfirmDialog = false" />
     </ui5-toolbar>
   </ui5-dialog>

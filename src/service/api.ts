@@ -340,7 +340,9 @@ export const GetCentralTmsContext = () => {
 }
 
 export const UpsertCentralTmsContext = (payload: Partial<CentralTmsContext>) => {
-  return http.put('/api/v1/centralTmsContext', payload) as Promise<CentralTmsContext & { affectedTenants: number }>
+  // silentError: the caller handles failures inline (e.g. the optimistic
+  // TMS_CONFIG_CHANGED conflict) instead of the global toast.
+  return http.put('/api/v1/centralTmsContext', payload, { silentError: true }) as Promise<CentralTmsContext & { affectedTenants: number }>
 }
 
 // --- Jira Config ---
