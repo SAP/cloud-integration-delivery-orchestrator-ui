@@ -327,8 +327,19 @@
                                 Complete tenant onboarding first (lifecycle must be "ready").
                             </ui5-message-strip>
 
+                            <!-- Guard: TMS extension loading -->
+                            <div v-else-if="!tmsExtension && tmsExtensionLoading" style="text-align: center; padding: 1rem;">
+                                <ui5-busy-indicator size="Medium" active />
+                            </div>
+
+                            <!-- Guard: TMS extension load failed -->
+                            <ui5-message-strip v-else-if="!tmsExtension"
+                                design="Critical" hide-close-button>
+                                Failed to load TMS extension status.
+                            </ui5-message-strip>
+
                             <!-- Guard: TMS extension not available -->
-                            <ui5-message-strip v-else-if="tmsExtension && !tmsExtension.available"
+                            <ui5-message-strip v-else-if="!tmsExtension.available"
                                 design="Critical" hide-close-button>
                                 {{ tmsExtension.availabilityReason === 'CENTRAL_TMS_NOT_CONFIGURED'
                                     ? 'Central TMS is not configured. Configure it in System Configuration before enabling TMS extension.'
@@ -338,7 +349,7 @@
                             </ui5-message-strip>
 
                             <!-- Available -->
-                            <template v-else-if="!tmsExtension || tmsExtension.available">
+                            <template v-else>
                                 <!-- TMS detail statuses (when TMS bootstrap has been attempted) -->
                                 <template v-if="['node_confirmed','bootstrapping','bootstrapped'].includes(selectedCpiTenant.TmsExtensionState)">
                                     <div class="prereq-group-header">TMS Resources</div>
@@ -557,12 +568,12 @@ import {
     PreviewBootstrap, ApplyBootstrap, GetBootstrapStatus, RetryBootstrap, ResetBootstrap,
     SelectTmsNode, GetTmsExtensionRoutes,
     GetTmsExtension, PreviewTmsExtension, ApplyTmsExtension, ResetTmsExtension,
-    GetCentralTmsContext, GetTransportNodes,
+    GetTransportNodes,
 } from '@/service/api'
 import type {
     CpiTenant, BootstrapPreview, BootstrapJob,
     TransportRoute, TenantLifecycleState,
-    CentralTmsContext, TransportNode, TmsExtensionOverview, TmsExtensionState,
+    TransportNode, TmsExtensionOverview, TmsExtensionState,
 } from '@/service/model'
 import "@ui5/webcomponents/dist/TableRowAction.js"
 import "@ui5/webcomponents-icons/dist/connected.js"
@@ -613,7 +624,6 @@ export default defineComponent({
             toolBars,
             rowActions,
             selectedCpiTenant: {} as CpiTenant,
-            centralTmsContext: null as CentralTmsContext | null, // kept for SystemConfigView; not used in TMS guard
             loading: false,
             // Bootstrap wizard step: 1=CF Connection, 2=Inspect, 3=Apply
             wizardStep: 1 as 1 | 2 | 3,
@@ -1118,11 +1128,6 @@ export default defineComponent({
     },
     async created() {
         await this.refresh()
-        try {
-            this.centralTmsContext = await GetCentralTmsContext()
-        } catch {
-            this.centralTmsContext = null
-        }
     },
     unmounted() {
         this.stopPoll()
