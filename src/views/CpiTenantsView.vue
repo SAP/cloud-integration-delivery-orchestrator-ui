@@ -327,14 +327,18 @@
                                 Complete tenant onboarding first (lifecycle must be "ready").
                             </ui5-message-strip>
 
-                            <!-- Guard: no Central TMS -->
-                            <ui5-message-strip v-else-if="!centralTmsContext?.TmsApiDestinationName"
+                            <!-- Guard: TMS extension not available -->
+                            <ui5-message-strip v-else-if="tmsExtension && !tmsExtension.available"
                                 design="Critical" hide-close-button>
-                                Central TMS is not configured. Configure it in System Configuration before enabling TMS extension.
+                                {{ tmsExtension.availabilityReason === 'CENTRAL_TMS_NOT_CONFIGURED'
+                                    ? 'Central TMS is not configured. Configure it in System Configuration before enabling TMS extension.'
+                                    : tmsExtension.availabilityReason === 'CENTRAL_TMS_NOT_LOADED'
+                                    ? 'Central TMS configuration exists but the runtime client has not loaded yet. Check the TMS destination in BTP or wait for the service to retry.'
+                                    : `TMS extension is not available: ${tmsExtension.availabilityReason}` }}
                             </ui5-message-strip>
 
                             <!-- Available -->
-                            <template v-else>
+                            <template v-else-if="!tmsExtension || tmsExtension.available">
                                 <!-- TMS detail statuses (when TMS bootstrap has been attempted) -->
                                 <template v-if="['node_confirmed','bootstrapping','bootstrapped'].includes(selectedCpiTenant.TmsExtensionState)">
                                     <div class="prereq-group-header">TMS Resources</div>
@@ -609,7 +613,7 @@ export default defineComponent({
             toolBars,
             rowActions,
             selectedCpiTenant: {} as CpiTenant,
-            centralTmsContext: null as CentralTmsContext | null,
+            centralTmsContext: null as CentralTmsContext | null, // kept for SystemConfigView; not used in TMS guard
             loading: false,
             // Bootstrap wizard step: 1=CF Connection, 2=Inspect, 3=Apply
             wizardStep: 1 as 1 | 2 | 3,
